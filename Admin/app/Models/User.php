@@ -21,6 +21,7 @@ class User extends Authenticatable
         'password',
         'active',
         'role_id',
+        'type',
     ];
 
     protected $hidden = [
@@ -51,4 +52,15 @@ class User extends Authenticatable
     {
         return $this->role?->hasPermission($permissionSlug) ?? false;
     }
+
+    public function isAdmin(): bool
+    {
+        return $this->type === 'admin';
+    }
+
+    public function isStudent(): bool
+    {
+        return $this->type === 'student';
+    }
+
 }

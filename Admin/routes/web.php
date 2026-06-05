@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AdminUserController;
+use App\Http\Controllers\PasswordChangeController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RoleController;
 use Illuminate\Support\Facades\Route;
@@ -9,14 +10,25 @@ Route::get('/', function () {
     return view('welcome');
 });
 
+
+Route::middleware(['auth'])->group(function () {
+    Route::get('/force-password-change', [PasswordChangeController::class, 'edit'])
+        ->name('password.force.edit');
+
+    Route::patch('/force-password-change', [PasswordChangeController::class, 'update'])
+        ->name('password.force.update');
+});
+
+
+
 Route::get('/dashboard', function () {
     return view('dashboard');
-})->middleware(['auth', 'verified'])->name('dashboard');
+})->middleware(['auth', 'verified', 'force.password.change'])->name('dashboard');
 
-Route::middleware('auth')->group(function () {
+Route::middleware(['auth', 'force.password.change'])->group(function () {
+
+
     Route::resource('roles', RoleController::class);
-
-
 
     Route::resource('admin-users', AdminUserController::class);
 

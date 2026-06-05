@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AdminUserController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RoleController;
 use Illuminate\Support\Facades\Route;
@@ -14,6 +15,22 @@ Route::get('/dashboard', function () {
 
 Route::middleware('auth')->group(function () {
     Route::resource('roles', RoleController::class);
+
+
+
+    Route::resource('admin-users', AdminUserController::class);
+
+    Route::patch('/admin-users/{adminUser}/activate', [AdminUserController::class, 'activate'])
+        ->name('admin-users.activate');
+
+    Route::patch('/admin-users/{adminUser}/deactivate', [AdminUserController::class, 'deactivate'])
+        ->name('admin-users.deactivate');
+
+    Route::post('/admin-users/{adminUser}/resend-temporary-password', [AdminUserController::class, 'resendTemporaryPassword'])
+        ->name('admin-users.resend-temporary-password');
+
+
+
 
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');

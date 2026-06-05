@@ -28,6 +28,8 @@ class SuperAdminSeeder extends Seeder
                 'type' => 'admin',
                 'active' => 1,
                 'email_verified_at' => now(),
+                'must_change_password' => false,
+                'temporary_password_expires_at' => null,
             ]
         );
     }

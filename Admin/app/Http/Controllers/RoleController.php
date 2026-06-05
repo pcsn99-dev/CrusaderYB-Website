@@ -12,22 +12,46 @@ use Illuminate\View\View;
 
 class RoleController extends Controller
 {
+    // controller methods for views
     public function index(): View
     {
         $roles = Role::withCount(['users', 'permissions'])
             ->orderBy('name')
             ->paginate(10);
-
         return view('roles.index', compact('roles'));
     }
 
     public function create(): View
     {
         $permissions = Permission::orderBy('name')->get();
-
         return view('roles.create', compact('permissions'));
     }
 
+    public function show(Role $role): View
+    {
+        $role->load(['permissions', 'users']);
+        return view('roles.show', compact('role'));
+    }
+
+        public function edit(Role $role): View
+    {
+        $role->load('permissions');
+        $permissions = Permission::orderBy('name')->get();
+        $selectedPermissionIds = $role->permissions
+            ->pluck('id')
+            ->toArray();
+
+        return view('roles.edit', compact(
+            'role',
+            'permissions',
+            'selectedPermissionIds'
+
+        ));
+    }
+
+
+
+    // controller methods for actions
     public function store(Request $request): RedirectResponse
     {
         $validated = $request->validate([
@@ -67,29 +91,9 @@ class RoleController extends Controller
             ->with('success', 'Role created successfully.');
     }
 
-    public function show(Role $role): View
-    {
-        $role->load(['permissions', 'users']);
 
-        return view('roles.show', compact('role'));
-    }
 
-    public function edit(Role $role): View
-    {
-        $role->load('permissions');
 
-        $permissions = Permission::orderBy('name')->get();
-
-        $selectedPermissionIds = $role->permissions
-            ->pluck('id')
-            ->toArray();
-
-        return view('roles.edit', compact(
-            'role',
-            'permissions',
-            'selectedPermissionIds'
-        ));
-    }
 
     public function update(Request $request, Role $role): RedirectResponse
     {

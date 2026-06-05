@@ -41,18 +41,8 @@ class RolesAndPermissionsSeeder extends Seeder
                 'guard_name' => 'web',
                 'description' => 'Allows proofreading submitted student writeups.',
             ],
-            [
-                'name' => 'Approve Writeups',
-                'slug' => 'approve-writeups',
-                'guard_name' => 'web',
-                'description' => 'Allows approving proofread writeups.',
-            ],
-            [
-                'name' => 'Return Writeups',
-                'slug' => 'return-writeups',
-                'guard_name' => 'web',
-                'description' => 'Allows returning writeups for correction or revision.',
-            ],
+
+
         ];
 
         foreach ($permissions as $permission) {

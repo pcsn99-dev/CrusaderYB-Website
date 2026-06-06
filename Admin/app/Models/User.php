@@ -25,6 +25,8 @@ class User extends Authenticatable
         'must_change_password',
         'temporary_password_expires_at',
         'last_login_at',
+        'google_id',
+        'avatar',
     ];
 
     protected $hidden = [

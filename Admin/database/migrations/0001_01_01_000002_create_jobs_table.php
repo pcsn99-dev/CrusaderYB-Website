@@ -11,6 +11,9 @@ return new class extends Migration
      */
     public function up(): void
     {
+        Schema::dropIfExists('jobs');
+        Schema::dropIfExists('job_batches');
+        Schema::dropIfExists('failed_jobs');
         Schema::create('jobs', function (Blueprint $table) {
             $table->id();
             $table->string('queue')->index();

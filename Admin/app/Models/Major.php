@@ -14,17 +14,18 @@ class Major extends Model
 
     public $timestamps = false;
 
-    protected $fillable = ['major_name','program_id',];
-
-
-
-    public function students()
-    {
-        return $this->hasMany(StudentInfo::class, 'major_id');
-    }
+    protected $fillable = [
+        'program_id',
+        'major_name',
+    ];
 
     public function program()
     {
         return $this->belongsTo(Program::class, 'program_id');
+    }
+
+    public function students()
+    {
+        return $this->hasMany(StudentInfo::class, 'major_id');
     }
 }

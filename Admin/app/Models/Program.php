@@ -21,21 +21,28 @@ class Program extends Model
     public $timestamps = false;
 
     protected $fillable = [
-        'program_name',
         'college_id',
-        'is_graduate_program'
+        'program_name',
+        'is_graduate_program',
     ];
 
-
-
-    public function students()
-    {
-        return $this->hasMany(StudentInfo::class, 'program_id');
-    }
+    protected $casts = [
+        'is_graduate_program' => 'boolean',
+    ];
 
     public function college()
     {
         return $this->belongsTo(College::class, 'college_id');
+    }
+
+    public function majors()
+    {
+        return $this->hasMany(Major::class, 'program_id');
+    }
+
+    public function students()
+    {
+        return $this->hasMany(StudentInfo::class, 'program_id');
     }
 
 

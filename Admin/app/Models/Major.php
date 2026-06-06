@@ -4,7 +4,7 @@ namespace App\Models;
 
 use App\Models\StudentInfo;
 use Illuminate\Database\Eloquent\Model;
-// use Backpack\CRUD\CrudTrait;
+
 
 class Major extends Model
 {

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\StudentInfo;
 use Illuminate\Database\Eloquent\Model;
 // use Backpack\CRUD\CrudTrait;
 
@@ -16,53 +17,26 @@ class Program extends Model
     */
 
     protected $table = 'programs';
-    // protected $primaryKey = 'id';
+
     public $timestamps = false;
-    // protected $guarded = ['id'];
-    protected $fillable = ['program_name'];
-    // protected $hidden = [];
-    // protected $dates = [];
 
-    /*
-    |--------------------------------------------------------------------------
-    | FUNCTIONS
-    |--------------------------------------------------------------------------
-    */
+    protected $fillable = [
+        'program_name',
+        'college_id',
+        'is_graduate_program'
+    ];
 
-    /*
-    |--------------------------------------------------------------------------
-    | RELATIONS
-    |--------------------------------------------------------------------------
-    */
-    public function colleges()
+
+
+    public function students()
     {
-        return $this->belongsToMany('App\Models\College', 'college_program', 'program_id', 'college_id');
+        return $this->hasMany(StudentInfo::class, 'program_id');
     }
 
-    public function majors()
+    public function college()
     {
-        return $this->belongsToMany('App\Models\Major', 'program_major', 'program_id', 'major_id');
+        return $this->belongsTo(College::class, 'college_id');
     }
 
-    public function getMajorsList($id, $major_id){
 
-    }
-
-    /*
-    |--------------------------------------------------------------------------
-    | SCOPES
-    |--------------------------------------------------------------------------
-    */
-
-    /*
-    |--------------------------------------------------------------------------
-    | ACCESORS
-    |--------------------------------------------------------------------------
-    */
-
-    /*
-    |--------------------------------------------------------------------------
-    | MUTATORS
-    |--------------------------------------------------------------------------
-    */
 }

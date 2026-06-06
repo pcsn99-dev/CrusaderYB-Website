@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\StudentInfo;
 use Illuminate\Database\Eloquent\Model;
 // use Backpack\CRUD\CrudTrait;
 
@@ -23,37 +24,27 @@ class College extends Model
     // protected $hidden = [];
     // protected $dates = [];
 
-    /*
-    |--------------------------------------------------------------------------
-    | FUNCTIONS
-    |--------------------------------------------------------------------------
-    */
-
-    /*
-    |--------------------------------------------------------------------------
-    | RELATIONS
-    |--------------------------------------------------------------------------
-    */
+    public function students()
+    {
+        return $this->hasMany(StudentInfo::class, 'college_id');
+    }
+    
     public function programs()
     {
         return $this->belongsToMany('\App\Models\Program', 'college_program', 'college_id', 'program_id');
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | SCOPES
-    |--------------------------------------------------------------------------
-    */
+    public function writeups()
+    {
+        return $this->hasManyThrough(
+            Writeup::class,
+            StudentInfo::class,
+            'college_id',
+            'student_info_id',
+            'id',
+            'id'
+        );
+    }
 
-    /*
-    |--------------------------------------------------------------------------
-    | ACCESORS
-    |--------------------------------------------------------------------------
-    */
 
-    /*
-    |--------------------------------------------------------------------------
-    | MUTATORS
-    |--------------------------------------------------------------------------
-    */
 }

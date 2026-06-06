@@ -1,29 +1,68 @@
+@php
+    $user = Auth::user();
+
+    // add new permission checks when adding more modules
+    $canViewDashboard = $user?->hasPermission('view-admin-dashboard');
+    $canManageRoles = $user?->hasPermission('manage-roles');
+    $canManageAdminUsers = $user?->hasPermission('manage-admin-users');
+    $canViewWriteups = $user?->hasPermission('view-writeups');
+
+    // add  if a module has multiple permissions but should appear as one nav item
+    // $canAccessSystemManagement = $canManageRoles || $canManageAdminUsers;
+@endphp
+
 <nav x-data="{ open: false }" class="bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700">
-    <!-- Primary Navigation Menu -->
+    <!-- main nav menu -->
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex justify-between h-16">
             <div class="flex">
-                <!-- Logo -->
+                <!-- logo -->
                 <div class="shrink-0 flex items-center">
                     <a href="{{ route('dashboard') }}">
                         <x-application-logo class="block h-9 w-auto fill-current text-gray-800 dark:text-gray-200" />
                     </a>
                 </div>
 
-                <!-- Navigation Links -->
+                <!-- desktop nav -->
                 <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
-                    <x-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
-                        {{ __('Dashboard') }}
-                    </x-nav-link>
+
+                
+                    @if ($canViewDashboard)
+                        <x-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
+                            {{ __('Dashboard') }}
+                        </x-nav-link>
+                    @endif
+
+              
+                    @if ($canManageRoles)
+                        <x-nav-link :href="route('roles.index')" :active="request()->routeIs('roles.*')">
+                            {{ __('Roles') }}
+                        </x-nav-link>
+                    @endif
+
+                    @if ($canManageAdminUsers)
+                        <x-nav-link :href="route('admin-users.index')" :active="request()->routeIs('admin-users.*')">
+                            {{ __('Admin Users') }}
+                        </x-nav-link>
+                    @endif
+
+                    {{-- not yet added --}}
+
+                    @if ($canViewWriteups && Route::has('writeups.index'))
+                        <x-nav-link :href="route('writeups.index')" :active="request()->routeIs('writeups.*')">
+                            {{ __('Writeups') }}
+                        </x-nav-link>
+                    @endif
+
                 </div>
             </div>
 
-            <!-- Settings Dropdown -->
+            <!-- settings -->
             <div class="hidden sm:flex sm:items-center sm:ms-6">
                 <x-dropdown align="right" width="48">
                     <x-slot name="trigger">
                         <button class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 hover:text-gray-700 dark:hover:text-gray-300 focus:outline-none transition ease-in-out duration-150">
-                            <div>{{ Auth::user()->name }}</div>
+                            <div>{{ $user->name }}</div>
 
                             <div class="ms-1">
                                 <svg class="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
@@ -38,7 +77,7 @@
                             {{ __('Profile') }}
                         </x-dropdown-link>
 
-                        <!-- Authentication -->
+                     
                         <form method="POST" action="{{ route('logout') }}">
                             @csrf
 
@@ -52,7 +91,7 @@
                 </x-dropdown>
             </div>
 
-            <!-- Hamburger -->
+            <!-- burger -->
             <div class="-me-2 flex items-center sm:hidden">
                 <button @click="open = ! open" class="inline-flex items-center justify-center p-2 rounded-md text-gray-400 dark:text-gray-500 hover:text-gray-500 dark:hover:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-900 focus:outline-none focus:bg-gray-100 dark:focus:bg-gray-900 focus:text-gray-500 dark:focus:text-gray-400 transition duration-150 ease-in-out">
                     <svg class="h-6 w-6" stroke="currentColor" fill="none" viewBox="0 0 24 24">
@@ -64,19 +103,47 @@
         </div>
     </div>
 
-    <!-- Responsive Navigation Menu -->
+    <!-- responsive nav menu -->
     <div :class="{'block': open, 'hidden': ! open}" class="hidden sm:hidden">
+
+   
         <div class="pt-2 pb-3 space-y-1">
-            <x-responsive-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
-                {{ __('Dashboard') }}
-            </x-responsive-nav-link>
+
+          
+            @if ($canViewDashboard)
+                <x-responsive-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
+                    {{ __('Dashboard') }}
+                </x-responsive-nav-link>
+            @endif
+
+            
+            @if ($canManageRoles)
+                <x-responsive-nav-link :href="route('roles.index')" :active="request()->routeIs('roles.*')">
+                    {{ __('Roles') }}
+                </x-responsive-nav-link>
+            @endif
+
+            @if ($canManageAdminUsers)
+                <x-responsive-nav-link :href="route('admin-users.index')" :active="request()->routeIs('admin-users.*')">
+                    {{ __('Admin Users') }}
+                </x-responsive-nav-link>
+            @endif
+
+            {{-- not yet added --}}
+            
+            @if ($canViewWriteups && Route::has('writeups.index'))
+                <x-responsive-nav-link :href="route('writeups.index')" :active="request()->routeIs('writeups.*')">
+                    {{ __('Writeups') }}
+                </x-responsive-nav-link>
+            @endif
+
         </div>
 
-        <!-- Responsive Settings Options -->
+        <!-- responsive settings options -->
         <div class="pt-4 pb-1 border-t border-gray-200 dark:border-gray-600">
             <div class="px-4">
-                <div class="font-medium text-base text-gray-800 dark:text-gray-200">{{ Auth::user()->name }}</div>
-                <div class="font-medium text-sm text-gray-500">{{ Auth::user()->email }}</div>
+                <div class="font-medium text-base text-gray-800 dark:text-gray-200">{{ $user->name }}</div>
+                <div class="font-medium text-sm text-gray-500">{{ $user->email }}</div>
             </div>
 
             <div class="mt-3 space-y-1">
@@ -84,7 +151,7 @@
                     {{ __('Profile') }}
                 </x-responsive-nav-link>
 
-                <!-- Authentication -->
+             
                 <form method="POST" action="{{ route('logout') }}">
                     @csrf
 

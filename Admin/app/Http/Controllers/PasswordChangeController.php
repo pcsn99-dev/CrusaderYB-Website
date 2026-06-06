@@ -10,13 +10,29 @@ use Illuminate\View\View;
 
 class PasswordChangeController extends Controller
 {
-    public function edit(): View
+    public function edit(Request $request): View
     {
-        return view('auth.force-password-change');
+        $user = $request->user();
+
+        $temporaryPasswordExpired = $user->temporary_password_expires_at
+            && now()->greaterThan($user->temporary_password_expires_at);
+
+        return view('auth.force-password-change', compact('temporaryPasswordExpired'));
     }
 
     public function update(Request $request): RedirectResponse
     {
+        $user = $request->user();
+
+        if (
+            $user->temporary_password_expires_at &&
+            now()->greaterThan($user->temporary_password_expires_at)
+        ) {
+            return back()->withErrors([
+                'current_password' => 'Your temporary password has expired. Please ask a Super Admin to send you a new temporary password.',
+            ]);
+        }
+
         $validated = $request->validate([
             'current_password' => [
                 'required',
@@ -29,7 +45,7 @@ class PasswordChangeController extends Controller
             ],
         ]);
 
-        $request->user()->update([
+        $user->update([
             'password' => Hash::make($validated['password']),
             'must_change_password' => false,
             'temporary_password_expires_at' => null,

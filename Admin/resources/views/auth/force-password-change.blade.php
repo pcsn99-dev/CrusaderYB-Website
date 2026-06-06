@@ -3,6 +3,12 @@
         You are using a temporary password. Please create a new password before continuing to the admin portal.
     </div>
 
+    @if ($temporaryPasswordExpired)
+        <div class="mb-4 rounded-md bg-red-50 p-4 text-sm text-red-700 border border-red-200">
+            Your temporary password has expired. Please ask a Super Admin to send you a new temporary password.
+        </div>
+    @endif
+
     @if ($errors->any())
         <div class="mb-4 rounded-md bg-red-50 p-4 text-sm text-red-700 border border-red-200">
             <ul class="list-disc list-inside space-y-1">
@@ -29,6 +35,7 @@
                           type="password"
                           name="current_password"
                           required
+                          :disabled="$temporaryPasswordExpired"
                           autocomplete="current-password" />
 
             <x-input-error :messages="$errors->get('current_password')" class="mt-2" />
@@ -42,6 +49,7 @@
                           type="password"
                           name="password"
                           required
+                          :disabled="$temporaryPasswordExpired"
                           autocomplete="new-password" />
 
             <x-input-error :messages="$errors->get('password')" class="mt-2" />
@@ -55,6 +63,7 @@
                           type="password"
                           name="password_confirmation"
                           required
+                          :disabled="$temporaryPasswordExpired"
                           autocomplete="new-password" />
 
             <x-input-error :messages="$errors->get('password_confirmation')" class="mt-2" />
@@ -67,7 +76,7 @@
                 Log out
             </button>
 
-            <x-primary-button>
+            <x-primary-button :disabled="$temporaryPasswordExpired">
                 Change Password
             </x-primary-button>
         </div>

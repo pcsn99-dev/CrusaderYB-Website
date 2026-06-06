@@ -6,6 +6,46 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RoleController;
 use Illuminate\Support\Facades\Route;
 
+
+/*
+|--------------------------------------------------------------------------
+| Admin Permission Reference
+|--------------------------------------------------------------------------
+|
+| Seeded permissions for the current admin development cycle:
+|
+| view-admin-dashboard
+| - Allows access to the admin dashboard.
+|
+| manage-roles
+| - Allows access to role management.
+| - Used for: roles.index, roles.create, roles.store, roles.show,
+|   roles.edit, roles.update, roles.destroy.
+|
+| manage-admin-users
+| - Allows access to admin user management.
+| - Used for: admin-users.index, admin-users.create, admin-users.store,
+|   admin-users.show, admin-users.edit, admin-users.update,
+|   admin-users.destroy, admin-users.activate, admin-users.deactivate,
+|   admin-users.resend-temporary-password.
+|
+| view-writeups
+| - Allows viewing submitted writeups.
+|
+| proofread-writeups
+| - Allows proofreading submitted writeups.
+|
+
+|
+| Add new permissions in RolesAndPermissionsSeeder first, then use them
+| in routes through: ->middleware('permission:permission-slug')
+|
+*/
+
+
+
+
+
 Route::get('/', function () {
     return view('welcome');
 });
@@ -30,15 +70,21 @@ Route::get('/dashboard', function () {
 Route::middleware(['auth', 'force.password.change', 'admin.account'])->group(function () {
 
 
-    Route::resource('roles', RoleController::class);
+    Route::resource('roles', RoleController::class)->middleware('permission:manage-roles');
 
-    
-    Route::resource('admin-users', AdminUserController::class);
+
+    Route::resource('admin-users', AdminUserController::class)->middleware('permission:manage-admin-users');
+
     Route::patch('/admin-users/{adminUser}/activate', [AdminUserController::class, 'activate'])
+        ->middleware('permission:manage-admin-users')
         ->name('admin-users.activate');
+
     Route::patch('/admin-users/{adminUser}/deactivate', [AdminUserController::class, 'deactivate'])
+        ->middleware('permission:manage-admin-users')
         ->name('admin-users.deactivate');
+
     Route::post('/admin-users/{adminUser}/resend-temporary-password', [AdminUserController::class, 'resendTemporaryPassword'])
+        ->middleware('permission:manage-admin-users')
         ->name('admin-users.resend-temporary-password');
 
 

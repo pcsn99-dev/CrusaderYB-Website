@@ -50,6 +50,18 @@ class LoginRequest extends FormRequest
             ]);
         }
 
+        $user = Auth::user();
+
+        if ($user->type !== 'admin' || ! $user->active) {
+            Auth::logout();
+
+            RateLimiter::hit($this->throttleKey());
+
+            throw ValidationException::withMessages([
+                'email' => 'This account is not allowed to access the admin portal.',
+            ]);
+        }
+
         RateLimiter::clear($this->throttleKey());
     }
 

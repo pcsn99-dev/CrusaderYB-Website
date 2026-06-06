@@ -23,21 +23,21 @@ Route::middleware(['auth'])->group(function () {
 
 Route::get('/dashboard', function () {
     return view('dashboard');
-})->middleware(['auth', 'verified', 'force.password.change'])->name('dashboard');
+})->middleware(['auth', 'verified', 'force.password.change', 'admin.account'])->name('dashboard');
 
-Route::middleware(['auth', 'force.password.change'])->group(function () {
+
+
+Route::middleware(['auth', 'force.password.change', 'admin.account'])->group(function () {
 
 
     Route::resource('roles', RoleController::class);
 
+    
     Route::resource('admin-users', AdminUserController::class);
-
     Route::patch('/admin-users/{adminUser}/activate', [AdminUserController::class, 'activate'])
         ->name('admin-users.activate');
-
     Route::patch('/admin-users/{adminUser}/deactivate', [AdminUserController::class, 'deactivate'])
         ->name('admin-users.deactivate');
-
     Route::post('/admin-users/{adminUser}/resend-temporary-password', [AdminUserController::class, 'resendTemporaryPassword'])
         ->name('admin-users.resend-temporary-password');
 

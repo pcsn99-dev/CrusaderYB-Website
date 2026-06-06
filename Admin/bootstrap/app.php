@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\EnsureAdminAccount;
 use App\Http\Middleware\RequirePasswordChange;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -16,6 +17,7 @@ return Application::configure(basePath: dirname(__DIR__))
         //
         $middleware->alias([
             'force.password.change' => RequirePasswordChange::class,
+            'admin.account' => EnsureAdminAccount::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

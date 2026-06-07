@@ -9,10 +9,24 @@ use Livewire\Component;
 class WriteupReviewDetail extends Component
 {
     public Writeup $writeup;
-
     public string $editedWriteup = '';
-
     public int $maxCharacters = 300;
+
+    //permissions
+    private function canProofreadWriteups(): bool
+    {
+        return auth()->user()?->hasPermission('proofread-writeups') ?? false;
+    }
+
+    private function blockIfCannotProofread(): bool
+    {
+        if (! $this->canProofreadWriteups()) {
+            session()->flash('error', 'You do not have permission to perform this action.');
+            return true;
+        }
+
+        return false;
+    }
 
     public function mount(Writeup $writeup): void
     {
@@ -30,6 +44,9 @@ class WriteupReviewDetail extends Component
 
     public function startReview(): void
     {
+        if ($this->blockIfCannotProofread()) {
+            return;
+        }
         $this->writeup->refresh();
 
         if (
@@ -54,6 +71,9 @@ class WriteupReviewDetail extends Component
 
     public function saveChanges(): void
     {
+        if ($this->blockIfCannotProofread()) {
+            return;
+        }
         if (! $this->canEdit()) {
             session()->flash('error', 'You can only save changes to writeups you are currently reviewing.');
             return;
@@ -75,6 +95,9 @@ class WriteupReviewDetail extends Component
 
     public function markReviewed(): void
     {
+        if ($this->blockIfCannotProofread()) {
+            return;
+        }
         if (! $this->canEdit()) {
             session()->flash('error', 'You can only mark writeups as reviewed if you are currently reviewing them.');
             return;
@@ -102,6 +125,10 @@ class WriteupReviewDetail extends Component
 
     public function releaseReview(): void
     {
+        if ($this->blockIfCannotProofread()) {
+            return;
+        }
+
         $this->writeup->refresh();
 
         if ((int) $this->writeup->locked_by !== (int) auth()->id()) {
@@ -122,6 +149,11 @@ class WriteupReviewDetail extends Component
 
     public function toggleFlag(): void
     {
+
+        if ($this->blockIfCannotProofread()) {
+            return;
+        }
+
         $this->writeup->refresh();
 
         if ($this->writeup->is_flagged) {
@@ -250,6 +282,7 @@ class WriteupReviewDetail extends Component
         return view('livewire.writeup-review-detail', [
             'canEdit' => $this->canEdit(),
             'canStartReview' => $this->canStartReview(),
+            'canProofread' => $this->canProofreadWriteups(),
         ]);
     }
 }

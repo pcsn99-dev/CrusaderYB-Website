@@ -12,16 +12,29 @@ class WriteupReviewQueue extends Component
 {
     use WithPagination;
 
+    //permissions
+    private function canProofreadWriteups(): bool
+    {
+        return auth()->user()?->hasPermission('proofread-writeups') ?? false;
+    }
+
+    private function blockIfCannotProofread(): bool
+    {
+        if (! $this->canProofreadWriteups()) {
+            session()->flash('error', 'You do not have permission to perform this action.');
+            return true;
+        }
+
+        return false;
+    }
+
+
+
     public ?string $year = null;
-
     public ?int $collegeId = null;
-
     public ?string $status = null;
-
     public bool $flaggedOnly = false;
-
     public string $search = '';
-
     public int $perPage = 12;
 
     protected $queryString = [
@@ -73,6 +86,8 @@ class WriteupReviewQueue extends Component
         $this->resetPage();
     }
 
+
+
     public function render()
     {
         $writeups = Writeup::forReviewQueue()
@@ -92,6 +107,7 @@ class WriteupReviewQueue extends Component
             'statusCounts' => $this->getStatusCounts(),
             'collegeCounts' => $this->getCollegeCounts(),
             'totalCount' => $this->getBaseQuery()->count(),
+            'canProofread' => $this->canProofreadWriteups(),
         ]);
     }
 
@@ -178,8 +194,13 @@ class WriteupReviewQueue extends Component
         return $counts;
     }
 
+
+
+    //flagging
     public function toggleFlag(int $writeupId): void
     {
+
+        if ($this->blockIfCannotProofread()) { return;}
         $writeup = Writeup::findOrFail($writeupId);
 
         if ($writeup->is_flagged) {
@@ -189,7 +210,6 @@ class WriteupReviewQueue extends Component
                 'flagged_by' => null,
                 'flagged_at' => null,
             ]);
-
             return;
         }
 
@@ -202,6 +222,7 @@ class WriteupReviewQueue extends Component
 
     public function startReview(int $writeupId)
     {
+        if ($this->blockIfCannotProofread()) { return;}
         $writeup = Writeup::findOrFail($writeupId);
 
         if ($writeup->locked_by && ! $writeup->lockExpired() && (int) $writeup->locked_by !== (int) auth()->id()) {
@@ -220,6 +241,7 @@ class WriteupReviewQueue extends Component
 
     public function releaseReview(int $writeupId): void
     {
+        if ($this->blockIfCannotProofread()) { return;}
         $writeup = Writeup::findOrFail($writeupId);
 
         if ((int) $writeup->locked_by !== (int) auth()->id()) {

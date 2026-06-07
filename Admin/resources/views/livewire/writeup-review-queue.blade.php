@@ -213,13 +213,19 @@
 
                                 <!-- Flag Button -->
                                 <div class="xl:col-span-1 flex xl:justify-center">
-                                    <button type="button"
-                                            wire:key="flag-button-{{ $writeup->id }}"
-                                            wire:click="toggleFlag({{ $writeup->id }})"
-                                            title="{{ $writeup->is_flagged ? 'Remove flag' : 'Flag writeup' }}"
-                                            class="text-lg leading-none {{ $writeup->is_flagged ? 'text-yellow-500' : 'text-gray-300 hover:text-yellow-500' }}">
-                                        {{ $writeup->is_flagged ? '★' : '☆' }}
-                                    </button>
+                                    @if ($canProofread)
+                                        <button type="button"
+                                                wire:key="flag-button-{{ $writeup->id }}"
+                                                wire:click="toggleFlag({{ $writeup->id }})"
+                                                title="{{ $writeup->is_flagged ? 'Remove flag' : 'Flag writeup' }}"
+                                                class="text-lg leading-none {{ $writeup->is_flagged ? 'text-yellow-500' : 'text-gray-300 hover:text-yellow-500' }}">
+                                            {{ $writeup->is_flagged ? '★' : '☆' }}
+                                        </button>
+                                    @else
+                                        <span class="text-gray-300 text-lg">
+                                            {{ $writeup->is_flagged ? '★' : '☆' }}
+                                        </span>
+                                    @endif
                                 </div>
 
                                 <!-- Student / Sender Column -->
@@ -288,26 +294,33 @@
                                     </div>
 
                                     <div class="flex xl:flex-col items-center xl:items-end gap-2">
-                                        @if (! $writeup->locked_by || $writeup->lockExpired())
-                                            <button type="button"
-                                                    wire:key="start-review-{{ $writeup->id }}"
-                                                    wire:click="startReview({{ $writeup->id }})"
-                                                    class="text-xs text-blue-600 hover:text-blue-900 font-medium">
-                                                Start Review
-                                            </button>
-                                        @elseif ((int) $writeup->locked_by === (int) auth()->id())
-                                            <a href="{{ route('writeups.review.show', $writeup) }}"
-                                            class="text-xs text-indigo-600 hover:text-indigo-900 font-medium">
-                                                Continue
-                                            </a>
+                                        @if ($canProofread)
+                                            @if (! $writeup->locked_by || $writeup->lockExpired())
+                                                <button type="button"
+                                                        wire:key="start-review-{{ $writeup->id }}"
+                                                        wire:click="startReview({{ $writeup->id }})"
+                                                        class="text-xs text-blue-600 hover:text-blue-900 font-medium">
+                                                    Start Review
+                                                </button>
+                                            @elseif ((int) $writeup->locked_by === (int) auth()->id())
+                                                <a href="{{ route('writeups.review.show', $writeup) }}"
+                                                class="text-xs text-indigo-600 hover:text-indigo-900 font-medium">
+                                                    Continue
+                                                </a>
 
-                                            <button type="button"
-                                                    wire:key="release-review-{{ $writeup->id }}"
-                                                    wire:click="releaseReview({{ $writeup->id }})"
-                                                    onclick="return confirm('Release this writeup so another staff member can review it?')"
-                                                    class="text-xs text-orange-600 hover:text-orange-900 font-medium">
-                                                Release
-                                            </button>
+                                                <button type="button"
+                                                        wire:key="release-review-{{ $writeup->id }}"
+                                                        wire:click="releaseReview({{ $writeup->id }})"
+                                                        onclick="return confirm('Release this writeup so another staff member can review it?')"
+                                                        class="text-xs text-orange-600 hover:text-orange-900 font-medium">
+                                                    Release
+                                                </button>
+                                            @else
+                                                <a href="{{ route('writeups.review.show', $writeup) }}"
+                                                class="text-xs text-gray-600 hover:text-gray-900 font-medium">
+                                                    View
+                                                </a>
+                                            @endif
                                         @else
                                             <a href="{{ route('writeups.review.show', $writeup) }}"
                                             class="text-xs text-gray-600 hover:text-gray-900 font-medium">

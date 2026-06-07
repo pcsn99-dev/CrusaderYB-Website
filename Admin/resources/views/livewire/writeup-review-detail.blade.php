@@ -92,7 +92,7 @@
 
                 <!-- Actions -->
                 <div class="flex flex-wrap xl:justify-end gap-2">
-                    @if ($canStartReview)
+                    @if ($canProofread && $canStartReview)
                         <button type="button"
                                 wire:click="startReview"
                                 class="inline-flex items-center px-4 py-2 bg-blue-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-blue-700">
@@ -100,7 +100,7 @@
                         </button>
                     @endif
 
-                    @if ($canEdit)
+                    @if ($canProofread && $canEdit)
                         <button type="button"
                                 wire:click="saveChanges"
                                 class="inline-flex items-center px-4 py-2 bg-gray-800 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-gray-700">
@@ -121,12 +121,13 @@
                             Release Review
                         </button>
                     @endif
-
-                    <button type="button"
-                            wire:click="toggleFlag"
-                            class="inline-flex justify-center items-center px-4 py-2 {{ $writeup->is_flagged ? 'bg-white text-yellow-700 border border-yellow-300 hover:bg-yellow-50' : 'bg-yellow-500 text-white border border-transparent hover:bg-yellow-600' }} rounded-md font-semibold text-xs uppercase tracking-widest shadow-sm">
-                        {{ $writeup->is_flagged ? 'Remove Flag' : 'Flag Writeup' }}
-                    </button>
+                    @if ($canProofread)
+                        <button type="button"
+                                wire:click="toggleFlag"
+                                class="inline-flex justify-center items-center px-4 py-2 {{ $writeup->is_flagged ? 'bg-white text-yellow-700 border border-yellow-300 hover:bg-yellow-50' : 'bg-yellow-500 text-white border border-transparent hover:bg-yellow-600' }} rounded-md font-semibold text-xs uppercase tracking-widest shadow-sm">
+                            {{ $writeup->is_flagged ? 'Remove Flag' : 'Flag Writeup' }}
+                        </button>
+                    @endif
                 </div>
             </div>
         </div>
@@ -190,7 +191,7 @@
             </div>
 
             <div class="p-4 sm:p-6">
-                @if ($canEdit)
+                @if ($canProofread && $canEdit)
                     <!-- Simple Formatting Help -->
                     <div class="mb-3 rounded-md bg-gray-50 border border-gray-200 p-3">
                         <div class="flex flex-wrap gap-2 text-xs text-gray-600">
@@ -247,9 +248,16 @@
                         @endif
                     </div>
 
+                    @if (! $canProofread)
+                        <p class="mt-3 text-xs text-gray-500">
+                            You only have permission to view writeups.
+                        </p>
+                    @else
+
                     <p class="mt-3 text-xs text-gray-500">
                         Start reviewing this writeup to edit the reviewed version.
                     </p>
+                    @endif
                 @endif
             </div>
         </div>

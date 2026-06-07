@@ -200,7 +200,7 @@ class WriteupReviewQueue extends Component
         ]);
     }
 
-    public function startReview(int $writeupId): void
+    public function startReview(int $writeupId)
     {
         $writeup = Writeup::findOrFail($writeupId);
 
@@ -215,7 +215,7 @@ class WriteupReviewQueue extends Component
             'review_status' => 'in_review',
         ]);
 
-        session()->flash('success', 'Writeup review started.');
+        return redirect()->route('writeups.review.show', $writeup);
     }
 
     public function releaseReview(int $writeupId): void

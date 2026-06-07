@@ -293,6 +293,11 @@
                                                 Start Review
                                             </button>
                                         @elseif ((int) $writeup->locked_by === (int) auth()->id())
+                                            <a href="{{ route('writeups.review.show', $writeup) }}"
+                                            class="text-xs text-indigo-600 hover:text-indigo-900 font-medium">
+                                                Continue
+                                            </a>
+
                                             <button type="button"
                                                     wire:click="releaseReview({{ $writeup->id }})"
                                                     onclick="return confirm('Release this writeup so another staff member can review it?')"
@@ -300,15 +305,8 @@
                                                 Release
                                             </button>
                                         @else
-                                            <span class="text-xs text-gray-400">
-                                                Locked
-                                            </span>
-                                        @endif
-
-                                        {{-- add view route later when detail page exists --}}
-                                        @if (Route::has('writeups.review.show'))
                                             <a href="{{ route('writeups.review.show', $writeup) }}"
-                                            class="text-xs text-indigo-600 hover:text-indigo-900 font-medium">
+                                            class="text-xs text-gray-600 hover:text-gray-900 font-medium">
                                                 View
                                             </a>
                                         @endif

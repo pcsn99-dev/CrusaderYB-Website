@@ -109,8 +109,11 @@ Route::middleware(['auth', 'force.password.change', 'admin.account'])->group(fun
     //livewire writeups
     Route::get('/writeups/review', function () {
         return view('writeups.review.index');
-    })
-        ->middleware('permission:view-writeups')->name('writeups.review.index');
+    })->middleware('permission:view-writeups')->name('writeups.review.index');
+
+    Route::get('/writeups/review/{writeup}', function (\App\Models\Writeup $writeup) {
+        return view('writeups.review.show', compact('writeup'));
+    })->middleware('permission:view-writeups')->name('writeups.review.show');
 
 
 });

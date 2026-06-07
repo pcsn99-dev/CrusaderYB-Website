@@ -1,0 +1,222 @@
+<?php
+
+namespace App\Livewire;
+
+use App\Models\Writeup;
+use Illuminate\Support\Str;
+use Livewire\Component;
+
+class WriteupReviewDetail extends Component
+{
+    public Writeup $writeup;
+
+    public string $editedWriteup = '';
+    public int $maxCharacters = 300;
+
+    public ?string $flagReason = null;
+
+    public function mount(Writeup $writeup): void
+    {
+        $this->writeup = $writeup->load([
+            'studentInfo.college',
+            'studentInfo.program',
+            'studentInfo.major',
+            'proofreader',
+            'lockedBy',
+            'flaggedBy',
+        ]);
+
+        $this->editedWriteup = $this->writeup->edited_writeup ?: $this->writeup->writeup ?: '';
+
+        $this->flagReason = $this->writeup->flag_reason;
+    }
+
+    public function startReview(): void
+    {
+        $this->writeup->refresh();
+
+        if (
+            $this->writeup->locked_by &&
+            ! $this->writeup->lockExpired() &&
+            (int) $this->writeup->locked_by !== (int) auth()->id()
+        ) {
+            session()->flash('error', 'This writeup is already being reviewed by another staff member.');
+            return;
+        }
+
+        $this->writeup->update([
+            'locked_by' => auth()->id(),
+            'locked_at' => now(),
+            'review_status' => 'in_review',
+        ]);
+
+        $this->refreshWriteup();
+
+        session()->flash('success', 'Writeup review started.');
+    }
+
+    public function saveChanges(): void
+    {
+        if (! $this->canEdit()) {
+            session()->flash('error', 'You can only save changes to writeups you are currently reviewing.');
+            return;
+        }
+
+        $this->validate([
+            'editedWriteup' => ['required', 'string', 'max:300'],
+        ]);
+
+        $this->writeup->update([
+            'edited_writeup' => $this->editedWriteup,
+            'proofreader_id' => auth()->id(),
+        ]);
+
+        $this->refreshWriteup();
+
+        session()->flash('success', 'Writeup changes saved.');
+    }
+
+    public function markReviewed(): void
+    {
+        if (! $this->canEdit()) {
+            session()->flash('error', 'You can only mark writeups as reviewed if you are currently reviewing them.');
+            return;
+        }
+
+        $this->validate([
+            'editedWriteup' => ['required', 'string', 'max:300'],
+        ]);
+
+        $this->writeup->update([
+            'edited_writeup' => $this->editedWriteup,
+            'proofreader_id' => auth()->id(),
+            'is_done' => true,
+            'review_status' => 'reviewed',
+            'date_of_proofread' => now()->toDateString(),
+            'reviewed_at' => now(),
+            'locked_by' => null,
+            'locked_at' => null,
+        ]);
+
+        $this->refreshWriteup();
+
+        session()->flash('success', 'Writeup marked as reviewed.');
+    }
+
+    public function releaseReview(): void
+    {
+        $this->writeup->refresh();
+
+        if ((int) $this->writeup->locked_by !== (int) auth()->id()) {
+            session()->flash('error', 'You can only release writeups that you are currently reviewing.');
+            return;
+        }
+
+        $this->writeup->update([
+            'locked_by' => null,
+            'locked_at' => null,
+            'review_status' => $this->writeup->is_flagged ? 'flagged' : 'pending',
+        ]);
+
+        $this->refreshWriteup();
+
+        session()->flash('success', 'Writeup review released.');
+    }
+
+    public function toggleFlag(): void
+    {
+        $this->writeup->refresh();
+
+        if ($this->writeup->is_flagged) {
+            $this->writeup->update([
+                'is_flagged' => false,
+                'flag_reason' => null,
+                'flagged_by' => null,
+                'flagged_at' => null,
+                'review_status' => $this->writeup->is_done
+                    ? 'reviewed'
+                    : ($this->writeup->locked_by ? 'in_review' : 'pending'),
+            ]);
+
+            $this->refreshWriteup();
+
+            session()->flash('success', 'Flag removed.');
+            return;
+        }
+
+        $this->writeup->update([
+            'is_flagged' => true,
+            'flag_reason' => null,
+            'flagged_by' => auth()->id(),
+            'flagged_at' => now(),
+        ]);
+
+        $this->refreshWriteup();
+
+        session()->flash('success', 'Writeup flagged for attention.');
+    }
+
+    public function canEdit(): bool
+    {
+        return $this->writeup->locked_by &&
+            (int) $this->writeup->locked_by === (int) auth()->id() &&
+            ! $this->writeup->lockExpired();
+    }
+
+    public function canStartReview(): bool
+    {
+        return ! $this->writeup->locked_by || $this->writeup->lockExpired();
+    }
+
+    private function refreshWriteup(): void
+    {
+        $this->writeup = $this->writeup->fresh([
+            'studentInfo.college',
+            'studentInfo.program',
+            'studentInfo.major',
+            'proofreader',
+            'lockedBy',
+            'flaggedBy',
+        ]);
+    }
+
+    public function render()
+    {
+        return view('livewire.writeup-review-detail', [
+            'canEdit' => $this->canEdit(),
+            'canStartReview' => $this->canStartReview(),
+        ]);
+    }
+
+
+
+    //richtext stuff 
+
+    public function getCharacterCountProperty(): int
+    {
+        return mb_strlen($this->editedWriteup ?? '');
+    }
+
+    public function getRemainingCharactersProperty(): int
+    {
+        return max(0, $this->maxCharacters - $this->characterCount);
+    }
+
+    public function getRenderedEditedWriteupProperty(): string
+    {
+        return Str::markdown($this->editedWriteup ?: '', [
+            'html_input' => 'strip',
+            'allow_unsafe_links' => false,
+        ]);
+    }
+
+    public function getRenderedOriginalWriteupProperty(): string
+    {
+        return Str::markdown($this->writeup->writeup ?: '', [
+            'html_input' => 'strip',
+            'allow_unsafe_links' => false,
+        ]);
+    }
+
+
+}

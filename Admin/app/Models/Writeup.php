@@ -99,4 +99,85 @@ class Writeup extends Model
     {
         return (int) $this->locked_by === (int) $user->id;
     }
+    public function scopeForReviewQueue($query)
+    {
+        return $query->with([
+            'studentInfo.college',
+            'studentInfo.program',
+            'studentInfo.major',
+            'proofreader',
+            'lockedBy',
+            'flaggedBy',
+        ])
+        ->whereHas('studentInfo');
+    }
+
+
+
+
+
+    //SCOPES 
+    
+    public function scopeFilterByYear($query, ?string $year)
+    {
+        return $query->when($year, function ($query) use ($year) {
+            $query->whereHas('studentInfo', function ($query) use ($year) {
+                $query->where('year', $year);
+            });
+        });
+    }
+
+    public function scopeFilterByCollege($query, $collegeId)
+    {
+        return $query->when($collegeId, function ($query) use ($collegeId) {
+            $query->whereHas('studentInfo', function ($query) use ($collegeId) {
+                $query->where('college_id', $collegeId);
+            });
+        });
+    }
+
+    public function scopeFilterByStatus($query, ?string $status)
+    {
+        return $query->when($status, function ($query) use ($status) {
+            $query->where('review_status', $status);
+        });
+    }
+
+    public function scopeFlaggedOnly($query, bool $flaggedOnly = false)
+    {
+        return $query->when($flaggedOnly, function ($query) {
+            $query->where('is_flagged', true);
+        });
+    }
+
+    public function scopeSearchStudent($query, ?string $search)
+    {
+        return $query->when($search, function ($query) use ($search) {
+            $query->whereHas('studentInfo', function ($query) use ($search) {
+                $query->where(function ($query) use ($search) {
+                    $query->where('first_name', 'like', "%{$search}%")
+                        ->orWhere('middle_name', 'like', "%{$search}%")
+                        ->orWhere('last_name', 'like', "%{$search}%")
+                        ->orWhere('university_id', 'like', "%{$search}%")
+                        ->orWhere('slmis_id', 'like', "%{$search}%");
+                });
+            });
+        });
+    }
+
+    public function scopeOrderedForReviewQueue($query)
+    {
+        return $query
+            ->join('student_info', 'student_info.id', '=', 'writeups.student_info_id')
+            ->leftJoin('colleges', 'colleges.id', '=', 'student_info.college_id')
+            ->leftJoin('programs', 'programs.id', '=', 'student_info.program_id')
+            ->orderBy('colleges.college_name')
+            ->orderBy('programs.program_name')
+            ->orderBy('student_info.last_name')
+            ->orderBy('student_info.first_name')
+            ->select('writeups.*');
+    }
+
+
+
 }

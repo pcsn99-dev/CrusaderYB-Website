@@ -155,7 +155,7 @@
             </div>
 
             <div class="p-4 sm:p-6">
-                <div class="rounded-md bg-gray-50 border border-gray-200 p-4 min-h-72">
+                <div class="rounded-md bg-gray-50 border border-gray-200 p-4 min-h-20">
                     @if ($writeup->writeup)
                         <div class="prose prose-sm max-w-none text-gray-700">
                             {!! $this->renderedOriginalWriteup !!}

@@ -207,12 +207,14 @@
                             };
                         @endphp
 
-                        <div class="group px-4 py-3 hover:bg-gray-50 transition">
+                        <div wire:key="writeup-row-{{ $writeup->id }}"
+                            class="group px-4 py-3 hover:bg-gray-50 transition">
                             <div class="grid grid-cols-1 xl:grid-cols-12 gap-3 xl:gap-4 items-start xl:items-center">
 
                                 <!-- Flag Button -->
                                 <div class="xl:col-span-1 flex xl:justify-center">
                                     <button type="button"
+                                            wire:key="flag-button-{{ $writeup->id }}"
                                             wire:click="toggleFlag({{ $writeup->id }})"
                                             title="{{ $writeup->is_flagged ? 'Remove flag' : 'Flag writeup' }}"
                                             class="text-lg leading-none {{ $writeup->is_flagged ? 'text-yellow-500' : 'text-gray-300 hover:text-yellow-500' }}">
@@ -288,6 +290,7 @@
                                     <div class="flex xl:flex-col items-center xl:items-end gap-2">
                                         @if (! $writeup->locked_by || $writeup->lockExpired())
                                             <button type="button"
+                                                    wire:key="start-review-{{ $writeup->id }}"
                                                     wire:click="startReview({{ $writeup->id }})"
                                                     class="text-xs text-blue-600 hover:text-blue-900 font-medium">
                                                 Start Review
@@ -299,6 +302,7 @@
                                             </a>
 
                                             <button type="button"
+                                                    wire:key="release-review-{{ $writeup->id }}"
                                                     wire:click="releaseReview({{ $writeup->id }})"
                                                     onclick="return confirm('Release this writeup so another staff member can review it?')"
                                                     class="text-xs text-orange-600 hover:text-orange-900 font-medium">

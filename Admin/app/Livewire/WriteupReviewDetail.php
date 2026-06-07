@@ -11,9 +11,8 @@ class WriteupReviewDetail extends Component
     public Writeup $writeup;
 
     public string $editedWriteup = '';
-    public int $maxCharacters = 300;
 
-    public ?string $flagReason = null;
+    public int $maxCharacters = 300;
 
     public function mount(Writeup $writeup): void
     {
@@ -27,8 +26,6 @@ class WriteupReviewDetail extends Component
         ]);
 
         $this->editedWriteup = $this->writeup->edited_writeup ?: $this->writeup->writeup ?: '';
-
-        $this->flagReason = $this->writeup->flag_reason;
     }
 
     public function startReview(): void
@@ -62,9 +59,9 @@ class WriteupReviewDetail extends Component
             return;
         }
 
-        $this->validate([
-            'editedWriteup' => ['required', 'string', 'max:300'],
-        ]);
+        if (! $this->validateEditedWriteup()) {
+            return;
+        }
 
         $this->writeup->update([
             'edited_writeup' => $this->editedWriteup,
@@ -83,9 +80,9 @@ class WriteupReviewDetail extends Component
             return;
         }
 
-        $this->validate([
-            'editedWriteup' => ['required', 'string', 'max:300'],
-        ]);
+        if (! $this->validateEditedWriteup()) {
+            return;
+        }
 
         $this->writeup->update([
             'edited_writeup' => $this->editedWriteup,
@@ -168,6 +165,48 @@ class WriteupReviewDetail extends Component
         return ! $this->writeup->locked_by || $this->writeup->lockExpired();
     }
 
+    private function validateEditedWriteup(): bool
+    {
+        $this->resetErrorBag('editedWriteup');
+
+        $plainText = $this->plainText($this->editedWriteup);
+
+        if ($plainText === '') {
+            $this->addError('editedWriteup', 'The reviewed writeup is required.');
+            return false;
+        }
+
+        if (mb_strlen($plainText) > $this->maxCharacters) {
+            $this->addError('editedWriteup', 'The reviewed writeup must not exceed '.$this->maxCharacters.' characters.');
+            return false;
+        }
+
+        if ($this->containsEmoji($plainText)) {
+            $this->addError('editedWriteup', 'Emojis are not allowed in the reviewed writeup.');
+            return false;
+        }
+
+        return true;
+    }
+
+    private function containsEmoji(string $value): bool
+    {
+        return preg_match('/[\x{1F000}-\x{1FAFF}\x{2600}-\x{27BF}]/u', $value) === 1;
+    }
+
+    private function plainText(?string $value): string
+    {
+        $value = strip_tags($value ?? '');
+        $value = html_entity_decode($value);
+
+        $value = preg_replace('/\*\*(.*?)\*\*/s', '$1', $value);
+        $value = preg_replace('/\*(.*?)\*/s', '$1', $value);
+        $value = preg_replace('/_(.*?)_/s', '$1', $value);
+        $value = preg_replace('/`(.*?)`/s', '$1', $value);
+
+        return trim($value);
+    }
+
     private function refreshWriteup(): void
     {
         $this->writeup = $this->writeup->fresh([
@@ -180,21 +219,9 @@ class WriteupReviewDetail extends Component
         ]);
     }
 
-    public function render()
-    {
-        return view('livewire.writeup-review-detail', [
-            'canEdit' => $this->canEdit(),
-            'canStartReview' => $this->canStartReview(),
-        ]);
-    }
-
-
-
-    //richtext stuff 
-
     public function getCharacterCountProperty(): int
     {
-        return mb_strlen($this->editedWriteup ?? '');
+        return mb_strlen($this->plainText($this->editedWriteup));
     }
 
     public function getRemainingCharactersProperty(): int
@@ -212,11 +239,17 @@ class WriteupReviewDetail extends Component
 
     public function getRenderedOriginalWriteupProperty(): string
     {
-        return Str::markdown($this->writeup->writeup ?: '', [
+        return Str::markdown(e($this->writeup->writeup ?: ''), [
             'html_input' => 'strip',
             'allow_unsafe_links' => false,
         ]);
     }
 
-
+    public function render()
+    {
+        return view('livewire.writeup-review-detail', [
+            'canEdit' => $this->canEdit(),
+            'canStartReview' => $this->canStartReview(),
+        ]);
+    }
 }

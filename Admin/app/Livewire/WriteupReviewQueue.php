@@ -200,5 +200,41 @@ class WriteupReviewQueue extends Component
         ]);
     }
 
+    public function startReview(int $writeupId): void
+    {
+        $writeup = Writeup::findOrFail($writeupId);
+
+        if ($writeup->locked_by && ! $writeup->lockExpired() && (int) $writeup->locked_by !== (int) auth()->id()) {
+            session()->flash('error', 'This writeup is already being reviewed by another staff member.');
+            return;
+        }
+
+        $writeup->update([
+            'locked_by' => auth()->id(),
+            'locked_at' => now(),
+            'review_status' => 'in_review',
+        ]);
+
+        session()->flash('success', 'Writeup review started.');
+    }
+
+    public function releaseReview(int $writeupId): void
+    {
+        $writeup = Writeup::findOrFail($writeupId);
+
+        if ((int) $writeup->locked_by !== (int) auth()->id()) {
+            session()->flash('error', 'You can only release writeups that you are currently reviewing.');
+            return;
+        }
+
+        $writeup->update([
+            'locked_by' => null,
+            'locked_at' => null,
+            'review_status' => $writeup->is_flagged ? 'flagged' : 'pending',
+        ]);
+
+        session()->flash('success', 'Writeup review released.');
+    }
+
 
 }

@@ -1,6 +1,18 @@
-<div class="space-y-6">
+<div class="space-y-6" wire:poll.5s>
 
-    <!-- Header / Search Bar -->
+    @if (session('success'))
+        <div class="rounded-md bg-green-50 p-4 text-sm text-green-700 border border-green-200">
+            {{ session('success') }}
+        </div>
+    @endif
+
+    @if (session('error'))
+        <div class="rounded-md bg-red-50 p-4 text-sm text-red-700 border border-red-200">
+            {{ session('error') }}
+        </div>
+    @endif
+
+
     <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
         <div class="p-4 sm:p-6">
             <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
@@ -27,13 +39,12 @@
         </div>
     </div>
 
-    <!-- Main Mailbox Layout -->
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
 
-        <!-- Sidebar Filters -->
+        <!-- filters -->
         <aside class="lg:col-span-3 space-y-4">
 
-            <!-- Year Filter -->
+            <!-- year -->
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                 <div class="p-4">
                     <label for="year" class="block text-sm font-semibold text-gray-900">
@@ -54,7 +65,7 @@
                 </div>
             </div>
 
-            <!-- Status Folders -->
+            <!-- status -->
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                 <div class="px-4 py-3 border-b border-gray-200">
                     <h4 class="text-sm font-semibold text-gray-900">
@@ -64,7 +75,7 @@
 
                 <div class="divide-y divide-gray-100">
 
-                    <!-- add new status filters here if more review states are added -->
+           
                     <button type="button"
                             wire:click="setStatus(null)"
                             class="w-full flex items-center justify-between px-4 py-3 text-sm hover:bg-gray-50 {{ $status === null && ! $flaggedOnly ? 'bg-indigo-50 text-indigo-700 font-semibold' : 'text-gray-700' }}">
@@ -112,7 +123,7 @@
                 </div>
             </div>
 
-            <!-- Colleges -->
+            <!-- college -->
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                 <div class="px-4 py-3 border-b border-gray-200">
                     <h4 class="text-sm font-semibold text-gray-900">
@@ -146,7 +157,7 @@
                 </div>
             </div>
 
-            <!-- Clear Filters -->
+            <!-- clear -->
             <button type="button"
                     wire:click="clearFilters"
                     class="w-full inline-flex justify-center items-center px-4 py-2 bg-white border border-gray-300 rounded-md font-semibold text-xs text-gray-700 uppercase tracking-widest shadow-sm hover:bg-gray-50">
@@ -154,11 +165,11 @@
             </button>
         </aside>
 
-        <!-- Inbox List -->
+        <!-- writeups -->
         <main class="lg:col-span-9">
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
 
-                <!-- Inbox Toolbar -->
+                
                 <div class="px-4 py-3 border-b border-gray-200">
                     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                         <div>
@@ -177,7 +188,7 @@
                     </div>
                 </div>
 
-                <!-- Writeup Rows -->
+                <!-- rows -->
                 <div class="divide-y divide-gray-200">
                     @forelse ($writeups as $writeup)
                         @php
@@ -216,11 +227,6 @@
                                             {{ $student?->formatted_full_name ?? 'No student info' }}
                                         </div>
 
-                                        @if ($writeup->locked_by)
-                                            <span class="hidden sm:inline-flex rounded-full bg-blue-50 px-2 py-0.5 text-[11px] font-medium text-blue-700 border border-blue-200">
-                                                Locked
-                                            </span>
-                                        @endif
                                     </div>
 
                                     <div class="mt-0.5 text-xs text-gray-500 truncate">
@@ -231,7 +237,7 @@
                                     </div>
                                 </div>
 
-                                <!-- Subject / Preview Column -->
+                                
                                 <div class="xl:col-span-5 min-w-0">
                                     <div class="text-sm text-gray-900 truncate">
                                         <span class="font-semibold">
@@ -279,13 +285,34 @@
                                         {{ $writeup->updated_at?->format('M d') ?? 'N/A' }}
                                     </div>
 
-                                    {{-- add view route later when detail page exists --}}
-                                    @if (Route::has('writeups.review.show'))
-                                        <a href="{{ route('writeups.review.show', $writeup) }}"
-                                        class="text-xs text-indigo-600 hover:text-indigo-900 font-medium">
-                                            View
-                                        </a>
-                                    @endif
+                                    <div class="flex xl:flex-col items-center xl:items-end gap-2">
+                                        @if (! $writeup->locked_by || $writeup->lockExpired())
+                                            <button type="button"
+                                                    wire:click="startReview({{ $writeup->id }})"
+                                                    class="text-xs text-blue-600 hover:text-blue-900 font-medium">
+                                                Start Review
+                                            </button>
+                                        @elseif ((int) $writeup->locked_by === (int) auth()->id())
+                                            <button type="button"
+                                                    wire:click="releaseReview({{ $writeup->id }})"
+                                                    onclick="return confirm('Release this writeup so another staff member can review it?')"
+                                                    class="text-xs text-orange-600 hover:text-orange-900 font-medium">
+                                                Release
+                                            </button>
+                                        @else
+                                            <span class="text-xs text-gray-400">
+                                                Locked
+                                            </span>
+                                        @endif
+
+                                        {{-- add view route later when detail page exists --}}
+                                        @if (Route::has('writeups.review.show'))
+                                            <a href="{{ route('writeups.review.show', $writeup) }}"
+                                            class="text-xs text-indigo-600 hover:text-indigo-900 font-medium">
+                                                View
+                                            </a>
+                                        @endif
+                                    </div>
                                 </div>
 
                             </div>
@@ -303,7 +330,7 @@
                     @endforelse
                 </div>
 
-                <!-- Pagination -->
+                <!-- pagination -->
                 <div class="px-4 py-4 border-t border-gray-200">
                     {{ $writeups->links() }}
                 </div>

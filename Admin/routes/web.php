@@ -104,6 +104,18 @@ Route::middleware(['auth', 'force.password.change', 'admin.account'])->group(fun
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+
+
+    //livewire writeups
+    Route::get('/writeups/review', function () {
+        return view('writeups.review.index');
+    })->middleware('permission:view-writeups')->name('writeups.review.index');
+
+    Route::get('/writeups/review/{writeup}', function (\App\Models\Writeup $writeup) {
+        return view('writeups.review.show', compact('writeup'));
+    })->middleware('permission:view-writeups')->name('writeups.review.show');
+
+
 });
 
 

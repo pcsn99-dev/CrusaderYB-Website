@@ -22,7 +22,7 @@
                     <i class="bi bi-bell-fill"></i>
                     <span class="navbar-badge badge text-bg-warning">3</span>
                 </a>
-                <div class="dropdown-menu dropdown-menu-lg dropdown-menu-end show" data-bs-popper="static">
+                <div class="dropdown-menu dropdown-menu-lg dropdown-menu-end" data-bs-popper="static">
                     <span class="dropdown-item dropdown-header">3 Notifications</span>
                     <div class="dropdown-divider"></div>
                     <a href="#" class="dropdown-item">1 Unsure
@@ -33,12 +33,12 @@
                 </div>
             </li>
             <li class="nav-item dropdown">
-                <a class="nav-link show" href="#" id="bd-theme" aria-label="Toggle color scheme" data-bs-toggle="dropdown" aria-expanded="true">
+                <a class="nav-link" href="#" id="bd-theme" aria-label="Toggle color scheme" data-bs-toggle="dropdown" aria-expanded="true">
                 <i class="bi bi-sun-fill" data-lte-theme-icon="light"></i>
                 <i class="bi bi-moon-fill d-none" data-lte-theme-icon="dark"></i>
                 <i class="bi bi-circle-half d-none" data-lte-theme-icon="auto"></i>
                 </a>
-                <ul class="dropdown-menu dropdown-menu-end show" aria-labelledby="bd-theme" style="--bs-dropdown-min-width: 8rem" data-bs-popper="static">
+                <ul class="dropdown-menu dropdown-menu-end " aria-labelledby="bd-theme" style="--bs-dropdown-min-width: 8rem" data-bs-popper="static">
                 <li>
                     <button type="button" class="dropdown-item d-flex align-items-center active" data-bs-theme-value="light" aria-pressed="true">
                     <i class="bi bi-sun-fill me-2"></i>

@@ -8,7 +8,7 @@
 
 @endphp
 
-<div class="rounded-circle bg-secondary text-white d-inline-flex align-items-center justify-content-center"
+<div class="rounded-circle bg-secondary text-white d-inline-flex align-items-center justify-content-center shadow"
      style="width: {{ $size }}px; height: {{ $size }}px;">
     {{ $initials }}
 </div>

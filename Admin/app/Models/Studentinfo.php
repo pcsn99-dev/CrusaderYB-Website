@@ -2,12 +2,13 @@
 
 namespace App\Models;
 
+// use Backpack\CRUD\CrudTrait;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-class StudentInfo extends Model
+class Studentinfo extends Model
 {
-
+    // use CrudTrait;
     use SoftDeletes;
 
     /*
@@ -47,77 +48,106 @@ class StudentInfo extends Model
         'claim_pic_date',
     ];
 
-
-    protected $casts = [
-        'slmis_id' => 'integer',
-        'is_agree_contract' => 'integer',
-        'is_subscribe' => 'boolean',
-        'subscribe_date' => 'date',
-        'unsubscribe_date' => 'date',
-        'is_yb_paid' => 'integer',
-        'claim_yb' => 'boolean',
-        'claim_pic' => 'boolean',
-        'claim_yb_date' => 'date',
-        'claim_pic_date' => 'date',
-        'free_same_day_resched' => 'boolean',
-    ];
-
     public $timestamps = true;
 
     
-    public function user()
+    /*
+    |--------------------------------------------------------------------------
+    | FUNCTIONS
+    |--------------------------------------------------------------------------
+    */
+    public function getFullname()
     {
-        return $this->belongsTo(User::class);
+        return $this->last_name . ', '. $this->first_name.' '.$this->middle_name.' '.$this->suffix;
     }
 
-    public function writeup()
+    /*
+    |--------------------------------------------------------------------------
+    | RELATIONS
+    |--------------------------------------------------------------------------
+    */
+    public function user()
     {
-        return $this->hasOne(Writeup::class, 'student_info_id');
+        return $this->belongsTo(User::class, 'user_id');
     }
 
     public function college()
     {
-        return $this->belongsTo(College::class, 'college_id');
+        return $this->belongsTo('\App\Models\College');
     }
 
     public function program()
     {
-        return $this->belongsTo(Program::class, 'program_id');
+        return $this->belongsTo('\App\Models\Program');
     }
 
     public function major()
     {
-        return $this->belongsTo(Major::class, 'major_id');
+        return $this->belongsTo('\App\Models\Major');
     }
 
-    public function getFullNameAttribute(): string
+    public function penalties()
     {
-        return collect([
-            $this->last_name,
-            $this->first_name,
-            $this->middle_name,
-            $this->suffix,
-        ])
-            ->filter()
-            ->implode(' ');
+        return $this->hasMany('\App\Models\Penalty', 'student_info_id');
     }
 
-    public function getFormattedFullNameAttribute(): string
+    public function reservation()
     {
-        $firstPart = trim(collect([
-            $this->first_name,
-            $this->middle_name,
-        ])->filter()->implode(' '));
-
-        $lastPart = trim(collect([
-            $this->last_name,
-            $this->suffix,
-        ])->filter()->implode(' '));
-
-        return trim($firstPart.' '.$lastPart);
+        return $this->hasOne('\App\Models\Reservation', 'student_info_id');
     }
 
+    public function account_subscription()
+    {
+        return $this->hasOne('\App\Models\AccountSubscription', 'student_info_id');
+    }
 
+    /*
+    |--------------------------------------------------------------------------
+    | SCOPES
+    |--------------------------------------------------------------------------
+    */
+    public function scopeSearch($query, $term)
+    {
+        $term = trim($term);
+        if ($term === '') return $query;
 
+        return $query->where(function ($q) use ($term) {
+            $q->where('first_name', 'LIKE', "%{$term}%")
+            ->orWhere('middle_name', 'LIKE', "%{$term}%")
+            ->orWhere('last_name', 'LIKE', "%{$term}%")
+            ->orWhere('university_id', 'LIKE', "%{$term}%");
+        });
+    }
 
+    /*
+    |--------------------------------------------------------------------------
+    | ACCESORS
+    |--------------------------------------------------------------------------
+    */
+    public function getEmailAttribute() {
+        if ($this->user) {
+            return $this->user->email;
+        } else {
+            return null;
+        }
+    }
+
+    public function getVerification() {
+        if ($this->user) {
+            return $this->user->verified;
+        } else {
+            return 0;
+        }
+    }
+
+    public function getFullnameAttribute() {
+        return $this->last_name . ', '. $this->first_name;
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | MUTATORS
+    |--------------------------------------------------------------------------
+    */
+    
 }

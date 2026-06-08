@@ -38,45 +38,55 @@
     <div class="app-wrapper">
 
 
-    {{-- Navigation Bar --}}
-    @include('layouts.navbar')
+        {{-- Navigation Bar --}}
+        @include('layouts.navbar')
 
-    {{-- Sidebar     --}}
-    @include('layouts.sidebar')
+        {{-- Sidebar     --}}
+        @include('layouts.sidebar')
 
 
-    <main class="app-main">
-        <div class="app-content-header">
-            <div class="container-fluid">
-                <div class="row">
-                    <div class="col-sm-6">
-                        <h3 class="mb-0">
+        <main class="app-main">
+            <x-alert />
+
+            <div class="app-content-header">
+                <div class="container-fluid">
+                    <div class="row">
+                        <div class="col-sm-6">
+                            <div class="h3 mb-1">
                             {{ $header }}
-                        </h3>
+                            </div>
+                            @if (isset($subheader))
+                            <div class="fs-7 mb-0 text-secondary">
+                                {{ $subheader }}
+                            </div>
+                            @endif
+                        </div>
+                        @if (isset($breadcrumbs))
+                          <div class="col-sm-6">
+                            <ol class="breadcrumb float-sm-end">
+                              {{ $breadcrumbs }}
+                            </ol>
+                          </div>
+                        @endif
                     </div>
                 </div>
             </div>
-        </div>
 
-        
-        <div class="app-content">
-            <div class="container-fluid">
-                <div class="card">
+            
+            <div class="app-content">
+                <div class="container-fluid">
+                    
                     {{ $slot }}
                 </div>
             </div>
-        </div>
-
 
         
-
-        
-    
-    </main>
+        </main>
 
 
 
     </div>
+
     @livewireScripts
 </body>
 

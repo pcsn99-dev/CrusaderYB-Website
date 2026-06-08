@@ -1,10 +1,11 @@
 @props([
     'active' => false,
     'icon' => null,
+    'child' => false,
 ])
 
 @php
-$classes = 'nav-link' . ($active ? ' active' : '');
+$classes = 'nav-link' . ($active ? ' active' : '') . ($child ? ' ps-5' : '');
 @endphp
 
 <a {{ $attributes->merge(['class' => $classes]) }}>
@@ -12,7 +13,5 @@ $classes = 'nav-link' . ($active ? ' active' : '');
         <i class="nav-icon {{ $icon }}"></i>
     @endif
 
-    <p>
-        {{ $slot }}
-    </p>
+    <p>{{ $slot }}</p>
 </a>

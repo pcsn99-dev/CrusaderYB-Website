@@ -1,15 +1,5 @@
-<div class="space-y-6" wire:poll.10s>
-    @if (session('success'))
-        <div class="rounded-md bg-green-50 p-4 text-sm text-green-700 border border-green-200">
-            {{ session('success') }}
-        </div>
-    @endif
-
-    @if (session('error'))
-        <div class="rounded-md bg-red-50 p-4 text-sm text-red-700 border border-red-200">
-            {{ session('error') }}
-        </div>
-    @endif
+<div class="space-y-6" wire:poll.5s>
+  <x-alert />
 
     @php
         $student = $writeup->studentInfo;
@@ -21,248 +11,281 @@
             default => 'bg-gray-50 text-gray-700 border-gray-200',
         };
     @endphp
+    <div class="row g-3">
+        <div class="col-md-3">
+            {{-- student card --}}
+            <div class="card">
+                	<div class="card-body text-center">
+                  
+						<i class="bi bi-person-circle fs-1 text-primary"></i>
 
-    <!-- Header -->
-    <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-        <div class="p-4 sm:p-6">
-            <div class="flex flex-col xl:flex-row xl:items-start xl:justify-between gap-5">
-                <div class="min-w-0">
-                    <div class="flex flex-wrap items-center gap-2">
-                        <h3 class="text-xl font-semibold text-gray-900">
-                            {{ $student?->formatted_full_name ?? 'No student info' }}
-                        </h3>
+						
+						<h3 class="h5 mb-2 fw-bold">{{ $student?->formatted_full_name ?? 'No student info' }}</h3>
+						<ul class="list-group list-group-flush text-start small">
+							<li class="list-group-item d-flex justify-content-between px-0">
+								<span class="text-secondary">University ID</span>
+								<span class="fw-semibold"> {{ $student?->university_id ?? 'N/A' }}</span>
+							</li>
+							<li class="list-group-item d-flex justify-content-between px-0">
+								<span class="text-secondary">SLMIS ID </span>
+								<span class="fw-semibold">{{ $student?->slmis_id ?? 'N/A' }}</span>
+							</li>
+							<li class="list-group-item d-flex justify-content-between px-0">
+								<span class="text-secondary">Batch</span>
+								<span class="fw-semibold">{{ $student?->year ?? 'N/A' }}</span>
+							</li>
+						</ul>
+                  </div>
+            </div>
 
-                        <span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium border {{ $statusClass }}">
-                            {{ ucfirst(str_replace('_', ' ', $writeup->review_status)) }}
-                        </span>
+			{{-- academic info card  --}}
+            <div class="card mt-3">
+				<div class="card-header">
+					<h3 class="card-title">Academic Info</h3>
+				</div>
+				<div class="card-body small">
+					<p class="fw-semibold mb-1">
+						<i class="bi bi-bank me-1 text-secondary" aria-hidden="true"></i>
+						College
+					</p>
+					<p class="text-secondary mb-3">
+						{{ $student?->college?->college_name ?? 'No college' }}
+					</p>
+					<p class="fw-semibold mb-1">
+						<i class="bi bi-mortarboard me-1 text-secondary" aria-hidden="true"></i>
+						Program
+					</p>
+					
+						@if ($student?->program)
+						<p class="text-secondary mb-3">
+						{{ $student->program->program_name }}
+						</p>
+						@endif
+					
+					<p class="fw-semibold mb-1">
+						<i class="bi bi-journal-bookmark-fill me-1 text-secondary" aria-hidden="true"></i>
+						Major
+					</p>
+					<p class="mb-3">
+						@if ($student?->major)
+							<span class="badge text-bg-secondary me-1"> {{ $student->major->major_name }}</span>
+						@else
+							<span class="badge text-bg-secondary me-1"> None</span>
+						@endif
+					</p>
+				
+				
+				</div>
+            </div>
 
-                        @if ($writeup->is_flagged)
-                            <span class="inline-flex items-center rounded-full bg-yellow-50 px-2 py-0.5 text-xs font-medium text-yellow-700 border border-yellow-200">
-                                Flagged
-                            </span>
-                        @endif
-                    </div>
+			
 
-                    <div class="mt-2 text-sm text-gray-600">
-                        <span class="font-medium">
-                            {{ $student?->college?->college_name ?? 'No college' }}
-                        </span>
+        </div>
 
-                        @if ($student?->program)
-                            <span class="text-gray-300">/</span>
-                            {{ $student->program->program_name }}
-                        @endif
+		<div class="col-md-9">
+			{{-- buttons  --}}
+			<div class="card  mb-4">
+				<div class="card-body text-end">
+					@if ($canProofread && $canStartReview)
+						<button class="btn btn-primary fw-bold mb-2"
+								type="button"
+								style="font-size: 0.75rem;"
+								wire:click="startReview">
+							START REVIEW
+						</button>
+					@endif
 
-                        @if ($student?->major)
-                            <span class="text-gray-300">/</span>
-                            {{ $student->major->major_name }}
-                        @endif
-                    </div>
-
-                    <div class="mt-1 text-xs text-gray-500">
-                        Year: {{ $student?->year ?? 'N/A' }}
-                        <span class="mx-1">|</span>
-                        University ID: {{ $student?->university_id ?? 'N/A' }}
-                        <span class="mx-1">|</span>
-                        SLMIS ID: {{ $student?->slmis_id ?? 'N/A' }}
-                    </div>
-
-                    @if ($writeup->lockedBy && ! $writeup->lockExpired())
-                        <div class="mt-3 rounded-md bg-blue-50 border border-blue-200 px-3 py-2 text-sm text-blue-700">
-                            Currently being reviewed by <span class="font-semibold">{{ $writeup->lockedBy->name }}</span>
-                            @if ($writeup->locked_at)
-                                since {{ $writeup->locked_at->diffForHumans() }}
-                            @endif
-                        </div>
-                    @elseif ($writeup->lockedBy && $writeup->lockExpired())
-                        <div class="mt-3 rounded-md bg-gray-50 border border-gray-200 px-3 py-2 text-sm text-gray-600">
-                            Previous review lock expired. Another staff member may start reviewing this writeup.
-                        </div>
-                    @endif
-
-                    @if ($writeup->flaggedBy)
-                        <div class="mt-2 text-xs text-gray-500">
-                            Flagged by {{ $writeup->flaggedBy->name }}
-                            @if ($writeup->flagged_at)
-                                {{ $writeup->flagged_at->diffForHumans() }}
-                            @endif
-                        </div>
-                    @endif
-                </div>
-
-                <!-- Actions -->
-                <div class="flex flex-wrap xl:justify-end gap-2">
-                    @if ($canProofread && $canStartReview)
-                        <button type="button"
-                                wire:click="startReview"
-                                class="inline-flex items-center px-4 py-2 bg-blue-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-blue-700">
-                            Start Review
-                        </button>
-                    @endif
-
-                    @if ($canProofread && $canEdit)
+					@if ($canProofread && $canEdit)
                         <button type="button"
                                 wire:click="saveChanges"
-                                class="inline-flex items-center px-4 py-2 bg-gray-800 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-gray-700">
-                            Save Changes
+								style="font-size: 0.75rem;"
+                                class="btn btn-success fw-bold mb-2">
+                            SAVE CHANGES
                         </button>
 
                         <button type="button"
                                 wire:click="markReviewed"
+								style="font-size: 0.75rem;"
                                 onclick="return confirm('Mark this writeup as reviewed?')"
-                                class="inline-flex items-center px-4 py-2 bg-green-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-green-700">
-                            Mark Reviewed
+                                class="btn btn-warning fw-bold mb-2">
+                            MARK REVIEWED
                         </button>
 
                         <button type="button"
                                 wire:click="releaseReview"
+								style="font-size: 0.75rem;"
                                 onclick="return confirm('Release this writeup so another staff member can review it?')"
-                                class="inline-flex items-center px-4 py-2 bg-white border border-gray-300 rounded-md font-semibold text-xs text-gray-700 uppercase tracking-widest shadow-sm hover:bg-gray-50">
-                            Release Review
+                                class="btn btn-secondary fw-bold mb-2">
+                            RELEASE REVIEW
                         </button>
                     @endif
-                    @if ($canProofread)
-                        <button type="button"
-                                wire:click="toggleFlag"
-                                class="inline-flex justify-center items-center px-4 py-2 {{ $writeup->is_flagged ? 'bg-white text-yellow-700 border border-yellow-300 hover:bg-yellow-50' : 'bg-yellow-500 text-white border border-transparent hover:bg-yellow-600' }} rounded-md font-semibold text-xs uppercase tracking-widest shadow-sm">
-                            {{ $writeup->is_flagged ? 'Remove Flag' : 'Flag Writeup' }}
-                        </button>
-                    @endif
-                </div>
-            </div>
-        </div>
-    </div>
+						
+					@if ($canProofread)
+						<button class="btn btn-danger fw-bold mb-2"
+								type="button"
+								style="font-size: 0.75rem;"
+								wire:click="toggleFlag">
+							{{ $writeup->is_flagged ? 'REMOVE FLAG' : 'FLAG WRITEUP' }}
+						</button>
+					@endif
+					
+				</div>
+			</div>
 
-    <!-- Content Grid -->
-    <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
+			<div class="row g-3">
+				{{-- original  --}}
+				<div class="col-md-6">
+					<div class="card card-secondary card-outline mb-4">
+						<div class="card-header">
+							<div class="d-flex justify-content-between align-items-start">
+								<div>
+									<h3 class="card-title float-none">Original</h3>
+									<div class="text-muted small mt-1">
+										Original submitted writeup
+									</div>
+								</div>
+							<span class="text-muted small fst-italic">
+								{{ mb_strlen($writeup->writeup ?? '') }} chars
+							</span>
+								
+							</div>
+						</div>
+						<div class="card-body">
+							<div class="card" aria-hidden="true">
+								<div class="card-body" style="height: 300px;">
+					
+									@if ($writeup->writeup)
+										<h5 class="card-title text-muted">
+											{!! $this->renderedOriginalWriteup !!}
+										</h5>
+									@else
+										<h5 class="card-title text-muted">
+											No original writeup content available.
+										</h5>
+									@endif
+								</div>
+							</div>
+						</div>
+						
 
-        <!-- Original Writeup -->
-        <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-            <div class="px-4 py-3 border-b border-gray-200">
-                <div class="flex items-center justify-between gap-4">
-                    <div>
-                        <h4 class="text-sm font-semibold text-gray-900">
-                            Original Submitted Writeup
-                        </h4>
-                        <p class="text-xs text-gray-500 mt-1">
-                            Original student submission.
-                        </p>
-                    </div>
+					</div>
+				</div>
 
-                    <span class="text-xs text-gray-500">
-                        {{ mb_strlen($writeup->writeup ?? '') }} chars
-                    </span>
-                </div>
-            </div>
+				{{-- edited --}}
+				<div class="col-md-6">
+					<div class="card card-secondary card-outline mb-4 " >
 
-            <div class="p-4 sm:p-6">
-                <div class="rounded-md bg-gray-50 border border-gray-200 p-4 min-h-20">
-                    @if ($writeup->writeup)
-                        <div class="prose prose-sm max-w-none text-gray-700">
-                            {!! $this->renderedOriginalWriteup !!}
-                        </div>
-                    @else
-                        <p class="text-sm text-gray-500">
-                            No original writeup content available.
-                        </p>
-                    @endif
-                </div>
-            </div>
-        </div>
+						<div class="card-header">
+							<div class="d-flex justify-content-between align-items-start">
+								<div>
+									<h3 class="card-title float-none">Reviewed / Edited Writeup</h3>
+									<div class="text-muted small mt-1">
+										Maximum of {{ $maxCharacters }} characters
+									</div>
+								</div>
 
-        <!-- Reviewed / Edited Writeup -->
-        <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-            <div class="px-4 py-3 border-b border-gray-200">
-                <div class="flex items-center justify-between gap-4">
-                    <div>
-                        <h4 class="text-sm font-semibold text-gray-900">
-                            Reviewed / Edited Writeup
-                        </h4>
+								<span class="text-muted small fst-italic">
+									{{ $this->characterCount }} / {{ $maxCharacters }}
+								</span>
+							</div>
+						</div>
 
-                        <p class="text-xs text-gray-500 mt-1">
-                            Maximum of {{ $maxCharacters }} characters. Basic formatting is allowed.
-                        </p>
-                    </div>
+						<div class="card-body" >
 
-                    <span class="text-xs {{ $this->remainingCharacters <= 20 ? 'text-red-600 font-semibold' : 'text-gray-500' }}">
-                        {{ $this->characterCount }} / {{ $maxCharacters }}
-                    </span>
-                </div>
-            </div>
+							{{-- EDIT MODE --}}
+							@if ($canProofread && $canEdit)
 
-            <div class="p-4 sm:p-6">
-                @if ($canProofread && $canEdit)
-                    <!-- Simple Formatting Help -->
-                    <div class="mb-3 rounded-md bg-gray-50 border border-gray-200 p-3">
-                        <div class="flex flex-wrap gap-2 text-xs text-gray-600">
-                            <span class="font-semibold text-gray-700">Formatting:</span>
-                            <code class="bg-white border border-gray-200 px-1.5 py-0.5 rounded">**bold**</code>
-                            <code class="bg-white border border-gray-200 px-1.5 py-0.5 rounded">*italic*</code>
-                        </div>
-                    </div>
+								<!-- Formatting Help -->
+								<div class="card card-light border mb-3">
+									<div class="card-body py-2">
+										<div class="d-flex flex-wrap gap-2 small text-muted align-items-center">
+											<span class="fw-semibold text-secondary">Formatting:</span>
 
-                    <textarea wire:model.live.debounce.300ms="editedWriteup"
-                              maxlength="{{ $maxCharacters }}"
-                              rows="10"
-                              class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm"
-                              placeholder="Edit the student's writeup here..."></textarea>
+											<code class="bg-white border rounded px-2 py-1">**bold**</code>
+											<code class="bg-white border rounded px-2 py-1">*italic*</code>
+										</div>	
+									</div>
+								</div>
 
-                    @error('editedWriteup')
-                        <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
-                    @enderror
+								<!-- Textarea -->
+								<div class="mb-3">
+									<textarea
+										wire:model.live.debounce.300ms="editedWriteup"
+										maxlength="{{ $maxCharacters }}"
+										rows="10"
+										class="form-control form-control-sm"
+										placeholder="Edit the student's writeup here..."></textarea>
 
-                    <div class="mt-4 rounded-md bg-gray-50 border border-gray-200 p-4">
-                        <div class="flex items-center justify-between gap-4 mb-2">
-                            <div class="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                                Preview
-                            </div>
+									@error('editedWriteup')
+										<div class="text-danger small mt-1">{{ $message }}</div>
+									@enderror
+								</div>
 
-                            <div class="text-xs {{ $this->remainingCharacters <= 20 ? 'text-red-600 font-semibold' : 'text-gray-500' }}">
-                                {{ $this->remainingCharacters }} remaining
-                            </div>
-                        </div>
+								<!-- Preview -->
+								<div class="card card-light border">
+									<div class="card-header py-2 d-flex justify-content-between align-items-center">
+										<span class="small text-uppercase text-muted fw-semibold">
+											Preview
+										</span>
 
-                        @if ($editedWriteup)
-                            <div class="prose prose-sm max-w-none text-gray-700">
-                                {!! $this->renderedEditedWriteup !!}
-                            </div>
-                        @else
-                            <p class="text-sm text-gray-500">
-                                Preview will appear here while you type.
-                            </p>
-                        @endif
-                    </div>
-                @else
-                    <div class="rounded-md bg-gray-50 border border-gray-200 p-4 text-sm text-gray-700 min-h-72">
-                        @if ($writeup->edited_writeup || $writeup->writeup)
-                            <div class="prose prose-sm max-w-none text-gray-700">
-                                {!! \Illuminate\Support\Str::markdown($writeup->edited_writeup ?: $writeup->writeup, [
-                                    'html_input' => 'strip',
-                                    'allow_unsafe_links' => false,
-                                ]) !!}
-                            </div>
-                        @else
-                            <p class="text-sm text-gray-500">
-                                No writeup content available.
-                            </p>
-                        @endif
-                    </div>
+										<span class="small {{ $this->remainingCharacters <= 20 ? 'text-danger fw-semibold' : 'text-muted' }}">
+											{{ $this->remainingCharacters }} remaining
+										</span>
+									</div>
 
-                    @if (! $canProofread)
-                        <p class="mt-3 text-xs text-gray-500">
-                            You only have permission to view writeups.
-                        </p>
-                    @else
+									<div class="card-body">
+										@if ($editedWriteup)
+											<div class="small text-body">
+												{!! $this->renderedEditedWriteup !!}
+											</div>
+										@else
+											<p class="text-muted small mb-0">
+												Preview will appear here while you type.
+											</p>
+										@endif
+									</div>
+								</div>
 
-                    <p class="mt-3 text-xs text-gray-500">
-                        Start reviewing this writeup to edit the reviewed version.
-                    </p>
-                    @endif
-                @endif
-            </div>
-        </div>
+							{{-- READ ONLY MODE --}}
+							@else
 
+								<div class="card card-light border">
+									<div class="card-body" style="min-height: 280px;">
 
-        
+										@if ($writeup->edited_writeup || $writeup->writeup)
+											<div class="text-body small">
+												{!! \Illuminate\Support\Str::markdown(
+													$writeup->edited_writeup ?: $writeup->writeup,
+													[
+														'html_input' => 'strip',
+														'allow_unsafe_links' => false,
+													]
+												) !!}
+											</div>
+										@else
+											<p class="text-muted small mb-0">
+												No writeup content available.
+											</p>
+										@endif
+
+									</div>
+								</div>
+
+								<p class="text-muted small mt-2">
+									@if (! $canProofread)
+										You only have permission to view writeups.
+									@else
+										Start reviewing this writeup to edit the reviewed version.
+									@endif
+								</p>
+
+							@endif
+
+						</div>
+					</div>
+				</div>
+			</div>
+				
+		</div>
     </div>
 </div>

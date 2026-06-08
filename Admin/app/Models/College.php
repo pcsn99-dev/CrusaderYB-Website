@@ -2,41 +2,58 @@
 
 namespace App\Models;
 
-
 use Illuminate\Database\Eloquent\Model;
-
+// use Backpack\CRUD\CrudTrait;
 
 class College extends Model
 {
+    // use CrudTrait;
+
+    /*
+    |--------------------------------------------------------------------------
+    | GLOBAL VARIABLES
+    |--------------------------------------------------------------------------
+    */
 
     protected $table = 'colleges';
-
+    // protected $primaryKey = 'id';
     public $timestamps = false;
-
+    // protected $guarded = ['id'];
     protected $fillable = ['college_name'];
+    // protected $hidden = [];
+    // protected $dates = [];
 
+    /*
+    |--------------------------------------------------------------------------
+    | FUNCTIONS
+    |--------------------------------------------------------------------------
+    */
 
-    public function students()
-    {
-        return $this->hasMany(StudentInfo::class, 'college_id');
-    }
-    
+    /*
+    |--------------------------------------------------------------------------
+    | RELATIONS
+    |--------------------------------------------------------------------------
+    */
     public function programs()
     {
         return $this->belongsToMany('\App\Models\Program', 'college_program', 'college_id', 'program_id');
     }
 
-        public function writeups()
-    {
-        return $this->hasManyThrough(
-            Writeup::class,
-            StudentInfo::class,
-            'college_id',
-            'student_info_id',
-            'id',
-            'id'
-        );
-    }
+    /*
+    |--------------------------------------------------------------------------
+    | SCOPES
+    |--------------------------------------------------------------------------
+    */
 
+    /*
+    |--------------------------------------------------------------------------
+    | ACCESORS
+    |--------------------------------------------------------------------------
+    */
 
+    /*
+    |--------------------------------------------------------------------------
+    | MUTATORS
+    |--------------------------------------------------------------------------
+    */
 }

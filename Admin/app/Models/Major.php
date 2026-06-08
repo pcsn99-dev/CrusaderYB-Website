@@ -2,30 +2,58 @@
 
 namespace App\Models;
 
-use App\Models\StudentInfo;
 use Illuminate\Database\Eloquent\Model;
-
+// use Backpack\CRUD\CrudTrait;
 
 class Major extends Model
 {
+    // use CrudTrait;
 
+    /*
+    |--------------------------------------------------------------------------
+    | GLOBAL VARIABLES
+    |--------------------------------------------------------------------------
+    */
 
     protected $table = 'majors';
-
+    // protected $primaryKey = 'id';
     public $timestamps = false;
+    // protected $guarded = ['id'];
+    protected $fillable = ['major_name'];
+    // protected $hidden = [];
+    // protected $dates = [];
 
-    protected $fillable = [
-        'program_id',
-        'major_name',
-    ];
+    /*
+    |--------------------------------------------------------------------------
+    | FUNCTIONS
+    |--------------------------------------------------------------------------
+    */
 
-    public function program()
+    /*
+    |--------------------------------------------------------------------------
+    | RELATIONS
+    |--------------------------------------------------------------------------
+    */
+    public function programs()
     {
-        return $this->belongsTo(Program::class, 'program_id');
+        return $this->belongsToMany('\App\Models\Program', 'program_major', 'major_id', 'program_id');
     }
 
-    public function students()
-    {
-        return $this->hasMany(StudentInfo::class, 'major_id');
-    }
+    /*
+    |--------------------------------------------------------------------------
+    | SCOPES
+    |--------------------------------------------------------------------------
+    */
+
+    /*
+    |--------------------------------------------------------------------------
+    | ACCESORS
+    |--------------------------------------------------------------------------
+    */
+
+    /*
+    |--------------------------------------------------------------------------
+    | MUTATORS
+    |--------------------------------------------------------------------------
+    */
 }

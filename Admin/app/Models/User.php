@@ -4,6 +4,7 @@ namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 
+use App\Models\StudentInfo;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -70,5 +71,27 @@ class User extends Authenticatable
     {
         return $this->type === 'student';
     }
+
+
+    public function studentInfo()
+    {
+        return $this->hasOne(StudentInfo::class);
+    }
+
+    public function proofreadWriteups()
+    {
+        return $this->hasMany(Writeup::class, 'proofreader_id');
+    }
+
+    public function lockedWriteups()
+    {
+        return $this->hasMany(Writeup::class, 'locked_by');
+    }
+
+    public function flaggedWriteups()
+    {
+        return $this->hasMany(Writeup::class, 'flagged_by');
+    }
+
 
 }

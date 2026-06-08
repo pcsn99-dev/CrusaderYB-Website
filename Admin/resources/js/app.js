@@ -7,3 +7,4 @@ import 'trix/dist/trix.css';
 window.Alpine = Alpine;
 
 Alpine.start();
+

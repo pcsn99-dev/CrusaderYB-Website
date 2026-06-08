@@ -1,14 +1,14 @@
 @php
     $user = Auth::user();
 
-    // add new permission checks when adding more modules
-    $canViewDashboard = $user?->hasPermission('view-admin-dashboard');
-    $canManageRoles = $user?->hasPermission('manage-roles');
-    $canManageAdminUsers = $user?->hasPermission('manage-admin-users');
-    $canViewWriteups = $user?->hasPermission('view-writeups');
+// add new permission checks when adding more modules
+$canViewDashboard = $user?->hasPermission('view-admin-dashboard');
+$canManageRoles = $user?->hasPermission('manage-roles');
+$canManageAdminUsers = $user?->hasPermission('manage-admin-users');
+$canViewWriteups = $user?->hasPermission('view-writeups');
 
-    // add  if a module has multiple permissions but should appear as one nav item
-    // $canAccessSystemManagement = $canManageRoles || $canManageAdminUsers;
+// add  if a module has multiple permissions but should appear as one nav item
+// $canAccessSystemManagement = $canManageRoles || $canManageAdminUsers;
 @endphp
 
 <nav x-data="{ open: false }" class="bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700">

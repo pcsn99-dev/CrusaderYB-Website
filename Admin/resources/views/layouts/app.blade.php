@@ -32,6 +32,7 @@
         @vite(['resources/css/app.css', 'resources/js/app.js'])
         @livewireStyles
 
+
 </head>
 
 <body class="layout-fixed sidebar-expand-lg bg-body-tertiary">
@@ -89,7 +90,6 @@
 
     @livewireScripts
 </body>
-
 
 </html>
 

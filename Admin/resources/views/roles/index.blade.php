@@ -1,244 +1,143 @@
-<x-app-layout >
-
-    {{-- HEADER --}}
+<x-app-layout>
     <x-slot name="header">
-        Role Management
-    </x-slot>
+        <div class="flex items-center justify-between">
+            <h2 class="font-semibold text-xl text-gray-800 leading-tight">
+                Role Management
+            </h2>
 
-    <x-slot name="subheader">
-        Manage admin roles and assign permissions for each role.
-    </x-slot>
-
-    <x-slot name="breadcrumbs">
-        <li class="breadcrumb-item">User Management</li>
-        <li class="breadcrumb-item">Roles</li>
-    </x-slot>
-
-
-    <div class="card">
-        <div class="card-header">
-            <h3 class="card-title">Users</h3>
-                <div class="card-tools">
-                    <div class="input-group input-group-sm" style="width: 16rem">
-                    <span class="input-group-text">
-                        <i class="bi bi-search" aria-hidden="true"></i>
-                    </span>
-                    <input id="table-filter" type="search" class="form-control" placeholder="Filter rows…" aria-label="Filter rows">
-                    </div>
-                </div>
+            <a href="{{ route('roles.create') }}"
+               class="inline-flex items-center px-4 py-2 bg-gray-800 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-gray-700">
+                Create Role
+            </a>
         </div>
+    </x-slot>
 
-        <div class="card-body">
-            <div class="d-flex gap-2 mb-3">
-                <button id="export-csv" type="button" class="btn btn-sm btn-dark">
-                    <i class="bi bi-plus-circle" aria-hidden="true"></i>
-                    Create Role
-                </button>
-                
-            </div>
-        <div id="users-table" class="tabulator" role="grid" aria-owns="tabulator-table-body" tabulator-layout="fitColumns">
+    <div class="py-8">
+        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
 
-        <div class="tabulator-header" role="rowgroup">
-            <div class="tabulator-header-contents">
+            @if (session('success'))
+                <div class="mb-4 rounded-md bg-green-50 p-4 text-sm text-green-700 border border-green-200">
+                    {{ session('success') }}
+                </div>
+            @endif
 
-                <div class="tabulator-headers" role="row" style="height: 84px;">
+            @if (session('error'))
+                <div class="mb-4 rounded-md bg-red-50 p-4 text-sm text-red-700 border border-red-200">
+                    {{ session('error') }}
+                </div>
+            @endif
 
-                    <span class="tabulator-col-resize-handle" style="height: 84px;"></span>
+            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
+                <div class="p-6">
 
-                    <div class="tabulator-col tabulator-sortable tabulator-col-sorter-element"
-                        role="columnheader" aria-sort="none"
-                        tabulator-field="name"
-                        style="min-width: 40px; width: 338px; height: 84px;">
-
-                        <div class="tabulator-col-content">
-                            <div class="tabulator-col-title-holder">
-                                <div class="tabulator-col-title">Name</div>
-                                <div class="tabulator-col-sorter">
-                                    <div class="tabulator-arrow"></div>
-                                </div>
-                            </div>
-
-                        </div>
+                    <div class="mb-4">
+                        <h3 class="text-lg font-semibold text-gray-900">Roles</h3>
+                        <p class="text-sm text-gray-500">
+                            Manage admin roles and assign permissions for each role.
+                        </p>
                     </div>
 
-                    <span class="tabulator-col-resize-handle"></span>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200 text-sm">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">
+                                        Role
+                                    </th>
+                                    <th class="px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">
+                                        Slug
+                                    </th>
+                                    <th class="px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">
+                                        Permissions
+                                    </th>
+                                    <th class="px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">
+                                        Users
+                                    </th>
+                                    <th class="px-4 py-3 text-right font-medium text-gray-500 uppercase tracking-wider">
+                                        Actions
+                                    </th>
+                                </tr>
+                            </thead>
 
-                    <div class="tabulator-col tabulator-sortable tabulator-col-sorter-element"
-                        role="columnheader" tabulator-field="email"
-                        style="min-width: 40px; width: 338px; height: 84px;">
+                            <tbody class="bg-white divide-y divide-gray-200">
+                                @forelse ($roles as $role)
+                                    <tr>
+                                        <td class="px-4 py-3">
+                                            <div class="font-medium text-gray-900">
+                                                {{ $role->name }}
 
-                        <div class="tabulator-col-content">
-                            <div class="tabulator-col-title-holder">
-                                <div class="tabulator-col-title">Email</div>
-                            </div>
+                                                @if ($role->is_protected)
+                                                    <span class="ml-2 inline-flex items-center rounded-full bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700 border border-blue-200">
+                                                        Protected
+                                                    </span>
+                                                @endif
+                                            </div>
 
-                            <div class="tabulator-header-filter">
-                                <input type="search">
-                            </div>
-                        </div>
+                                            @if ($role->description)
+                                                <div class="text-xs text-gray-500 mt-1">
+                                                    {{ $role->description }}
+                                                </div>
+                                            @endif
+                                        </td>
+
+                                        <td class="px-4 py-3 text-gray-600">
+                                            <code class="text-xs bg-gray-100 px-2 py-1 rounded">
+                                                {{ $role->slug }}
+                                            </code>
+                                        </td>
+
+                                        <td class="px-4 py-3 text-gray-600">
+                                            {{ $role->permissions_count }}
+                                        </td>
+
+                                        <td class="px-4 py-3 text-gray-600">
+                                            {{ $role->users_count }}
+                                        </td>
+
+                                        <td class="px-4 py-3">
+                                            <div class="flex items-center justify-end gap-2">
+                                                <a href="{{ route('roles.show', $role) }}"
+                                                   class="text-sm text-gray-600 hover:text-gray-900">
+                                                    View
+                                                </a>
+
+                                                <a href="{{ route('roles.edit', $role) }}"
+                                                   class="text-sm text-blue-600 hover:text-blue-900">
+                                                    Edit
+                                                </a>
+
+                                                <form action="{{ route('roles.destroy', $role) }}"
+                                                      method="POST"
+                                                      onsubmit="return confirm('Are you sure you want to delete this role?');">
+                                                    @csrf
+                                                    @method('DELETE')
+
+                                                    <button type="submit"
+                                                            class="text-sm text-red-600 hover:text-red-900 disabled:text-gray-400"
+                                                            @disabled($role->is_protected || $role->users_count > 0)>
+                                                        Delete
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                @empty
+                                    <tr>
+                                        <td colspan="5" class="px-4 py-6 text-center text-gray-500">
+                                            No roles found.
+                                        </td>
+                                    </tr>
+                                @endforelse
+                            </tbody>
+                        </table>
                     </div>
 
-                    <span class="tabulator-col-resize-handle"></span>
-
-                    <div class="tabulator-col tabulator-sortable tabulator-col-sorter-element"
-                        role="columnheader" tabulator-field="role"
-                        style="min-width: 40px; width: 120px; height: 84px;">
-
-                        <div class="tabulator-col-content">
-                            <div class="tabulator-col-title-holder">
-                                <div class="tabulator-col-title">Role</div>
-                            </div>
-                        </div>
+                    <div class="mt-6">
+                        {{ $roles->links() }}
                     </div>
-
-                    <span class="tabulator-col-resize-handle"></span>
-
-                    <div class="tabulator-col tabulator-sortable tabulator-col-sorter-element"
-                        role="columnheader" tabulator-field="status"
-                        style="min-width: 40px; width: 130px; height: 84px;">
-
-                        <div class="tabulator-col-content">
-                            <div class="tabulator-col-title-holder">
-                                <div class="tabulator-col-title">Status</div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <span class="tabulator-col-resize-handle"></span>
-
-                    <div class="tabulator-col tabulator-sortable tabulator-col-sorter-element"
-                        role="columnheader" tabulator-field="joined"
-                        style="min-width: 40px; width: 130px; height: 84px;">
-
-                        <div class="tabulator-col-content">
-                            <div class="tabulator-col-title-holder">
-                                <div class="tabulator-col-title">Joined</div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <span class="tabulator-col-resize-handle"></span>
 
                 </div>
-
-                <div class="tabulator-frozen-rows-holder"></div>
-
             </div>
-        </div>
-
-        <div class="tabulator-tableholder" tabindex="0" style="height: 490px;">
-
-            <div class="tabulator-table" role="rowgroup" id="tabulator-table-body">
-
-                <div class="tabulator-row tabulator-selectable tabulator-row-odd" role="row">
-
-                    <div class="tabulator-cell" role="gridcell">Olivia Bennett</div>
-                    <span class="tabulator-col-resize-handle"></span>
-
-                    <div class="tabulator-cell" role="gridcell">olivia@example.com</div>
-                    <span class="tabulator-col-resize-handle"></span>
-
-                    <div class="tabulator-cell" role="gridcell">Admin</div>
-                    <span class="tabulator-col-resize-handle"></span>
-
-                    <div class="tabulator-cell" role="gridcell">
-                        <span class="badge text-bg-success">Active</span>
-                    </div>
-                    <span class="tabulator-col-resize-handle"></span>
-
-                    <div class="tabulator-cell" role="gridcell">2024-03-12</div>
-                    <span class="tabulator-col-resize-handle"></span>
-
-                </div>
-
-            </div>
-            <div class="tabulator-footer-contents"><span class="tabulator-paginator"><label>Page Size</label><select class="tabulator-page-size" aria-label="Page Size" title="Page Size"><option value="10">10</option><option value="25">25</option><option value="50">50</option><option value="100">100</option></select><button class="tabulator-page" type="button" role="button" aria-label="First Page" title="First Page" data-page="first" disabled="">First</button><button class="tabulator-page" type="button" role="button" aria-label="Prev Page" title="Prev Page" data-page="prev" disabled="">Prev</button><span class="tabulator-pages" style=""><button class="tabulator-page active" type="button" role="button" aria-label="Show Page 1" title="Show Page 1" data-page="1">1</button><button class="tabulator-page" type="button" role="button" aria-label="Show Page 2" title="Show Page 2" data-page="2">2</button></span><button class="tabulator-page" type="button" role="button" aria-label="Next Page" title="Next Page" data-page="next">Next</button><button class="tabulator-page" type="button" role="button" aria-label="Last Page" title="Last Page" data-page="last">Last</button></span></div>
-
         </div>
     </div>
-
-
 </x-app-layout>
-<script>
-      const statusBadge = (cell) => {
-        const value = cell.getValue();
-        const map = { Active: 'success', Invited: 'info', Suspended: 'secondary' };
-        const color = map[value] || 'secondary';
-        return `<span class="badge text-bg-${color}">${value}</span>`;
-      };
-
-      document.addEventListener('DOMContentLoaded', () => {
-
-        const data = [
-           @foreach ($roles as $role)
-            {
-                name: @json($role->name),
-                slug: @json($role->slug),
-                permissions_count: {{ $role->permissions_count ?? 0 }},
-                users_count: {{ $role->users_count ?? 0 }},
-            },
-            @endforeach
-
-        ];
-
-        const table = new Tabulator("#users-table", {
-            data: data,
-            layout: "fitColumns",
-           
-            pagination: true,
-            paginationMode: "local",
-            paginationSize: 10,
-            paginationSizeSelector: [10, 25, 50],
-
-            columns: [
-                { title: "Name", field: "name" },
-
-                { title: "Slug", field: "slug" },
-
-                { title: "Permissions", field: "permissions_count", hozAlign: "center" },
-
-                { title: "Users", field: "users_count", hozAlign: "center" },
-
-                {
-                    title: "Actions",
-                    field: "id",
-                    formatter: function (cell) {
-                        const id = cell.getValue();
-
-                        return `
-                            <div class="d-flex gap-1">
-                                <a href="/roles/${id}" class="btn btn-sm btn-primary">View</a>
-                                <a href="/roles/${id}/edit" class="btn btn-sm btn-warning">Edit</a>
-                                <button class="btn btn-sm btn-danger">Delete</button>
-                            </div>
-                        `;
-                    }
-                }
-            ],
-        });
-
-        document.getElementById('table-filter').addEventListener('input', (e) => {
-          const value = e.target.value;
-          if (value) {
-            table.setFilter([
-              [
-                { field: 'name', type: 'like', value: value },
-                { field: 'email', type: 'like', value: value },
-              ],
-            ]);
-          } else {
-            table.clearFilter();
-          }
-        });
-
-        document
-          .getElementById('export-csv')
-          .addEventListener('click', () => table.download('csv', 'users.csv'));
-        document
-          .getElementById('export-json')
-          .addEventListener('click', () => table.download('json', 'users.json'));
-        document
-          .getElementById('print-table')
-          .addEventListener('click', () => table.print(false, true));
-      });
-    </script>

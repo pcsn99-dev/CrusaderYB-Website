@@ -3,6 +3,7 @@
 use App\Http\Controllers\AdminUserController;
 use App\Http\Controllers\Auth\GoogleAuthController;
 use App\Http\Controllers\PasswordChangeController;
+use App\Http\Controllers\GenericWriteupController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RoleController;
 use Illuminate\Support\Facades\Route;
@@ -114,6 +115,19 @@ Route::middleware(['auth', 'force.password.change', 'admin.account'])->group(fun
     Route::get('/writeups/review/{writeup}', function (\App\Models\Writeup $writeup) {
         return view('writeups.review.show', compact('writeup'));
     })->middleware('permission:view-writeups')->name('writeups.review.show');
+
+    //generic writeups
+    Route::get('/writeups/generic', [GenericWriteupController::class, 'index'])
+        ->name('writeups.generic.index');
+
+    Route::post('/writeups/generic', [GenericWriteupController::class, 'store'])
+        ->name('writeups.generic.store');
+
+    Route::put('/writeups/generic/{genericWriteup}', [GenericWriteupController::class, 'update'])
+        ->name('writeups.generic.update');
+
+    Route::delete('/writeups/generic/{genericWriteup}', [GenericWriteupController::class, 'destroy'])
+        ->name('writeups.generic.destroy');
 
 
 });

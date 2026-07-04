@@ -1,7 +1,7 @@
 import Alpine from 'alpinejs';
 
 import { createApp } from 'vue';
-import GenericWriteupsApp from './components/GenericWriteupsApp.vue';
+import GenericWriteupsApp from './components/generic-writeups/GenericWriteupsApp.vue';
 
 window.Alpine = Alpine;
 

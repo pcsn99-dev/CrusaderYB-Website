@@ -56,8 +56,12 @@ class GenericWriteupController extends Controller
         ));
     }
 
+
+
+
     public function store(Request $request)
     {
+
         $validated = $request->validate([
             'year' => ['required', 'string', 'max:20'],
             'college_id' => ['required', 'exists:colleges,id'],
@@ -78,7 +82,7 @@ class GenericWriteupController extends Controller
                 ]);
         }
 
-        GenericWriteup::create([
+        $genericWriteup = GenericWriteup::create([
             'year' => $validated['year'],
             'college_id' => $validated['college_id'],
             'content' => $validated['content'],
@@ -87,8 +91,22 @@ class GenericWriteupController extends Controller
             'updated_by' => auth()->id(),
         ]);
 
+        $genericWriteup->load(['college', 'creator', 'updater']);
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'message' => 'Generic writeup created successfully.',
+                'genericWriteup' => $genericWriteup,
+            ]);
+        }
+
         return back()->with('success', 'Generic writeup created successfully.');
+
     }
+
+
+
+
 
     public function update(Request $request, GenericWriteup $genericWriteup)
     {
@@ -107,12 +125,29 @@ class GenericWriteupController extends Controller
             'updated_by' => auth()->id(),
         ]);
 
+        $genericWriteup->load(['college', 'creator', 'updater']);
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'message' => 'Generic writeup updated successfully.',
+                'genericWriteup' => $genericWriteup,
+            ]);
+        }
+
         return back()->with('success', 'Generic writeup updated successfully.');
+
+
     }
 
-    public function destroy(GenericWriteup $genericWriteup)
+    public function destroy(Request $request, GenericWriteup $genericWriteup)
     {
         $genericWriteup->delete();
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'message' => 'Generic writeup deleted successfully.',
+            ]);
+        }
 
         return back()->with('success', 'Generic writeup deleted successfully.');
     }

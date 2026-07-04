@@ -96,3 +96,40 @@
     text-overflow: ellipsis;
     white-space: nowrap;
 }
+
+.cyb-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    max-width: 100%;
+    padding: 0.35rem 0.6rem;
+    border-radius: 999px;
+    font-size: 0.78rem;
+    font-weight: 650;
+    line-height: 1;
+    white-space: nowrap;
+}
+
+.cyb-chip-username {
+    color: #9d174d;
+    background-color: #fdf2f8;
+    border: 1px solid #fbcfe8;
+}
+
+.cyb-chip-role {
+    color: #4c1d95;
+    background-color: #f5f3ff;
+    border: 1px solid #ddd6fe;
+}
+
+.cyb-chip-neutral {
+    color: #475569;
+    background-color: #f8fafc;
+    border: 1px solid #e2e8f0;
+}
+
+.cyb-chip-danger {
+    color: #b91c1c;
+    background-color: #fef2f2;
+    border: 1px solid #fecaca;
+}

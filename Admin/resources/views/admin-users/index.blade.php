@@ -1,132 +1,199 @@
 <x-app-layout>
     <x-slot name="header">
-        <div class="flex items-center justify-between">
-            <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-                Admin Users
-            </h2>
-
-            <a href="{{ route('admin-users.create') }}"
-               class="inline-flex items-center px-4 py-2 bg-gray-800 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-gray-700">
-                Create Admin User
-            </a>
-        </div>
+        Admin Users
     </x-slot>
 
-    <div class="py-8">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+    <x-slot name="subheader">
+        Manage staff access, assigned roles, account status, and temporary password resets.
+    </x-slot>
 
-            @if (session('success'))
-                <div class="mb-4 rounded-md bg-green-50 p-4 text-sm text-green-700 border border-green-200">
-                    {{ session('success') }}
-                </div>
-            @endif
+    <x-slot name="headerIcon">
+        <i class="bi bi-people-fill"></i>
+    </x-slot>
 
-            @if (session('error'))
-                <div class="mb-4 rounded-md bg-red-50 p-4 text-sm text-red-700 border border-red-200">
-                    {{ session('error') }}
-                </div>
-            @endif
+    <x-slot name="headerActions">
+        <a href="{{ route('admin-users.create') }}"
+           class="inline-flex items-center justify-center gap-2 rounded-lg bg-[var(--cyb-primary)] px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-[var(--cyb-primary-dark)] focus:outline-none focus:ring-2 focus:ring-[var(--cyb-primary)] focus:ring-offset-2">
+            <i class="bi bi-person-plus"></i>
+            Create Admin User
+        </a>
+    </x-slot>
 
-            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-                <div class="p-6">
+    <div class="cyb-page-card overflow-hidden">
 
-                    <div class="mb-4">
-                        <h3 class="text-lg font-semibold text-gray-900">
-                            Admin Accounts
-                        </h3>
-                        <p class="text-sm text-gray-500">
-                            Manage staff accounts, roles, account status, and temporary password resets.
-                        </p>
+        {{-- Toolbar --}}
+        <div class="flex flex-col gap-3 border-b border-[var(--cyb-border)] bg-white px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+            <div class="flex flex-wrap items-center gap-2">
+                <span class="cyb-badge-soft">
+                    <i class="bi bi-shield-lock"></i>
+                    {{ $adminUsers->total() }} admin {{ $adminUsers->total() === 1 ? 'user' : 'users' }}
+                </span>
+
+                <span class="text-sm text-[var(--cyb-muted)]">
+                    Staff accounts with administrative access
+                </span>
+            </div>
+        </div>
+
+        {{-- Alerts --}}
+        @if (session('success') || session('error'))
+            <div class="px-5 pt-5">
+                @if (session('success'))
+                    <div class="mb-4 flex items-start gap-3 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
+                        <i class="bi bi-check-circle-fill mt-0.5"></i>
+
+                        <div>
+                            {{ session('success') }}
+                        </div>
                     </div>
+                @endif
 
-                    <div class="overflow-x-auto">
-                        <table class="min-w-full divide-y divide-gray-200 text-sm">
-                            <thead class="bg-gray-50">
-                                <tr>
-                                    <th class="px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">
-                                        User
-                                    </th>
-                                    <th class="px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">
-                                        Username
-                                    </th>
-                                    <th class="px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">
-                                        Role
-                                    </th>
-                                    <th class="px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">
-                                        Status
-                                    </th>
-                                    <th class="px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">
-                                        Password
-                                    </th>
-                                    <th class="px-4 py-3 text-right font-medium text-gray-500 uppercase tracking-wider">
-                                        Actions
-                                    </th>
-                                </tr>
-                            </thead>
+                @if (session('error'))
+                    <div class="mb-4 flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+                        <i class="bi bi-exclamation-triangle-fill mt-0.5"></i>
 
-                            <tbody class="bg-white divide-y divide-gray-200">
-                                @forelse ($adminUsers as $adminUser)
-                                    <tr>
-                                        <td class="px-4 py-3">
-                                            <div class="font-medium text-gray-900">
+                        <div>
+                            {{ session('error') }}
+                        </div>
+                    </div>
+                @endif
+            </div>
+        @endif
+
+        {{-- Table --}}
+        <div class="px-5 pb-5 pt-5">
+            <div class="overflow-x-auto rounded-xl border border-[var(--cyb-border)]">
+                <table class="min-w-full divide-y divide-[var(--cyb-border)] bg-white text-sm">
+                    <thead class="bg-[var(--cyb-primary-soft)]">
+                        <tr>
+                            <th scope="col" class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-[var(--cyb-muted)]">
+                                User
+                            </th>
+
+                            <th scope="col" class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-[var(--cyb-muted)]">
+                                Username
+                            </th>
+
+                            <th scope="col" class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-[var(--cyb-muted)]">
+                                Role
+                            </th>
+
+                            <th scope="col" class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-[var(--cyb-muted)]">
+                                Status
+                            </th>
+
+                            <th scope="col" class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-[var(--cyb-muted)]">
+                                Password
+                            </th>
+
+                            <th scope="col" class="px-4 py-3 text-right text-xs font-bold uppercase tracking-wider text-[var(--cyb-muted)]">
+                                Action
+                            </th>
+                        </tr>
+                    </thead>
+
+                    <tbody class="divide-y divide-[var(--cyb-border)] bg-white">
+                        @forelse ($adminUsers as $adminUser)
+                            <tr class="transition hover:bg-[var(--cyb-primary-soft)]/60">
+                                <td class="px-4 py-4 align-middle">
+                                    <div class="flex items-center gap-3">
+                                        <x-avatar :name="$adminUser->name" size="36" />
+
+                                        <div class="min-w-0">
+                                            <div class="truncate font-semibold text-[var(--cyb-text)]">
                                                 {{ $adminUser->name }}
                                             </div>
-                                            <div class="text-xs text-gray-500">
+
+                                            <div class="truncate text-xs text-[var(--cyb-muted)]">
                                                 {{ $adminUser->email }}
                                             </div>
-                                        </td>
+                                        </div>
+                                    </div>
+                                </td>
 
-                                        <td class="px-4 py-3 text-gray-600">
-                                            <code class="text-xs bg-gray-100 px-2 py-1 rounded">
-                                                {{ $adminUser->username ?: 'N/A' }}
-                                            </code>
-                                        </td>
+                                <td class="px-4 py-4 align-middle">
+                                    <span class="cyb-chip cyb-chip-username">
+                                        <i class="bi bi-at"></i>
+                                        {{ $adminUser->username ?: 'N/A' }}
+                                    </span>
+                                </td>
 
-                                        <td class="px-4 py-3 text-gray-600">
-                                            @if ($adminUser->role)
-                                                {{ $adminUser->role->name }}
-                                            @else
-                                                <span class="text-red-600">No role</span>
-                                            @endif
-                                        </td>
+                                <td class="px-4 py-4 align-middle">
+                                    @if ($adminUser->role)
+                                        <span class="cyb-chip cyb-chip-role">
+                                            <i class="bi bi-person-badge"></i>
+                                            {{ $adminUser->role->name }}
+                                        </span>
+                                    @else
+                                        <span class="cyb-chip cyb-chip-danger">
+                                            <i class="bi bi-exclamation-circle"></i>
+                                            No role
+                                        </span>
+                                    @endif
+                                </td>
 
-                                        <td class="px-4 py-3">
-                                            @if ($adminUser->active)
-                                                <span class="inline-flex items-center rounded-full bg-green-50 px-2 py-0.5 text-xs font-medium text-green-700 border border-green-200">
-                                                    Active
-                                                </span>
-                                            @else
-                                                <span class="inline-flex items-center rounded-full bg-red-50 px-2 py-0.5 text-xs font-medium text-red-700 border border-red-200">
-                                                    Inactive
-                                                </span>
-                                            @endif
-                                        </td>
+                                <td class="px-4 py-4 align-middle">
+                                    @if ($adminUser->active)
+                                        <span class="inline-flex items-center gap-1.5 rounded-full border border-green-200 bg-green-50 px-2.5 py-1 text-xs font-semibold text-green-700">
+                                            <span class="h-1.5 w-1.5 rounded-full bg-green-500"></span>
+                                            Active
+                                        </span>
+                                    @else
+                                        <span class="inline-flex items-center gap-1.5 rounded-full border border-red-200 bg-red-50 px-2.5 py-1 text-xs font-semibold text-red-700">
+                                            <span class="h-1.5 w-1.5 rounded-full bg-red-500"></span>
+                                            Inactive
+                                        </span>
+                                    @endif
+                                </td>
 
-                                        <td class="px-4 py-3">
-                                            @if ($adminUser->must_change_password)
-                                                <span class="inline-flex items-center rounded-full bg-yellow-50 px-2 py-0.5 text-xs font-medium text-yellow-700 border border-yellow-200">
-                                                    Must change
-                                                </span>
-                                            @else
-                                                <span class="inline-flex items-center rounded-full bg-gray-50 px-2 py-0.5 text-xs font-medium text-gray-700 border border-gray-200">
-                                                    Set
-                                                </span>
-                                            @endif
-                                        </td>
+                                <td class="px-4 py-4 align-middle">
+                                    @if ($adminUser->must_change_password)
+                                        <span class="inline-flex items-center gap-1.5 rounded-full border border-yellow-200 bg-yellow-50 px-2.5 py-1 text-xs font-semibold text-yellow-700">
+                                            <i class="bi bi-key"></i>
+                                            Must change
+                                        </span>
+                                    @else
+                                        <span class="cyb-chip cyb-chip-neutral">
+                                            <i class="bi bi-check2"></i>
+                                            Set
+                                        </span>
+                                    @endif
+                                </td>
 
-                                        <td class="px-4 py-3">
-                                            <div class="flex items-center justify-end gap-2">
+                                <td class="px-4 py-4 align-middle text-right">
+                                    <div class="dropdown">
+                                        <button type="button"
+                                                class="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[var(--cyb-border)] bg-white text-[var(--cyb-muted)] shadow-sm transition hover:bg-[var(--cyb-primary-soft)] hover:text-[var(--cyb-primary)]"
+                                                data-bs-toggle="dropdown"
+                                                data-bs-boundary="viewport"
+                                                aria-expanded="false"
+                                                aria-label="Open admin user actions">
+                                            <i class="bi bi-three-dots-vertical"></i>
+                                        </button>
+
+                                        <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+                                            <li>
                                                 <a href="{{ route('admin-users.show', $adminUser) }}"
-                                                   class="text-sm text-gray-600 hover:text-gray-900">
-                                                    View
+                                                   class="dropdown-item d-flex align-items-center gap-2">
+                                                    <i class="bi bi-eye text-secondary"></i>
+                                                    View details
                                                 </a>
+                                            </li>
 
+                                            <li>
                                                 <a href="{{ route('admin-users.edit', $adminUser) }}"
-                                                   class="text-sm text-blue-600 hover:text-blue-900">
-                                                    Edit
+                                                   class="dropdown-item d-flex align-items-center gap-2">
+                                                    <i class="bi bi-pencil-square text-primary"></i>
+                                                    Edit account
                                                 </a>
+                                            </li>
 
-                                                @if ($adminUser->active)
+                                            <li>
+                                                <hr class="dropdown-divider">
+                                            </li>
+
+                                            @if ($adminUser->active)
+                                                <li>
                                                     <form method="POST"
                                                           action="{{ route('admin-users.deactivate', $adminUser) }}"
                                                           onsubmit="return confirm('Deactivate this admin account?');">
@@ -134,11 +201,14 @@
                                                         @method('PATCH')
 
                                                         <button type="submit"
-                                                                class="text-sm text-orange-600 hover:text-orange-900">
+                                                                class="dropdown-item d-flex align-items-center gap-2 text-warning">
+                                                            <i class="bi bi-pause-circle"></i>
                                                             Deactivate
                                                         </button>
                                                     </form>
-                                                @else
+                                                </li>
+                                            @else
+                                                <li>
                                                     <form method="POST"
                                                           action="{{ route('admin-users.activate', $adminUser) }}"
                                                           onsubmit="return confirm('Activate this admin account?');">
@@ -146,12 +216,15 @@
                                                         @method('PATCH')
 
                                                         <button type="submit"
-                                                                class="text-sm text-green-600 hover:text-green-900">
+                                                                class="dropdown-item d-flex align-items-center gap-2 text-success">
+                                                            <i class="bi bi-play-circle"></i>
                                                             Activate
                                                         </button>
                                                     </form>
-                                                @endif
+                                                </li>
+                                            @endif
 
+                                            <li>
                                                 <form method="POST"
                                                       action="{{ route('admin-users.destroy', $adminUser) }}"
                                                       onsubmit="return confirm('Are you sure you want to delete this admin user?');">
@@ -159,28 +232,63 @@
                                                     @method('DELETE')
 
                                                     <button type="submit"
-                                                            class="text-sm text-red-600 hover:text-red-900">
+                                                            class="dropdown-item d-flex align-items-center gap-2 text-danger">
+                                                        <i class="bi bi-trash"></i>
                                                         Delete
                                                     </button>
                                                 </form>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                @empty
-                                    <tr>
-                                        <td colspan="6" class="px-4 py-6 text-center text-gray-500">
-                                            No admin users found.
-                                        </td>
-                                    </tr>
-                                @endforelse
-                            </tbody>
-                        </table>
-                    </div>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="6" class="px-4 py-12 text-center">
+                                    <div class="cyb-empty-state">
+                                        <div class="cyb-empty-state-icon">
+                                            <i class="bi bi-people"></i>
+                                        </div>
 
-                    <div class="mt-6">
-                        {{ $adminUsers->links() }}
-                    </div>
+                                        <h3 class="mb-1 text-base font-semibold text-[var(--cyb-text)]">
+                                            No admin users found
+                                        </h3>
 
+                                        <p class="mb-4 text-sm text-[var(--cyb-muted)]">
+                                            Create an admin account to start assigning system access.
+                                        </p>
+
+                                        <a href="{{ route('admin-users.create') }}"
+                                           class="inline-flex items-center justify-center gap-2 rounded-lg bg-[var(--cyb-primary)] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[var(--cyb-primary-dark)]">
+                                            <i class="bi bi-person-plus"></i>
+                                            Create Admin User
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+
+            {{-- Pagination --}}
+            <div class="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div class="text-sm text-[var(--cyb-muted)]">
+                    @if ($adminUsers->total() > 0)
+                        Showing
+                        <span class="font-semibold text-[var(--cyb-text)]">{{ $adminUsers->firstItem() }}</span>
+                        to
+                        <span class="font-semibold text-[var(--cyb-text)]">{{ $adminUsers->lastItem() }}</span>
+                        of
+                        <span class="font-semibold text-[var(--cyb-text)]">{{ $adminUsers->total() }}</span>
+                        admin users
+                    @else
+                        No records to display
+                    @endif
+                </div>
+
+                <div>
+                    {{ $adminUsers->withQueryString()->links() }}
                 </div>
             </div>
         </div>

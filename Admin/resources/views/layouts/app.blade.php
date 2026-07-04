@@ -37,25 +37,41 @@
             <x-alert />
 
             <div class="app-content-header">
-                <div class="container-fluid">
-                    <div class="row align-items-center g-2">
-                        <div class="col-sm-6">
-                            @isset($header)
-                                <h1 class="h3 mb-1 fw-semibold text-primary">
-                                    {{ $header }}
-                                </h1>
-                            @endisset
+                <div class="cyb-layout-container">
+                    <div class="cyb-page-header">
+                        <div class="cyb-page-header-main">
+                            <div class="cyb-page-header-icon">
+                                @isset($headerIcon)
+                                    {{ $headerIcon }}
+                                @else
+                                    <i class="bi bi-layout-text-sidebar-reverse"></i>
+                                @endisset
+                            </div>
 
-                            @isset($subheader)
-                                <p class="mb-0 text-secondary">
-                                    {{ $subheader }}
-                                </p>
-                            @endisset
+                            <div class="cyb-page-header-text">
+                                @isset($header)
+                                    <h1>
+                                        {{ $header }}
+                                    </h1>
+                                @endisset
+
+                                @isset($subheader)
+                                    <p>
+                                        {{ $subheader }}
+                                    </p>
+                                @endisset
+                            </div>
                         </div>
 
+                        @isset($headerActions)
+                            <div class="cyb-page-header-actions">
+                                {{ $headerActions }}
+                            </div>
+                        @endisset
+
                         @isset($breadcrumbs)
-                            <div class="col-sm-6">
-                                <ol class="breadcrumb float-sm-end mb-0">
+                            <div class="cyb-page-header-breadcrumbs">
+                                <ol class="breadcrumb mb-0">
                                     {{ $breadcrumbs }}
                                 </ol>
                             </div>
@@ -65,7 +81,7 @@
             </div>
 
             <div class="app-content">
-                <div class="container-fluid">
+                <div class="cyb-layout-container">
                     {{ $slot }}
                 </div>
             </div>

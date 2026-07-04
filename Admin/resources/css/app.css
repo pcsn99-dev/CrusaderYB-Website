@@ -1,10 +1,10 @@
-@import "resources/css/theme.css";
-@import "resources/css/layout.css";
-@import "resources/css/topbar.css";
-@import "resources/css/sidebar.css";
-@import "resources/css/components.css";
-@import "resources/css/tables.css";
-@import "resources/css/utilities.css";
+@import "./theme.css";
+@import "./layout.css";
+@import "./topbar.css";
+@import "./sidebar.css";
+@import "./components.css";
+@import "./tables.css";
+@import "./utilities.css";
 
 @tailwind base;
 @tailwind components;

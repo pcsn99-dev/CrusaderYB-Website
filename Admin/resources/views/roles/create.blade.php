@@ -1,44 +1,49 @@
 <x-app-layout>
     <x-slot name="header">
-        <div class="flex items-center justify-between">
-            <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-                Create Role
-            </h2>
-
-            <a href="{{ route('roles.index') }}"
-               class="text-sm text-gray-600 hover:text-gray-900">
-                Back to Roles
-            </a>
-        </div>
+        Create Role
     </x-slot>
 
-    <div class="py-8">
-        <div class="max-w-5xl mx-auto sm:px-6 lg:px-8">
-            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-                <div class="p-6">
+    <x-slot name="subheader">
+        Create a role and choose the permissions that should belong to it.
+    </x-slot>
 
-                    <div class="mb-6">
-                        <h3 class="text-lg font-semibold text-gray-900">
-                            New Role
-                        </h3>
-                        <p class="text-sm text-gray-500">
-                            Create a role and select the permissions that should belong to it.
-                        </p>
-                    </div>
+    <x-slot name="headerIcon">
+        <i class="bi bi-person-badge-fill"></i>
+    </x-slot>
 
-                    <form method="POST" action="{{ route('roles.store') }}">
-                        @csrf
+    <x-slot name="headerActions">
+        <a href="{{ route('roles.index') }}"
+           class="inline-flex items-center justify-center gap-2 rounded-lg border border-[var(--cyb-border)] bg-white px-4 py-2 text-sm font-semibold text-[var(--cyb-text)] shadow-sm transition hover:bg-[var(--cyb-primary-soft)]">
+            <i class="bi bi-arrow-left"></i>
+            Back to Roles
+        </a>
+    </x-slot>
 
-                        @include('roles.partials.form', [
-                            'role' => null,
-                            'permissions' => $permissions,
-                            'selectedPermissionIds' => old('permission_ids', []),
-                            'buttonText' => 'Create Role',
-                        ])
-                    </form>
+    <div class="cyb-page-card overflow-hidden">
+        <div class="border-b border-[var(--cyb-border)] bg-white px-5 py-4">
+            <div class="flex flex-wrap items-center gap-2">
+                <span class="cyb-badge-soft">
+                    <i class="bi bi-plus-circle"></i>
+                    New role
+                </span>
 
-                </div>
+                <span class="text-sm text-[var(--cyb-muted)]">
+                    Define access by selecting one or more permissions.
+                </span>
             </div>
+        </div>
+
+        <div class="p-5">
+            <form method="POST" action="{{ route('roles.store') }}">
+                @csrf
+
+                @include('roles.partials.form', [
+                    'role' => null,
+                    'permissions' => $permissions,
+                    'selectedPermissionIds' => old('permission_ids', []),
+                    'buttonText' => 'Create Role',
+                ])
+            </form>
         </div>
     </div>
 </x-app-layout>

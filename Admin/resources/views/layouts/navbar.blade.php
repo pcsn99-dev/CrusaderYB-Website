@@ -2,12 +2,16 @@
     $user = Auth::user();
 @endphp
 
-<nav id="navigation" class="app-header navbar navbar-expand sticky-top" tabindex="-1">
+<nav id="navigation" class="app-header navbar navbar-expand bg-white border-bottom sticky-top" tabindex="-1">
     <div class="container-fluid">
 
         <ul class="navbar-nav">
             <li class="nav-item">
-                <a class="nav-link cyb-sidebar-toggle" data-lte-toggle="sidebar" href="#" role="button">
+                <a class="nav-link cyb-sidebar-toggle"
+                   data-lte-toggle="sidebar"
+                   href="#"
+                   role="button"
+                   aria-label="Toggle sidebar">
                     <i class="bi bi-list"></i>
                 </a>
             </li>
@@ -15,7 +19,10 @@
 
         <ul class="navbar-nav ms-auto">
             <li class="nav-item dropdown user-menu">
-                <a href="#" class="nav-link dropdown-toggle d-flex align-items-center gap-2" data-bs-toggle="dropdown">
+                <a href="#"
+                   class="nav-link dropdown-toggle d-flex align-items-center gap-2"
+                   data-bs-toggle="dropdown"
+                   aria-expanded="false">
                     <x-avatar :name="$user->name" size="30" />
 
                     <span class="d-none d-md-inline fw-medium">

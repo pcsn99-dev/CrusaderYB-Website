@@ -1,5 +1,7 @@
 @php
-    $selectedPermissionIds = collect($selectedPermissionIds ?? [])->map(fn ($id) => (int) $id)->toArray();
+    $selectedPermissionIds = collect($selectedPermissionIds ?? [])
+        ->map(fn ($id) => (int) $id)
+        ->toArray();
 
     $systemPermissions = $permissions->filter(function ($permission) {
         return str_contains($permission->slug, 'dashboard')
@@ -17,111 +19,179 @@
     });
 
     $permissionGroups = [
-        'System Management' => $systemPermissions,
-        'Writeup Workflow' => $writeupPermissions,
-        'Other Permissions' => $otherPermissions,
+        'System Management' => [
+            'permissions' => $systemPermissions,
+            'icon' => 'bi-shield-lock',
+            'chip' => 'cyb-chip-role',
+            'description' => 'Dashboard, roles, and admin user access.',
+        ],
+        'Writeup Workflow' => [
+            'permissions' => $writeupPermissions,
+            'icon' => 'bi-pencil-square',
+            'chip' => 'cyb-chip-username',
+            'description' => 'Writeup review, creation, and management access.',
+        ],
+        'Other Permissions' => [
+            'permissions' => $otherPermissions,
+            'icon' => 'bi-three-dots',
+            'chip' => 'cyb-chip-neutral',
+            'description' => 'Additional system permissions not grouped above.',
+        ],
     ];
+
+    $isProtected = (bool) ($role?->is_protected ?? false);
 @endphp
 
 <div class="space-y-6">
 
+    {{-- Role Details --}}
     <div>
-        <label for="name" class="block text-sm font-medium text-gray-700">
-            Role Name
-        </label>
+        <h2 class="mb-1 text-base font-semibold text-[var(--cyb-primary)]">
+            Role Details
+        </h2>
 
-        <input type="text"
-               name="name"
-               id="name"
-               value="{{ old('name', $role?->name) }}"
-               @readonly($role?->is_protected)
-               class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 disabled:bg-gray-100 read-only:bg-gray-100"
-               placeholder="Example: Editorial Staff">
-
-        @error('name')
-            <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
-        @enderror
-
-        @if ($role?->is_protected)
-            <p class="mt-2 text-xs text-gray-500">
-                Protected role names cannot be changed.
-            </p>
-        @endif
+        <p class="mb-0 text-sm text-[var(--cyb-muted)]">
+            Give this role a clear name and description so staff can understand what it is for.
+        </p>
     </div>
 
-    <div>
-        <label for="description" class="block text-sm font-medium text-gray-700">
-            Description
-        </label>
+    <div class="grid grid-cols-1 gap-5 lg:grid-cols-2">
+        <div>
+            <label for="name" class="mb-1 block text-sm font-semibold text-[var(--cyb-text)]">
+                Role Name
+            </label>
 
-        <textarea name="description"
-                  id="description"
-                  rows="3"
-                  class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                  placeholder="Briefly describe what this role is allowed to do.">{{ old('description', $role?->description) }}</textarea>
+            <input type="text"
+                   name="name"
+                   id="name"
+                   value="{{ old('name', $role?->name) }}"
+                   required
+                   @readonly($isProtected)
+                   placeholder="Example: Editorial Staff"
+                   class="@error('name') border-red-300 focus:border-red-500 focus:ring-red-200 @else border-[var(--cyb-border)] focus:border-[var(--cyb-primary)] focus:ring-[var(--cyb-primary)]/20 @enderror block w-full rounded-lg px-3 py-2 text-sm shadow-sm read-only:bg-slate-100">
 
-        @error('description')
-            <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
-        @enderror
+            @error('name')
+                <p class="mt-2 flex items-center gap-1 text-sm text-red-600">
+                    <i class="bi bi-exclamation-circle"></i>
+                    {{ $message }}
+                </p>
+            @enderror
+
+            @if ($isProtected)
+                <p class="mt-2 text-xs text-[var(--cyb-muted)]">
+                    Protected role names cannot be changed.
+                </p>
+            @endif
+        </div>
+
+        <div>
+            <label for="description" class="mb-1 block text-sm font-semibold text-[var(--cyb-text)]">
+                Description
+            </label>
+
+            <textarea name="description"
+                      id="description"
+                      rows="3"
+                      placeholder="Briefly describe what this role is allowed to do."
+                      class="@error('description') border-red-300 focus:border-red-500 focus:ring-red-200 @else border-[var(--cyb-border)] focus:border-[var(--cyb-primary)] focus:ring-[var(--cyb-primary)]/20 @enderror block w-full rounded-lg px-3 py-2 text-sm shadow-sm">{{ old('description', $role?->description) }}</textarea>
+
+            @error('description')
+                <p class="mt-2 flex items-center gap-1 text-sm text-red-600">
+                    <i class="bi bi-exclamation-circle"></i>
+                    {{ $message }}
+                </p>
+            @enderror
+        </div>
     </div>
 
-    <div>
-        <div class="flex items-center justify-between mb-3">
+    {{-- Permissions --}}
+    <div class="rounded-xl border border-[var(--cyb-border)] bg-white">
+        <div class="flex flex-col gap-3 border-b border-[var(--cyb-border)] px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
-                <h4 class="text-sm font-semibold text-gray-900">
+                <h3 class="mb-1 text-base font-semibold text-[var(--cyb-primary)]">
                     Permissions
-                </h4>
-                <p class="text-sm text-gray-500">
-                    Select the permissions this role should have.
+                </h3>
+
+                <p class="mb-0 text-sm text-[var(--cyb-muted)]">
+                    Select what this role can access inside the admin panel.
                 </p>
             </div>
 
-            @if (! $role?->is_protected)
-                <button type="button"
-                        onclick="toggleAllPermissions(true)"
-                        class="text-xs text-blue-600 hover:text-blue-900">
-                    Select all
-                </button>
+            @if (! $isProtected)
+                <div class="flex items-center gap-2">
+                    <button type="button"
+                            data-permission-toggle="all"
+                            class="inline-flex items-center justify-center gap-2 rounded-lg border border-[var(--cyb-border)] bg-white px-3 py-2 text-xs font-semibold text-[var(--cyb-primary)] shadow-sm transition hover:bg-[var(--cyb-primary-soft)]">
+                        <i class="bi bi-check2-square"></i>
+                        Select all
+                    </button>
+
+                    <button type="button"
+                            data-permission-toggle="none"
+                            class="inline-flex items-center justify-center gap-2 rounded-lg border border-[var(--cyb-border)] bg-white px-3 py-2 text-xs font-semibold text-[var(--cyb-muted)] shadow-sm transition hover:bg-slate-50">
+                        <i class="bi bi-square"></i>
+                        Clear
+                    </button>
+                </div>
             @endif
         </div>
 
         @error('permission_ids')
-            <p class="mb-3 text-sm text-red-600">{{ $message }}</p>
+            <div class="border-b border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                <i class="bi bi-exclamation-circle me-1"></i>
+                {{ $message }}
+            </div>
         @enderror
 
-        <div class="space-y-4">
-            @foreach ($permissionGroups as $groupName => $groupPermissions)
+        <div class="space-y-4 p-4">
+            @foreach ($permissionGroups as $groupName => $group)
+                @php
+                    $groupPermissions = $group['permissions'];
+                @endphp
+
                 @if ($groupPermissions->count())
-                    <div class="border border-gray-200 rounded-lg overflow-hidden">
-                        <div class="bg-gray-50 px-4 py-3 border-b border-gray-200">
-                            <h5 class="text-sm font-semibold text-gray-800">
-                                {{ $groupName }}
-                            </h5>
+                    <div class="overflow-hidden rounded-xl border border-[var(--cyb-border)]">
+                        <div class="flex flex-col gap-2 border-b border-[var(--cyb-border)] bg-[var(--cyb-primary-soft)] px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+                            <div class="flex items-center gap-2">
+                                <span class="cyb-chip {{ $group['chip'] }}">
+                                    <i class="bi {{ $group['icon'] }}"></i>
+                                    {{ $groupName }}
+                                </span>
+
+                                <span class="text-xs text-[var(--cyb-muted)]">
+                                    {{ $groupPermissions->count() }} {{ $groupPermissions->count() === 1 ? 'permission' : 'permissions' }}
+                                </span>
+                            </div>
+
+                            <p class="mb-0 text-xs text-[var(--cyb-muted)]">
+                                {{ $group['description'] }}
+                            </p>
                         </div>
 
-                        <div class="divide-y divide-gray-100">
+                        <div class="divide-y divide-[var(--cyb-border)]">
                             @foreach ($groupPermissions as $permission)
-                                <label class="flex items-start gap-3 px-4 py-3 hover:bg-gray-50 cursor-pointer">
+                                <label class="flex cursor-pointer items-start gap-3 px-4 py-3 transition hover:bg-[var(--cyb-primary-soft)]/70">
                                     <input type="checkbox"
                                            name="permission_ids[]"
                                            value="{{ $permission->id }}"
-                                           class="permission-checkbox mt-1 rounded border-gray-300 text-indigo-600 shadow-sm focus:ring-indigo-500"
+                                           class="permission-checkbox mt-1 rounded border-[var(--cyb-border)] text-[var(--cyb-primary)] shadow-sm focus:ring-[var(--cyb-primary)]/30"
                                            @checked(in_array($permission->id, $selectedPermissionIds))
-                                           @disabled($role?->is_protected)>
+                                           @disabled($isProtected)>
 
-                                    <div>
-                                        <div class="text-sm font-medium text-gray-900">
-                                            {{ $permission->name }}
-                                        </div>
+                                    <div class="min-w-0 flex-1">
+                                        <div class="flex flex-wrap items-center gap-2">
+                                            <span class="font-semibold text-[var(--cyb-text)]">
+                                                {{ $permission->name }}
+                                            </span>
 
-                                        <div class="mt-1">
-                                            <code class="text-xs bg-gray-100 px-2 py-1 rounded">
+                                            <span class="cyb-chip cyb-chip-neutral">
+                                                <i class="bi bi-hash"></i>
                                                 {{ $permission->slug }}
-                                            </code>
+                                            </span>
                                         </div>
 
                                         @if ($permission->description)
-                                            <p class="text-sm text-gray-500 mt-1">
+                                            <p class="mb-0 mt-1 text-sm text-[var(--cyb-muted)]">
                                                 {{ $permission->description }}
                                             </p>
                                         @endif
@@ -134,32 +204,43 @@
             @endforeach
         </div>
 
-        @if ($role?->is_protected)
-            <p class="mt-3 text-xs text-gray-500">
-                Protected roles automatically keep all permissions.
-            </p>
+        @if ($isProtected)
+            <div class="border-t border-[var(--cyb-border)] bg-yellow-50 px-4 py-3 text-sm text-yellow-800">
+                <i class="bi bi-lock-fill me-1"></i>
+                This is a protected role. Its permissions cannot be manually changed here.
+            </div>
         @endif
     </div>
 
-    <div class="flex items-center justify-end gap-3 pt-4 border-t border-gray-200">
+    {{-- Actions --}}
+    <div class="flex flex-col-reverse gap-3 border-t border-[var(--cyb-border)] pt-5 sm:flex-row sm:items-center sm:justify-end">
         <a href="{{ route('roles.index') }}"
-           class="inline-flex items-center px-4 py-2 bg-white border border-gray-300 rounded-md font-semibold text-xs text-gray-700 uppercase tracking-widest shadow-sm hover:bg-gray-50">
+           class="inline-flex items-center justify-center gap-2 rounded-lg border border-[var(--cyb-border)] bg-white px-4 py-2 text-sm font-semibold text-[var(--cyb-text)] shadow-sm transition hover:bg-[var(--cyb-primary-soft)]">
             Cancel
         </a>
 
         <button type="submit"
-                class="inline-flex items-center px-4 py-2 bg-gray-800 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-gray-700">
+                class="inline-flex items-center justify-center gap-2 rounded-lg bg-[var(--cyb-primary)] px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-[var(--cyb-primary-dark)] focus:outline-none focus:ring-2 focus:ring-[var(--cyb-primary)] focus:ring-offset-2">
+            <i class="bi bi-check2-circle"></i>
             {{ $buttonText }}
         </button>
     </div>
 </div>
 
-<script>
-    function toggleAllPermissions(checked) {
-        document.querySelectorAll('.permission-checkbox').forEach(function (checkbox) {
-            if (!checkbox.disabled) {
-                checkbox.checked = checked;
-            }
+@push('scripts')
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            document.querySelectorAll('[data-permission-toggle]').forEach((button) => {
+                button.addEventListener('click', () => {
+                    const shouldCheck = button.dataset.permissionToggle === 'all';
+
+                    document.querySelectorAll('.permission-checkbox').forEach((checkbox) => {
+                        if (!checkbox.disabled) {
+                            checkbox.checked = shouldCheck;
+                        }
+                    });
+                });
+            });
         });
-    }
-</script>
+    </script>
+@endpush

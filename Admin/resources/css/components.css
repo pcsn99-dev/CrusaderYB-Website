@@ -1,0 +1,89 @@
+/* Cards, modals, dropdowns */
+.card,
+.modal-content,
+.dropdown-menu {
+    background-color: var(--cyb-surface);
+    border: 1px solid var(--cyb-border);
+    border-radius: 0.75rem;
+}
+
+.card {
+    box-shadow: 0 6px 18px rgba(20, 40, 64, 0.06);
+}
+
+.card-header {
+    background-color: var(--cyb-surface);
+    border-bottom: 1px solid var(--cyb-border);
+}
+
+/* Buttons */
+.btn-primary {
+    background-color: var(--cyb-primary);
+    border-color: var(--cyb-primary);
+}
+
+.btn-primary:hover,
+.btn-primary:focus {
+    background-color: var(--cyb-primary-dark);
+    border-color: var(--cyb-primary-dark);
+}
+
+.btn-outline-primary {
+    color: var(--cyb-primary);
+    border-color: var(--cyb-primary);
+}
+
+.btn-outline-primary:hover,
+.btn-outline-primary:focus {
+    color: #ffffff;
+    background-color: var(--cyb-primary);
+    border-color: var(--cyb-primary);
+}
+
+.btn-outline-secondary {
+    color: var(--cyb-muted);
+    border-color: var(--cyb-border);
+}
+
+.btn-outline-secondary:hover,
+.btn-outline-secondary:focus {
+    color: var(--cyb-text);
+    background-color: var(--cyb-primary-soft);
+    border-color: var(--cyb-border);
+}
+
+/* Forms */
+.form-control,
+.form-select {
+    border-color: var(--cyb-border);
+    border-radius: 0.55rem;
+}
+
+.form-control:focus,
+.form-select:focus {
+    border-color: var(--cyb-primary);
+    box-shadow: 0 0 0 0.18rem rgba(30, 58, 95, 0.18);
+}
+
+.form-label {
+    color: var(--cyb-text);
+    font-weight: 600;
+}
+
+/* Bootstrap utility overrides */
+.bg-primary {
+    background-color: var(--cyb-primary) !important;
+}
+
+.text-primary {
+    color: var(--cyb-primary) !important;
+}
+
+.text-muted,
+.text-secondary {
+    color: var(--cyb-muted) !important;
+}
+
+.border {
+    border-color: var(--cyb-border) !important;
+}

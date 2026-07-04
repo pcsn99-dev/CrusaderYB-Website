@@ -1,0 +1,30 @@
+:root {
+    --cyb-primary: #1e3a5f;
+    --cyb-primary-dark: #142840;
+    --cyb-primary-soft: #eaf0f7;
+
+    --cyb-accent: #c9a227;
+    --cyb-accent-light: #f5d76e;
+    --cyb-accent-soft: #fff7dc;
+
+    --cyb-bg: #f5f7fa;
+    --cyb-surface: #ffffff;
+    --cyb-border: #dde3ea;
+
+    --cyb-text: #1f2937;
+    --cyb-muted: #6b7280;
+
+    --cyb-success: #2f855a;
+    --cyb-warning: #b7791f;
+    --cyb-danger: #c53030;
+}
+
+html {
+    color-scheme: light;
+}
+
+body {
+    color: var(--cyb-text);
+    background-color: var(--cyb-bg);
+    font-family: "Figtree", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}

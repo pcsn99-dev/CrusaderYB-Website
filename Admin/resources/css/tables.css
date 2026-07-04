@@ -1,0 +1,90 @@
+/* Bootstrap tables */
+.table {
+    color: var(--cyb-text);
+}
+
+.table thead th {
+    color: var(--cyb-muted);
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    border-bottom-color: var(--cyb-border);
+}
+
+.table td,
+.table th {
+    vertical-align: middle;
+}
+
+.table-hover tbody tr:hover {
+    background-color: var(--cyb-primary-soft);
+}
+
+/* Pagination */
+.pagination {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 3px;
+    font-size: clamp(0.75rem, 0.8vw, 0.9rem);
+}
+
+.pagination .page-link {
+    color: var(--cyb-primary);
+    border-color: var(--cyb-border);
+    padding: clamp(2px, 0.4vw, 6px) clamp(6px, 0.8vw, 10px);
+    font-size: inherit;
+}
+
+.pagination .page-item.active .page-link {
+    background-color: var(--cyb-primary);
+    border-color: var(--cyb-primary);
+}
+
+.pagination .page-link:focus {
+    box-shadow: 0 0 0 0.18rem rgba(30, 58, 95, 0.18);
+}
+
+/* Tabulator */
+.tabulator {
+    border: 1px solid var(--cyb-border);
+    border-radius: 0.75rem;
+    overflow: hidden;
+    background-color: var(--cyb-surface);
+    font-family: "Figtree", system-ui, sans-serif;
+}
+
+.tabulator .tabulator-header {
+    background-color: var(--cyb-primary-soft);
+    border-bottom: 1px solid var(--cyb-border);
+}
+
+.tabulator .tabulator-header .tabulator-col {
+    background-color: var(--cyb-primary-soft);
+    border-right-color: var(--cyb-border);
+}
+
+.tabulator .tabulator-header .tabulator-col-title {
+    color: var(--cyb-muted);
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.tabulator .tabulator-row {
+    border-bottom-color: var(--cyb-border);
+}
+
+.tabulator .tabulator-row.tabulator-row-even {
+    background-color: #fbfcfd;
+}
+
+.tabulator .tabulator-row:hover {
+    background-color: var(--cyb-primary-soft);
+}
+
+.tabulator .tabulator-cell {
+    border-right-color: var(--cyb-border);
+}

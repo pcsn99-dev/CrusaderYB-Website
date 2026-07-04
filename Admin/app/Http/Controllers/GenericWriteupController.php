@@ -4,14 +4,16 @@ namespace App\Http\Controllers;
 
 use App\Models\College;
 use App\Models\GenericWriteup;
+use App\Models\StudentInfo;
 use Illuminate\Http\Request;
 
 class GenericWriteupController extends Controller
 {
     public function index(Request $request)
     {
-        $years = GenericWriteup::query()
+        $years = StudentInfo::query()
             ->select('year')
+            ->whereNotNull('year')
             ->distinct()
             ->orderByDesc('year')
             ->pluck('year');
@@ -25,23 +27,32 @@ class GenericWriteupController extends Controller
 
         $genericWriteups = GenericWriteup::query()
             ->with(['college', 'creator', 'updater'])
-            ->when($selectedYear, function ($query) use ($selectedYear) {
-                $query->where('year', $selectedYear);
-            })
-            ->when($selectedCollegeId, function ($query) use ($selectedCollegeId) {
-                $query->where('college_id', $selectedCollegeId);
-            })
-            ->orderBy('display_order')
+            ->when($selectedYear, fn ($query) =>
+                $query->where('year', $selectedYear)
+            )
+            ->when($selectedCollegeId, fn ($query) =>
+                $query->where('college_id', $selectedCollegeId)
+            )
             ->orderByDesc('created_at')
             ->paginate(10)
             ->withQueryString();
+
+        $currentCount = GenericWriteup::query()
+            ->when($selectedYear, fn ($query) =>
+                $query->where('year', $selectedYear)
+            )
+            ->when($selectedCollegeId, fn ($query) =>
+                $query->where('college_id', $selectedCollegeId)
+            )
+            ->count();
 
         return view('writeups.generic.index', compact(
             'years',
             'colleges',
             'selectedYear',
             'selectedCollegeId',
-            'genericWriteups'
+            'genericWriteups',
+            'currentCount'
         ));
     }
 
@@ -50,9 +61,7 @@ class GenericWriteupController extends Controller
         $validated = $request->validate([
             'year' => ['required', 'string', 'max:20'],
             'college_id' => ['required', 'exists:colleges,id'],
-            'title' => ['nullable', 'string', 'max:255'],
-            'content' => ['required', 'string'],
-            'display_order' => ['nullable', 'integer', 'min:1', 'max:20'],
+            'content' => ['required', 'string', 'max:300'],
             'is_active' => ['nullable', 'boolean'],
         ]);
 
@@ -72,9 +81,7 @@ class GenericWriteupController extends Controller
         GenericWriteup::create([
             'year' => $validated['year'],
             'college_id' => $validated['college_id'],
-            'title' => $validated['title'] ?? null,
             'content' => $validated['content'],
-            'display_order' => $validated['display_order'] ?? null,
             'is_active' => $request->boolean('is_active', true),
             'created_by' => auth()->id(),
             'updated_by' => auth()->id(),
@@ -88,18 +95,14 @@ class GenericWriteupController extends Controller
         $validated = $request->validate([
             'year' => ['required', 'string', 'max:20'],
             'college_id' => ['required', 'exists:colleges,id'],
-            'title' => ['nullable', 'string', 'max:255'],
-            'content' => ['required', 'string'],
-            'display_order' => ['nullable', 'integer', 'min:1', 'max:20'],
+            'content' => ['required', 'string', 'max:300'],
             'is_active' => ['nullable', 'boolean'],
         ]);
 
         $genericWriteup->update([
             'year' => $validated['year'],
             'college_id' => $validated['college_id'],
-            'title' => $validated['title'] ?? null,
             'content' => $validated['content'],
-            'display_order' => $validated['display_order'] ?? null,
             'is_active' => $request->boolean('is_active'),
             'updated_by' => auth()->id(),
         ]);

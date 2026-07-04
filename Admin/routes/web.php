@@ -2,8 +2,9 @@
 
 use App\Http\Controllers\AdminUserController;
 use App\Http\Controllers\Auth\GoogleAuthController;
-use App\Http\Controllers\PasswordChangeController;
+use App\Http\Controllers\BulkWriteupController;
 use App\Http\Controllers\GenericWriteupController;
+use App\Http\Controllers\PasswordChangeController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RoleController;
 use Illuminate\Support\Facades\Route;
@@ -128,6 +129,13 @@ Route::middleware(['auth', 'force.password.change', 'admin.account'])->group(fun
 
     Route::delete('/writeups/generic/{genericWriteup}', [GenericWriteupController::class, 'destroy'])
         ->name('writeups.generic.destroy');
+
+    //bulk writeups
+    Route::get('/writeups/bulk-create', [BulkWriteupController::class, 'index'])
+        ->name('writeups.bulk.index');
+
+    Route::post('/writeups/bulk-create', [BulkWriteupController::class, 'store'])
+        ->name('writeups.bulk.store');
 
 
 });

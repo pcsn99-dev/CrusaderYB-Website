@@ -94,7 +94,7 @@ class WriteupReviewQueue extends Component
             ->filterByYear($this->year)
             ->filterByCollege($this->collegeId)
             ->filterByStatus($this->status)
-            ->flaggedOnly($this->flaggedOnly)
+        ->flaggedOnly($this->flaggedOnly)
             ->searchStudent($this->search)
             ->orderedForReviewQueue()
             ->paginate($this->perPage);

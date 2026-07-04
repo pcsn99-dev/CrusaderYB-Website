@@ -12,7 +12,6 @@ class GenericWriteup extends Model
     protected $fillable = [
         'year',
         'college_id',
-        'title',
         'content',
         'created_by',
         'updated_by',

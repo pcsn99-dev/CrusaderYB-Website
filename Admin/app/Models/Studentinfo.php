@@ -119,5 +119,10 @@ class StudentInfo extends Model
 
 
 
+    public function reservations()
+    {
+        return $this->hasMany(Reservation::class, 'student_info_id');
+    }
+
 
 }

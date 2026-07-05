@@ -5,6 +5,7 @@ namespace App\Livewire;
 use App\Models\Writeup;
 use Illuminate\Support\Str;
 use Livewire\Component;
+use App\Support\AuditLogger;
 
 class WriteupReviewDetail extends Component
 {
@@ -121,6 +122,24 @@ class WriteupReviewDetail extends Component
             return;
         }
 
+
+        $student = $this->writeup->studentInfo;
+
+        $studentName = $student?->formatted_full_name
+            ?? trim(($student->last_name ?? '').', '.($student->first_name ?? ''), ', ')
+            ?: 'Unknown student';
+
+        $reviewerName = auth()->user()?->name ?? 'Unknown admin';
+
+        $oldValues = $this->writeup->only([
+            'edited_writeup',
+            'proofreader_id',
+            'is_done',
+            'review_status',
+            'date_of_proofread',
+            'reviewed_at',
+        ]);
+
         $this->writeup->update([
             'edited_writeup' => $this->editedWriteup,
             'proofreader_id' => auth()->id(),
@@ -133,6 +152,22 @@ class WriteupReviewDetail extends Component
         ]);
 
         $this->refreshWriteup();
+
+        AuditLogger::record(
+            module: 'writeup_review',
+            action: 'marked_reviewed',
+            description: "{$reviewerName} marked the writeup of {$studentName} as reviewed.",
+            model: $this->writeup,
+            oldValues: $oldValues,
+            newValues: $this->writeup->only([
+                'edited_writeup',
+                'proofreader_id',
+                'is_done',
+                'review_status',
+                'date_of_proofread',
+                'reviewed_at',
+            ])
+        );
 
         session()->flash('success', 'Writeup marked as reviewed.');
     }

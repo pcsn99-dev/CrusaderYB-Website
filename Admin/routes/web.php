@@ -1,6 +1,8 @@
 <?php
 
 use App\Http\Controllers\AdminUserController;
+use App\Http\Controllers\AuditLogController;
+use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\GoogleAuthController;
 use App\Http\Controllers\BulkWriteupController;
 use App\Http\Controllers\GenericWriteupController;
@@ -8,7 +10,6 @@ use App\Http\Controllers\PasswordChangeController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RoleController;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\AuditLogController;
 
 
 /*
@@ -50,9 +51,8 @@ use App\Http\Controllers\AuditLogController;
 
 
 
-Route::get('/', function () {
-    return view('welcome');
-});
+Route::get('/', [AuthenticatedSessionController::class, 'create'])
+    ->name('login.page');
 
 Route::get('/auth/google/redirect', [GoogleAuthController::class, 'redirect'])
     ->middleware('guest')

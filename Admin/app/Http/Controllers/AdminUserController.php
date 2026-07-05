@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
+use App\Support\AuditLogger;
 
 class AdminUserController extends Controller
 {
@@ -97,6 +98,24 @@ class AdminUserController extends Controller
 
         $adminUser->notify(new TemporaryPasswordNotification($temporaryPassword));
 
+        AuditLogger::record(
+            module: 'admin_users',
+            action: 'created',
+            description: "Created admin user: {$adminUser->name}",
+            model: $adminUser,
+            newValues: $adminUser->only([
+                'id',
+                'name',
+                'email',
+                'username',
+                'role_id',
+                'type',
+                'active',
+                'must_change_password',
+                'temporary_password_expires_at',
+            ])
+        );
+
         return redirect()
             ->route('admin-users.index')
             ->with('success', 'Admin user created successfully. A temporary password was sent to their email.');
@@ -135,6 +154,14 @@ class AdminUserController extends Controller
             ],
         ]);
 
+        $oldValues = $adminUser->only([
+            'name',
+            'email',
+            'username',
+            'role_id',
+            'active',
+        ]);
+
         $adminUser->update([
             'name' => $validated['name'],
             'email' => $validated['email'],
@@ -143,6 +170,23 @@ class AdminUserController extends Controller
             'active' => $request->boolean('active'),
             'type' => 'admin',
         ]);
+
+        $adminUser->refresh();
+
+        AuditLogger::record(
+            module: 'admin_users',
+            action: 'updated',
+            description: "Updated admin user: {$adminUser->name}",
+            model: $adminUser,
+            oldValues: $oldValues,
+            newValues: $adminUser->only([
+                'name',
+                'email',
+                'username',
+                'role_id',
+                'active',
+            ])
+        );
 
         return redirect()
             ->route('admin-users.index')
@@ -165,7 +209,24 @@ class AdminUserController extends Controller
                 ->with('error', 'Super Admin accounts cannot be deleted.');
         }
 
+        $oldValues = $adminUser->only([
+            'id',
+            'name',
+            'email',
+            'username',
+            'role_id',
+            'active',
+        ]);
+
         $adminUser->delete();
+
+        AuditLogger::record(
+            module: 'admin_users',
+            action: 'deleted',
+            description: "Deleted admin user: {$oldValues['name']}",
+            model: $adminUser,
+            oldValues: $oldValues
+        );
 
         return redirect()
             ->route('admin-users.index')
@@ -184,6 +245,11 @@ class AdminUserController extends Controller
 
         $temporaryPassword = $this->generateTemporaryPassword();
 
+        $oldValues = $adminUser->only([
+            'must_change_password',
+            'temporary_password_expires_at',
+        ]);
+
         $adminUser->update([
             'password' => Hash::make($temporaryPassword),
             'must_change_password' => true,
@@ -191,6 +257,20 @@ class AdminUserController extends Controller
         ]);
 
         $adminUser->notify(new TemporaryPasswordNotification($temporaryPassword));
+
+        $adminUser->refresh();
+
+        AuditLogger::record(
+            module: 'admin_users',
+            action: 'temporary_password_resent',
+            description: "Resent temporary password to admin user: {$adminUser->name}",
+            model: $adminUser,
+            oldValues: $oldValues,
+            newValues: $adminUser->only([
+                'must_change_password',
+                'temporary_password_expires_at',
+            ])
+        );
 
         return redirect()
             ->route('admin-users.show', $adminUser)
@@ -213,9 +293,22 @@ class AdminUserController extends Controller
                 ->with('error', 'Super Admin accounts cannot be deactivated.');
         }
 
+        $oldValues = $adminUser->only(['active']);
+
         $adminUser->update([
             'active' => false,
         ]);
+
+        $adminUser->refresh();
+
+        AuditLogger::record(
+            module: 'admin_users',
+            action: 'deactivated',
+            description: "Deactivated admin user: {$adminUser->name}",
+            model: $adminUser,
+            oldValues: $oldValues,
+            newValues: $adminUser->only(['active'])
+        );
 
         return redirect()
             ->route('admin-users.index')
@@ -226,9 +319,22 @@ class AdminUserController extends Controller
     {
         $this->ensureAdminUser($adminUser);
 
+        $oldValues = $adminUser->only(['active']);
+
         $adminUser->update([
             'active' => true,
         ]);
+
+        $adminUser->refresh();
+
+        AuditLogger::record(
+            module: 'admin_users',
+            action: 'activated',
+            description: "Activated admin user: {$adminUser->name}",
+            model: $adminUser,
+            oldValues: $oldValues,
+            newValues: $adminUser->only(['active'])
+        );
 
         return redirect()
             ->route('admin-users.index')

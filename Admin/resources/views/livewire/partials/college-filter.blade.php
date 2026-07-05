@@ -1,45 +1,60 @@
-<div class="card mt-3">
-    <div class="card-header d-flex flex-column">
-        <h3 class="card-title">Colleges/Schools</h3>
-        <small class="text-muted">Filter writeups by college/schools</small>
-    </div>
-    
-    <div class="card-body p-0 d-flex flex-column" style="max-height: 400px; overflow-y: auto; min-height: 0;">
+<div class="space-y-2">
 
-        <ul class="nav navpills flex-column mb-0" >
-            <li class="nav-item">
-                <button type="button"
-                        wire:click="setCollege(null)" 
-                        class="nav-link d-flex justify-content-between align-items-center w-100"
-                        href="#">
-                    All
-                    <span class="badge rounded-pill text-bg-primary">
-                    {{ $totalCount }}
-                    </span>
-                </button>
-            </li>
+    {{-- All Colleges --}}
+    @php
+        $allSelected = blank($collegeId);
+    @endphp
 
+    <button type="button"
+            wire:click="setCollege(null)"
+            class="flex w-full items-center justify-between gap-3 rounded-lg border px-3 py-2 text-left text-sm transition
+                {{ $allSelected
+                    ? 'border-[var(--cyb-primary)] bg-[var(--cyb-primary-soft)] text-[var(--cyb-primary)]'
+                    : 'border-transparent bg-white text-[var(--cyb-text)] hover:bg-[var(--cyb-primary-soft)]/70' }}">
+        <span class="flex min-w-0 items-center gap-2">
+            <span class="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg
+                {{ $allSelected ? 'bg-white/70' : 'bg-slate-50 text-[var(--cyb-muted)]' }}">
+                <i class="bi bi-grid"></i>
+            </span>
 
-            @foreach($colleges as $college)
-                <li class="nav-item w-100">
-                    <button type="button"
-                            wire:click="setCollege({{ $college->id }})"
-                            class="nav-link d-flex align-items-center w-100 text-start">
+            <span class="min-w-0">
+                <span class="block truncate font-semibold">
+                    All Colleges
+                </span>
+            </span>
+        </span>
 
-                        <span class="flex-grow-1 text-truncate" style="min-width:0;">
-                            {{ $college->college_name }}
-                        </span>
+        <span class="shrink-0 rounded-full bg-white/80 px-2 py-0.5 text-xs font-bold">
+            {{ $totalCount }}
+        </span>
+    </button>
 
-                        <span class="badge rounded-pill text-bg-primary ms-2 flex-shrink-0">
-                            {{ $collegeCounts[$college->id] ?? 0 }}
-                        </span>
+    {{-- College List --}}
+    <div class="max-h-72 space-y-1 overflow-y-auto pr-1">
+        @foreach ($colleges as $college)
+            @php
+                $isSelected = (int) $collegeId === (int) $college->id;
+                $count = $collegeCounts[$college->id] ?? 0;
+            @endphp
 
-                    </button>
-                </li>
-            @endforeach
-        </ul>
+            <button type="button"
+                    wire:click="setCollege({{ $college->id }})"
+                    title="{{ $college->college_name }}"
+                    class="flex w-full items-center justify-between gap-3 rounded-lg border px-3 py-2 text-left text-sm transition
+                        {{ $isSelected
+                            ? 'border-pink-300 bg-pink-50 text-pink-800'
+                            : 'border-transparent bg-white text-[var(--cyb-text)] hover:bg-pink-50' }}">
 
+                <span class="min-w-0 truncate font-medium">
+                    {{ $college->college_name }}
+                </span>
 
+                <span class="shrink-0 rounded-full bg-white/80 px-2 py-0.5 text-xs font-bold
+                    {{ $isSelected ? 'text-pink-800' : 'text-[var(--cyb-muted)]' }}">
+                    {{ $count }}
+                </span>
+            </button>
+        @endforeach
     </div>
 
 </div>

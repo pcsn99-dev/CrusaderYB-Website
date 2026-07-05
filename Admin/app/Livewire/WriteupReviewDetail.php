@@ -11,6 +11,19 @@ class WriteupReviewDetail extends Component
     public Writeup $writeup;
     public string $editedWriteup = '';
     public int $maxCharacters = 300;
+    public string $activePanel = 'review';
+
+
+    public function setActivePanel(string $panel): void
+    {
+        if (! in_array($panel, ['original', 'review'], true)) {
+            return;
+        }
+
+        $this->activePanel = $panel;
+    }
+
+
 
     //permissions
     private function canProofreadWriteups(): bool
@@ -44,6 +57,7 @@ class WriteupReviewDetail extends Component
 
     public function startReview(): void
     {
+        $this->activePanel = 'review';
         if ($this->blockIfCannotProofread()) {
             return;
         }

@@ -8,6 +8,7 @@ use App\Models\StudentInfo;
 use App\Models\Writeup;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use App\Support\AuditLogger;
 
 class BulkWriteupController extends Controller
 {
@@ -80,6 +81,52 @@ class BulkWriteupController extends Controller
             $validated['year'],
             $validated['college_id']
         )->get();
+
+        $createdCount = DB::transaction(function () use ($students, $genericWriteups) {
+            $createdCount = 0;
+
+            foreach ($students->shuffle()->values() as $student) {
+                $alreadyHasWriteup = Writeup::query()
+                    ->where('student_info_id', $student->id)
+                    ->exists();
+
+                if ($alreadyHasWriteup) {
+                    continue;
+                }
+
+                Writeup::create([
+                    'student_info_id' => $student->id,
+                    'writeup' => $genericWriteups->random(),
+                    'edited_writeup' => null,
+                    'proofreader_id' => null,
+                    'is_done' => 0,
+                    'review_status' => 'pending',
+                    'is_flagged' => 0,
+                    'date_of_proofread' => null,
+                ]);
+
+                $createdCount++;
+            }
+
+            return $createdCount;
+        });
+
+        $selectedCollege = College::find($validated['college_id']);
+
+        AuditLogger::record(
+            module: 'bulk_writeups',
+            action: 'bulk_created',
+            description: "Bulk created {$createdCount} missing writeups for {$selectedCollege?->college_name} - {$validated['year']}",
+            model: $selectedCollege,
+            newValues: [
+                'year' => $validated['year'],
+                'college_id' => $validated['college_id'],
+                'college_name' => $selectedCollege?->college_name,
+                'eligible_student_count' => $students->count(),
+                'active_generic_writeup_count' => $genericWriteups->count(),
+                'created_count' => $createdCount,
+            ]
+        );
 
         if ($students->isEmpty()) {
             return back()->withErrors([

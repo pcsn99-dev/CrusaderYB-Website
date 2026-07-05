@@ -9,6 +9,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
+use App\Support\AuditLogger;
 
 class RoleController extends Controller
 {
@@ -86,6 +87,24 @@ class RoleController extends Controller
 
         $role->permissions()->sync($validated['permission_ids'] ?? []);
 
+        $role->load('permissions');
+
+        AuditLogger::record(
+            module: 'roles',
+            action: 'created',
+            description: "Created role: {$role->name}",
+            model: $role,
+            newValues: [
+                'id' => $role->id,
+                'name' => $role->name,
+                'slug' => $role->slug,
+                'description' => $role->description,
+                'is_protected' => $role->is_protected,
+                'permission_ids' => $role->permissions->pluck('id')->values()->all(),
+                'permissions' => $role->permissions->pluck('name')->values()->all(),
+            ]
+        );
+
         return redirect()
             ->route('roles.index')
             ->with('success', 'Role created successfully.');
@@ -119,6 +138,17 @@ class RoleController extends Controller
             ],
         ]);
 
+        $role->load('permissions');
+
+        $oldValues = [
+            'name' => $role->name,
+            'slug' => $role->slug,
+            'description' => $role->description,
+            'is_protected' => $role->is_protected,
+            'permission_ids' => $role->permissions->pluck('id')->values()->all(),
+            'permissions' => $role->permissions->pluck('name')->values()->all(),
+        ];
+
         if ($role->is_protected) {
             $role->update([
                 'description' => $validated['description'] ?? $role->description,
@@ -127,6 +157,25 @@ class RoleController extends Controller
             $allPermissionIds = Permission::pluck('id')->toArray();
 
             $role->permissions()->sync($allPermissionIds);
+
+            $role->refresh();
+            $role->load('permissions');
+
+            AuditLogger::record(
+                module: 'roles',
+                action: 'updated',
+                description: "Updated protected role: {$role->name}",
+                model: $role,
+                oldValues: $oldValues,
+                newValues: [
+                    'name' => $role->name,
+                    'slug' => $role->slug,
+                    'description' => $role->description,
+                    'is_protected' => $role->is_protected,
+                    'permission_ids' => $role->permissions->pluck('id')->values()->all(),
+                    'permissions' => $role->permissions->pluck('name')->values()->all(),
+                ]
+            );
 
             return redirect()
                 ->route('roles.index')
@@ -140,6 +189,25 @@ class RoleController extends Controller
         ]);
 
         $role->permissions()->sync($validated['permission_ids'] ?? []);
+
+        $role->refresh();
+        $role->load('permissions');
+
+        AuditLogger::record(
+            module: 'roles',
+            action: 'updated',
+            description: "Updated role: {$role->name}",
+            model: $role,
+            oldValues: $oldValues,
+            newValues: [
+                'name' => $role->name,
+                'slug' => $role->slug,
+                'description' => $role->description,
+                'is_protected' => $role->is_protected,
+                'permission_ids' => $role->permissions->pluck('id')->values()->all(),
+                'permissions' => $role->permissions->pluck('name')->values()->all(),
+            ]
+        );
 
         return redirect()
             ->route('roles.index')
@@ -160,8 +228,28 @@ class RoleController extends Controller
                 ->with('error', 'This role cannot be deleted because users are assigned to it.');
         }
 
+        $role->load('permissions');
+
+        $oldValues = [
+            'id' => $role->id,
+            'name' => $role->name,
+            'slug' => $role->slug,
+            'description' => $role->description,
+            'is_protected' => $role->is_protected,
+            'permission_ids' => $role->permissions->pluck('id')->values()->all(),
+            'permissions' => $role->permissions->pluck('name')->values()->all(),
+        ];
+
         $role->permissions()->detach();
         $role->delete();
+
+        AuditLogger::record(
+            module: 'roles',
+            action: 'deleted',
+            description: "Deleted role: {$oldValues['name']}",
+            model: $role,
+            oldValues: $oldValues
+        );
 
         return redirect()
             ->route('roles.index')

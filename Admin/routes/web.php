@@ -8,6 +8,7 @@ use App\Http\Controllers\PasswordChangeController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RoleController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\AuditLogController;
 
 
 /*
@@ -137,6 +138,10 @@ Route::middleware(['auth', 'force.password.change', 'admin.account'])->group(fun
     Route::post('/writeups/bulk-create', [BulkWriteupController::class, 'store'])
         ->name('writeups.bulk.store');
 
+        
+
+    Route::get('/audit-logs', [AuditLogController::class, 'index'])
+        ->name('audit-logs.index');
 
 });
 

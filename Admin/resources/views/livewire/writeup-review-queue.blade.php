@@ -242,7 +242,9 @@
                             $student = $writeup->studentInfo;
 
                             $rawWriteup = trim(strip_tags($writeup->edited_writeup ?: $writeup->writeup));
-                            $preview = \Illuminate\Support\Str::limit($rawWriteup, 125);
+
+                            $preview = \Illuminate\Support\Str::limit($rawWriteup, 300);
+
                             $characterCount = \Illuminate\Support\Str::length($rawWriteup);
 
                             $hasEmoji = preg_match('/[\x{1F300}-\x{1FAFF}\x{2600}-\x{27BF}]/u', $rawWriteup);
@@ -282,7 +284,7 @@
                         @endphp
 
                         <div wire:key="writeup-row-{{ $writeup->id }}"
-                             class="group flex gap-3 px-4 py-3 transition hover:bg-[var(--cyb-primary-soft)]/60">
+                             class="group flex flex-col gap-3 px-4 py-3 transition hover:bg-[var(--cyb-primary-soft)]/60 sm:flex-row">
 
                             {{-- Flag --}}
                             <div class="pt-0.5">
@@ -315,7 +317,7 @@
 
                             {{-- Main Link --}}
                             <a href="{{ route('writeups.review.show', $writeup) }}"
-                               class="grid min-w-0 flex-1 gap-3 text-decoration-none text-[var(--cyb-text)] lg:grid-cols-[11rem_1fr_auto]">
+                               class="grid min-w-0 flex-1 gap-3 text-decoration-none text-[var(--cyb-text)] lg:grid-cols-[11rem_1fr]">
 
                                 {{-- Student --}}
                                 <div class="min-w-0">
@@ -353,7 +355,7 @@
                                         @endif
                                     </div>
 
-                                    <div class="mt-1 truncate text-xs text-[var(--cyb-muted)]">
+                                    <div class="mt-2 text-xs leading-relaxed text-[var(--cyb-muted)]">
                                         {{ $preview ?: 'No writeup content available.' }}
                                     </div>
 
@@ -393,14 +395,32 @@
                                     @endif
                                 </div>
 
-                                {{-- Status --}}
-                                <div class="flex items-start justify-start lg:justify-end">
-                                    <span class="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-semibold {{ $statusClass }}">
-                                        <i class="bi {{ $statusIcon }}"></i>
-                                        {{ ucfirst(str_replace('_', ' ', $writeup->review_status ?? 'pending')) }}
-                                    </span>
-                                </div>
                             </a>
+
+                            {{-- Status / Actions --}}
+                            <div class="flex w-full flex-row flex-wrap items-center justify-between gap-2 border-t border-[var(--cyb-border)] pt-3 sm:w-auto sm:flex-col sm:items-end sm:justify-start sm:border-t-0 sm:pt-0 lg:w-40">
+
+                                <span class="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-semibold {{ $statusClass }}">
+                                    <i class="bi {{ $statusIcon }}"></i>
+                                    {{ ucfirst(str_replace('_', ' ', $writeup->review_status ?? 'pending')) }}
+                                </span>
+
+                                @if ($canProofread && ! $writeup->is_done && $writeup->review_status !== 'reviewed')
+                                    <button
+                                        type="button"
+                                        wire:click="markReviewedFromQueue({{ $writeup->id }})"
+                                        wire:confirm="Mark this writeup as reviewed?"
+                                        class="inline-flex items-center justify-center gap-1.5 rounded-lg border border-green-300 bg-white px-3 py-2 text-xs font-semibold text-green-700 shadow-sm transition hover:border-green-500 hover:bg-green-50"
+                                    >
+                                        <i class="bi bi-check2-circle"></i>
+                                        Mark as Reviewed
+                                    </button>
+                                @endif
+
+                            </div>
+
+
+
                         </div>
                     @empty
                         <div class="cyb-empty-state">

@@ -8,6 +8,7 @@ use App\Models\Writeup;
 use Illuminate\Database\Eloquent\Builder;
 use Livewire\Component;
 use Livewire\WithPagination;
+use App\Support\AuditLogger;
 
 class WriteupReviewQueue extends Component
 {
@@ -196,6 +197,99 @@ class WriteupReviewQueue extends Component
             default => $query,
         };
     }
+
+
+
+    public function markReviewedFromQueue(int $writeupId): void
+    {
+        if ($this->blockIfCannotProofread()) {
+            return;
+        }
+
+        $writeup = Writeup::with('studentInfo')->findOrFail($writeupId);
+
+        if ($writeup->review_status === 'reviewed' || $writeup->is_done) {
+            session()->flash('error', 'This writeup is already reviewed.');
+            return;
+        }
+
+        if (
+            $writeup->locked_by &&
+            ! $writeup->lockExpired() &&
+            (int) $writeup->locked_by !== (int) auth()->id()
+        ) {
+            session()->flash('error', 'This writeup is currently being reviewed by another staff member.');
+            return;
+        }
+
+        $plainText = trim(strip_tags($writeup->edited_writeup ?: $writeup->writeup ?: ''));
+
+        if ($plainText === '') {
+            session()->flash('error', 'This writeup has no content to review.');
+            return;
+        }
+
+        if (mb_strlen($plainText) > 300) {
+            session()->flash('error', 'This writeup is over 300 characters and must be reviewed manually.');
+            return;
+        }
+
+        if (preg_match('/[\x{1F000}-\x{1FAFF}\x{2600}-\x{27BF}]/u', $plainText) === 1) {
+            session()->flash('error', 'This writeup contains emojis and must be reviewed manually.');
+            return;
+        }
+
+        $student = $writeup->studentInfo;
+
+        $studentName = $student?->formatted_full_name
+            ?? trim(($student->last_name ?? '').', '.($student->first_name ?? ''), ', ')
+            ?: 'Unknown student';
+
+        $reviewerName = auth()->user()?->name ?? 'Unknown admin';
+
+        $oldValues = $writeup->only([
+            'edited_writeup',
+            'proofreader_id',
+            'is_done',
+            'review_status',
+            'date_of_proofread',
+            'reviewed_at',
+        ]);
+
+        $writeup->update([
+            'edited_writeup' => $writeup->edited_writeup ?: $writeup->writeup,
+            'proofreader_id' => auth()->id(),
+            'is_done' => true,
+            'review_status' => 'reviewed',
+            'date_of_proofread' => now()->toDateString(),
+            'reviewed_at' => now(),
+            'locked_by' => null,
+            'locked_at' => null,
+        ]);
+
+        $writeup->refresh();
+
+        AuditLogger::record(
+            module: 'writeup_review',
+            action: 'marked_reviewed_from_queue',
+            description: "{$reviewerName} marked the writeup of {$studentName} as reviewed from the queue.",
+            model: $writeup,
+            oldValues: $oldValues,
+            newValues: $writeup->only([
+                'edited_writeup',
+                'proofreader_id',
+                'is_done',
+                'review_status',
+                'date_of_proofread',
+                'reviewed_at',
+            ])
+        );
+
+        session()->flash('success', 'Writeup marked as reviewed.');
+    }
+
+
+
 
     private function writeupContentSql(): string
     {

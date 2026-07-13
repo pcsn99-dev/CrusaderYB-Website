@@ -17,6 +17,8 @@ class Writeup extends Model
 
     protected $fillable = [
         'student_info_id',
+        'generic_writeup_id',
+        'bulk_writeup_batch_id',
         'writeup',
         'edited_writeup',
         'proofreader_id',

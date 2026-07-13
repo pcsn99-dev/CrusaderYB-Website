@@ -212,10 +212,7 @@
                             </span>
                         @endif
 
-                        <span wire:loading.delay class="cyb-chip cyb-chip-neutral">
-                            <i class="bi bi-arrow-repeat"></i>
-                            Updating
-                        </span>
+
                     </div>
 
                     <div class="w-full xl:w-96">

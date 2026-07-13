@@ -120,11 +120,19 @@
 
                 {{-- Buttons --}}
                 <div class="flex flex-wrap items-center justify-start gap-2 xl:justify-end">
-                    <a href="{{ route('writeups.review.index') }}"
-                       class="inline-flex items-center gap-2 rounded-lg border border-[var(--cyb-border)] bg-white px-3 py-2 text-xs font-semibold text-[var(--cyb-text)] shadow-sm transition hover:bg-[var(--cyb-primary-soft)]">
+                    
+                    <button type="button"
+                            onclick="
+                                if (window.history.length > 1) {
+                                    window.history.back();
+                                } else {
+                                    window.location.href = '{{ route('writeups.review.index') }}';
+                                }
+                            "
+                            class="inline-flex items-center gap-2 rounded-lg border border-[var(--cyb-border)] bg-white px-3 py-2 text-xs font-semibold text-[var(--cyb-text)] shadow-sm transition hover:bg-[var(--cyb-primary-soft)]">
                         <i class="bi bi-arrow-left"></i>
                         Back
-                    </a>
+                    </button>
 
                     @if ($canProofread && $canStartReview)
                         <button type="button"

@@ -120,25 +120,28 @@ Route::middleware(['auth', 'force.password.change', 'admin.account'])->group(fun
 
     //generic writeups
     Route::get('/writeups/generic', [GenericWriteupController::class, 'index'])
-        ->name('writeups.generic.index');
+        ->middleware('permission:view-writeups')->name('writeups.generic.index');
 
     Route::post('/writeups/generic', [GenericWriteupController::class, 'store'])
-        ->name('writeups.generic.store');
+        ->middleware('permission:view-writeups')->name('writeups.generic.store');
 
     Route::put('/writeups/generic/{genericWriteup}', [GenericWriteupController::class, 'update'])
-        ->name('writeups.generic.update');
+        ->middleware('permission:view-writeups')->name('writeups.generic.update');
 
     Route::delete('/writeups/generic/{genericWriteup}', [GenericWriteupController::class, 'destroy'])
-        ->name('writeups.generic.destroy');
+        ->middleware('permission:view-writeups')->name('writeups.generic.destroy');
 
     //bulk writeups
     Route::get('/writeups/bulk-create', [BulkWriteupController::class, 'index'])
-        ->name('writeups.bulk.index');
+        ->middleware('permission:view-writeups')->name('writeups.bulk.index');
 
     Route::post('/writeups/bulk-create', [BulkWriteupController::class, 'store'])
-        ->name('writeups.bulk.store');
+        ->middleware('permission:view-writeups')->name('writeups.bulk.store');
 
-        
+    Route::delete('/writeups/bulk-create/{batch}/undo',[BulkWriteupController::class, 'undo'])
+        ->middleware('permission:view-writeups')->name('writeups.bulk.undo');
+
+            
 
     Route::get('/audit-logs', [AuditLogController::class, 'index'])
         ->name('audit-logs.index');

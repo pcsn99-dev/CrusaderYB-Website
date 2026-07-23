@@ -214,57 +214,109 @@ class WriteupReviewQueue extends Component
         }
 
         if (
-            $writeup->locked_by &&
-            ! $writeup->lockExpired() &&
-            (int) $writeup->locked_by !== (int) auth()->id()
+            $writeup->locked_by
+            && ! $writeup->lockExpired()
+            && (int) $writeup->locked_by !== (int) auth()->id()
         ) {
-            session()->flash('error', 'This writeup is currently being reviewed by another staff member.');
+            session()->flash(
+                'error',
+                'This writeup is currently being reviewed by another staff member.'
+            );
+
             return;
         }
 
-        $plainText = trim(strip_tags($writeup->edited_writeup ?: $writeup->writeup ?: ''));
+        $plainText = trim(strip_tags(
+            $writeup->edited_writeup
+            ?: $writeup->writeup
+            ?: ''
+        ));
 
         if ($plainText === '') {
-            session()->flash('error', 'This writeup has no content to review.');
+            session()->flash(
+                'error',
+                'This writeup has no content to review.'
+            );
+
             return;
         }
 
-        if (mb_strlen($plainText) > 300) {
-            session()->flash('error', 'This writeup is over 300 characters and must be reviewed manually.');
+        if (mb_strlen($plainText) > 500) {
+            session()->flash(
+                'error',
+                'This writeup is over 500 characters and must be reviewed manually.'
+            );
+
             return;
         }
 
-        if (preg_match('/[\x{1F000}-\x{1FAFF}\x{2600}-\x{27BF}]/u', $plainText) === 1) {
-            session()->flash('error', 'This writeup contains emojis and must be reviewed manually.');
+        if (
+            preg_match(
+                '/[\x{1F000}-\x{1FAFF}\x{2600}-\x{27BF}]/u',
+                $plainText
+            ) === 1
+        ) {
+            session()->flash(
+                'error',
+                'This writeup contains emojis and must be reviewed manually.'
+            );
+
             return;
         }
 
         $student = $writeup->studentInfo;
 
         $studentName = $student?->formatted_full_name
-            ?? trim(($student->last_name ?? '').', '.($student->first_name ?? ''), ', ')
+            ?? trim(
+                ($student->last_name ?? '')
+                .', '
+                .($student->first_name ?? ''),
+                ', '
+            )
             ?: 'Unknown student';
 
         $reviewerName = auth()->user()?->name ?? 'Unknown admin';
 
+        /*
+        * remember whether this writeup was still managed by a generic
+        * writeup or bulk-create batch before detaching it.
+        */
+        $wasBulkManaged =
+            $writeup->generic_writeup_id !== null
+            || $writeup->bulk_writeup_batch_id !== null;
+
         $oldValues = $writeup->only([
+            'generic_writeup_id',
+            'bulk_writeup_batch_id',
             'edited_writeup',
             'proofreader_id',
             'is_done',
             'review_status',
             'date_of_proofread',
             'reviewed_at',
+            'locked_by',
+            'locked_at',
         ]);
 
         $writeup->update([
-            'edited_writeup' => $writeup->edited_writeup ?: $writeup->writeup,
+            'edited_writeup' => $writeup->edited_writeup
+                ?: $writeup->writeup,
+
             'proofreader_id' => auth()->id(),
             'is_done' => true,
             'review_status' => 'reviewed',
             'date_of_proofread' => now()->toDateString(),
             'reviewed_at' => now(),
+
             'locked_by' => null,
             'locked_at' => null,
+
+            /*
+            * It has now been individually reviewed, so it becomes
+            * independent from the generic template and bulk batch.
+            */
+            'generic_writeup_id' => null,
+            'bulk_writeup_batch_id' => null,
         ]);
 
         $writeup->refresh();
@@ -272,20 +324,31 @@ class WriteupReviewQueue extends Component
         AuditLogger::record(
             module: 'writeup_review',
             action: 'marked_reviewed_from_queue',
-            description: "{$reviewerName} marked the writeup of {$studentName} as reviewed from the queue.",
+            description: $wasBulkManaged
+                ? "{$reviewerName} marked the writeup of {$studentName} as reviewed from the queue and detached it from its bulk-generated source."
+                : "{$reviewerName} marked the writeup of {$studentName} as reviewed from the queue.",
             model: $writeup,
             oldValues: $oldValues,
             newValues: $writeup->only([
+                'generic_writeup_id',
+                'bulk_writeup_batch_id',
                 'edited_writeup',
                 'proofreader_id',
                 'is_done',
                 'review_status',
                 'date_of_proofread',
                 'reviewed_at',
+                'locked_by',
+                'locked_at',
             ])
         );
 
-        session()->flash('success', 'Writeup marked as reviewed.');
+        session()->flash(
+            'success',
+            $wasBulkManaged
+                ? 'Writeup marked as reviewed and detached from its bulk-generated source.'
+                : 'Writeup marked as reviewed.'
+        );
     }
 
 

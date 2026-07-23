@@ -11,7 +11,7 @@ class WriteupReviewDetail extends Component
 {
     public Writeup $writeup;
     public string $editedWriteup = '';
-    public int $maxCharacters = 300;
+    public int $maxCharacters = 500;
     public string $activePanel = 'review';
 
 
@@ -51,9 +51,13 @@ class WriteupReviewDetail extends Component
             'proofreader',
             'lockedBy',
             'flaggedBy',
+            'genericWriteup',
+            'bulkWriteupBatch',
         ]);
 
-        $this->editedWriteup = $this->writeup->edited_writeup ?: $this->writeup->writeup ?: '';
+        $this->editedWriteup = $this->writeup->edited_writeup
+            ?: $this->writeup->writeup
+            ?: '';
     }
 
     public function startReview(): void
@@ -113,8 +117,13 @@ class WriteupReviewDetail extends Component
         if ($this->blockIfCannotProofread()) {
             return;
         }
+
         if (! $this->canEdit()) {
-            session()->flash('error', 'You can only mark writeups as reviewed if you are currently reviewing them.');
+            session()->flash(
+                'error',
+                'You can only mark writeups as reviewed if you are currently reviewing them.'
+            );
+
             return;
         }
 
@@ -122,22 +131,49 @@ class WriteupReviewDetail extends Component
             return;
         }
 
+        $this->writeup->refresh();
+
+        /*
+        * Recheck the lock after refreshing in case it expired or was
+        * changed while the reviewer had the page open.
+        */
+        if (! $this->canEdit()) {
+            session()->flash(
+                'error',
+                'Your review lock has expired. Please start the review again.'
+            );
+
+            return;
+        }
 
         $student = $this->writeup->studentInfo;
 
         $studentName = $student?->formatted_full_name
-            ?? trim(($student->last_name ?? '').', '.($student->first_name ?? ''), ', ')
+            ?? trim(
+                ($student->last_name ?? '')
+                .', '
+                .($student->first_name ?? ''),
+                ', '
+            )
             ?: 'Unknown student';
 
         $reviewerName = auth()->user()?->name ?? 'Unknown admin';
 
+        $wasBulkManaged =
+            $this->writeup->generic_writeup_id !== null
+            || $this->writeup->bulk_writeup_batch_id !== null;
+
         $oldValues = $this->writeup->only([
+            'generic_writeup_id',
+            'bulk_writeup_batch_id',
             'edited_writeup',
             'proofreader_id',
             'is_done',
             'review_status',
             'date_of_proofread',
             'reviewed_at',
+            'locked_by',
+            'locked_at',
         ]);
 
         $this->writeup->update([
@@ -147,8 +183,16 @@ class WriteupReviewDetail extends Component
             'review_status' => 'reviewed',
             'date_of_proofread' => now()->toDateString(),
             'reviewed_at' => now(),
+
             'locked_by' => null,
             'locked_at' => null,
+
+            /*
+            * The writeup has now been individually re-reviewed.
+            * It must no longer be affected by template updates or Undo.
+            */
+            'generic_writeup_id' => null,
+            'bulk_writeup_batch_id' => null,
         ]);
 
         $this->refreshWriteup();
@@ -156,20 +200,31 @@ class WriteupReviewDetail extends Component
         AuditLogger::record(
             module: 'writeup_review',
             action: 'marked_reviewed',
-            description: "{$reviewerName} marked the writeup of {$studentName} as reviewed.",
+            description: $wasBulkManaged
+                ? "{$reviewerName} marked the writeup of {$studentName} as reviewed and detached it from its bulk-generated source."
+                : "{$reviewerName} marked the writeup of {$studentName} as reviewed.",
             model: $this->writeup,
             oldValues: $oldValues,
             newValues: $this->writeup->only([
+                'generic_writeup_id',
+                'bulk_writeup_batch_id',
                 'edited_writeup',
                 'proofreader_id',
                 'is_done',
                 'review_status',
                 'date_of_proofread',
                 'reviewed_at',
+                'locked_by',
+                'locked_at',
             ])
         );
 
-        session()->flash('success', 'Writeup marked as reviewed.');
+        session()->flash(
+            'success',
+            $wasBulkManaged
+                ? 'Writeup marked as reviewed and protected from bulk Undo.'
+                : 'Writeup marked as reviewed.'
+        );
     }
 
     public function releaseReview(): void
@@ -297,6 +352,8 @@ class WriteupReviewDetail extends Component
             'proofreader',
             'lockedBy',
             'flaggedBy',
+            'genericWriteup',
+            'bulkWriteupBatch',
         ]);
     }
 

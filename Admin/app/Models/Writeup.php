@@ -114,7 +114,21 @@ class Writeup extends Model
         ->whereHas('studentInfo');
     }
 
+    public function genericWriteup()
+    {
+        return $this->belongsTo(
+            GenericWriteup::class,
+            'generic_writeup_id'
+        )->withTrashed();
+    }
 
+    public function bulkWriteupBatch()
+    {
+        return $this->belongsTo(
+            BulkWriteupBatch::class,
+            'bulk_writeup_batch_id'
+        );
+    }
 
 
 

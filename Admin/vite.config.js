@@ -6,11 +6,12 @@ import tailwindcss from '@tailwindcss/vite';
 export default defineConfig({
     plugins: [
         laravel({
-            input: [
-                'resources/css/app.css',
-                'resources/js/app.js',
-                'resources/js/student-accounts.ts',
-            ],
+                input: [
+                    'resources/css/app.css',
+                    'resources/js/app.js',
+                    'resources/js/student-accounts.ts',
+                    'resources/js/student-account-show.ts',
+                ],
             refresh: true,
         }),
 

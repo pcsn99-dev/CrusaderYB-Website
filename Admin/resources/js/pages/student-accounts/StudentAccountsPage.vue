@@ -388,6 +388,7 @@ const resetFilters = (): void => {
                                 <th>Program</th>
                                 <th>Grad. Year</th>
                                 <th>Status</th>
+                                <th class="text-end">Action</th>
                             </tr>
                         </thead>
 
@@ -441,6 +442,16 @@ const resetFilters = (): void => {
                                     >
                                         Not Subscribed
                                     </span>
+                                </td>
+
+                                <td class="text-end">
+                                    <a
+                                        :href="`/student-accounts/${student.id}`"
+                                        class="btn btn-sm btn-outline-primary"
+                                    >
+                                        <i class="bi bi-eye me-1"></i>
+                                        View
+                                    </a>
                                 </td>
                             </tr>
                         </tbody>

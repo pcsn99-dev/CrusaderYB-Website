@@ -97,26 +97,9 @@ class Reservation extends Model
         return $this->belongsTo(Pictorial::class, 'pictorial_id');
     }
 
-    public function student_info()
+    public function studentInfo(): BelongsTo
     {
-        return $this->belongsTo('\App\Models\Studentinfo'); //, 'student_info_id', 'user_id'
+        return $this->belongsTo(StudentInfo::class, 'student_info_id');
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | SCOPES
-    |--------------------------------------------------------------------------
-    */
-
-    /*
-    |--------------------------------------------------------------------------
-    | ACCESORS
-    |--------------------------------------------------------------------------
-    */
-
-    /*
-    |--------------------------------------------------------------------------
-    | MUTATORS
-    |--------------------------------------------------------------------------
-    */
 }

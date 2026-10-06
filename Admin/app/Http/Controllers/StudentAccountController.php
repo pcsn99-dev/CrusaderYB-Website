@@ -46,10 +46,6 @@ class StudentAccountController extends Controller
         $collegeId = $validated['college_id'] ?? null;
         $year = $validated['year'] ?? null;
 
-        /*
-         * blocks returning full list of students when no search term or filters are provided
-         */
-
         if ($search === '' && empty($collegeId) && empty($year)) {
             return response()->json([
                 'data' => [],
@@ -71,13 +67,6 @@ class StudentAccountController extends Controller
                 'major:id,major_name',
             ])
             ->when($search !== '', function ($query) use ($search) {
-
-                /*
-                 * Split a search into separate terms. 
-                 * Each term may match the ID or any part of
-                 * the student's name.
-                 */
-
                 $terms = preg_split('/\s+/', $search);
 
                 foreach ($terms as $term) {
@@ -112,6 +101,7 @@ class StudentAccountController extends Controller
                     'major' => $student->major?->major_name,
                     'year' => $student->year,
                     'is_subscribe' => $student->is_subscribe,
+                    'is_third_party' => $student->is_third_party,
                 ];
             })
             ->values();
@@ -126,6 +116,87 @@ class StudentAccountController extends Controller
                 'from' => $students->firstItem(),
                 'to' => $students->lastItem(),
             ],
+        ]);
+    }
+
+    public function show(StudentInfo $student): View
+    {
+        $student->load([
+            'user:id,email',
+            'college:id,college_name',
+            'program:id,program_name',
+            'major:id,major_name',
+            'reservations.pictorial',
+        ]);
+
+        $reservations = $student->reservations
+            ->sortByDesc(function ($reservation) {
+                return $reservation->pictorial?->date ?? '';
+            })
+            ->values()
+            ->map(function ($reservation) {
+                $attendanceStatus = match ($reservation->is_present) {
+                    1 => 'present',
+                    0 => 'absent',
+                    2 => 'late',
+                    default => 'not-recorded',
+                };
+
+                return [
+                    'id' => $reservation->id,
+                    'is_rescheduled' => (bool) $reservation->is_reschedule,
+                    'reschedule_date' => $reservation->reschedule_date,
+                    'is_present_date' => $reservation->is_present_date,
+                    'attendance_status' => $attendanceStatus,
+                    'created_at' => $reservation->created_at,
+                    'pictorial' => $reservation->pictorial
+                        ? [
+                            'id' => $reservation->pictorial->id,
+                            'date' => $reservation->pictorial->date,
+                            'start_time' => $reservation->pictorial->start_time,
+                            'end_time' => $reservation->pictorial->end_time,
+                        ]
+                        : null,
+                ];
+            });
+
+        $studentData = [
+            'id' => $student->id,
+            'university_id' => $student->university_id,
+            'slmis_id' => $student->slmis_id,
+            'first_name' => $student->first_name,
+            'middle_name' => $student->middle_name,
+            'last_name' => $student->last_name,
+            'suffix' => $student->suffix,
+            'full_name' => $student->formatted_full_name,
+
+            'email' => $student->user?->email,
+            'contact_number' => $student->contact_number,
+            'current_address' => $student->current_address,
+            'permanent_address' => $student->permanent_address,
+
+            'graduation_year' => $student->year,
+            'expected_graduation_date' => $student->expected_graduation_date,
+
+            'college' => $student->college?->college_name,
+            'program' => $student->program?->program_name,
+            'major' => $student->major?->major_name,
+
+            'is_agree_contract' => (bool) $student->is_agree_contract,
+            'is_subscribe' => (bool) $student->is_subscribe,
+            'is_third_party' => (bool) $student->is_third_party,
+
+            'subscribe_date' => $student->subscribe_date?->format('Y-m-d'),
+            'unsubscribe_date' => $student->unsubscribe_date?->format('Y-m-d'),
+
+            'claim_pic' => (bool) $student->claim_pic,
+            'claim_pic_date' => $student->claim_pic_date?->format('Y-m-d'),
+
+            'reservations' => $reservations,
+        ];
+
+        return view('student-accounts.show', [
+            'student' => $studentData,
         ]);
     }
 }

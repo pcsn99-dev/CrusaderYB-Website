@@ -93,6 +93,10 @@ Route::middleware(['auth', 'force.password.change', 'admin.account'])->group(fun
         ->middleware('permission:view-student-accounts')
         ->name('student-accounts.index');
 
+    Route::get('/student-accounts/search', [StudentAccountController::class, 'search'])
+        ->middleware('permission:view-student-accounts')
+        ->name('student-accounts.search');
+
 
     Route::resource('roles', RoleController::class)->middleware('permission:manage-roles');
 

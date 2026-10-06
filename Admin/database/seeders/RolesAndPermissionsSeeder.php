@@ -41,6 +41,12 @@ class RolesAndPermissionsSeeder extends Seeder
                 'guard_name' => 'web',
                 'description' => 'Allows proofreading submitted student writeups.',
             ],
+            [
+                'name' => 'View Student Accounts',
+                'slug' => 'view-student-accounts',
+                'guard_name' => 'web',
+                'description' => 'Allows viewing student account information.',
+            ],
 
 
         ];

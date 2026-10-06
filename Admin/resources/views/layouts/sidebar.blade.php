@@ -5,6 +5,7 @@
     $canManageRoles = $user?->hasPermission('manage-roles');
     $canManageAdminUsers = $user?->hasPermission('manage-admin-users');
     $canViewWriteups = $user?->hasPermission('view-writeups');
+    $canViewStudentAccounts = $user?->hasPermission('view-student-accounts');
 
     $canAccessUserManagement = $canManageRoles || $canManageAdminUsers;
 
@@ -12,6 +13,8 @@
                             request()->routeIs('admin-users.*');
 
     $writeupsActive = request()->routeIs('writeups.*');
+
+    $studentAccountsActive = request()->routeIs('student-accounts.*');
 @endphp
 
 <aside class="app-sidebar shadow" data-bs-theme="dark">
@@ -22,7 +25,7 @@
             </span>
 
             <span class="brand-text">
-                CYB Admin Panel
+                CYB Admin Panel Test
             </span>
         </a>
     </div>
@@ -80,6 +83,18 @@
                                 </li>
                             @endif
                         </ul>
+                    </li>
+                @endif
+
+                @if ($canViewStudentAccounts)
+                    <li class="nav-item">
+                        <x-nav-link
+                            :href="route('student-accounts.index')"
+                            :active="$studentAccountsActive"
+                            icon="bi bi-mortarboard-fill"
+                        >
+                            Student Accounts
+                        </x-nav-link>
                     </li>
                 @endif
 

@@ -10,6 +10,7 @@ use App\Http\Controllers\PasswordChangeController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RoleController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\StudentAccountController;
 
 
 /*
@@ -39,6 +40,9 @@ use Illuminate\Support\Facades\Route;
 |
 | proofread-writeups
 | - Allows proofreading submitted writeups.
+|
+| view-student-accounts
+| - Allows viewing and searching student accounts.
 |
 
 |
@@ -82,6 +86,12 @@ Route::get('/dashboard', function () {
 
 
 Route::middleware(['auth', 'force.password.change', 'admin.account'])->group(function () {
+
+
+    // student accounts
+    Route::get('/student-accounts', [StudentAccountController::class, 'index'])
+        ->middleware('permission:view-student-accounts')
+        ->name('student-accounts.index');
 
 
     Route::resource('roles', RoleController::class)->middleware('permission:manage-roles');

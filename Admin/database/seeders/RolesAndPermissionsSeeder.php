@@ -47,6 +47,18 @@ class RolesAndPermissionsSeeder extends Seeder
                 'guard_name' => 'web',
                 'description' => 'Allows viewing student account information.',
             ],
+            [
+                'name' => 'Manage Student Subscription',
+                'slug' => 'manage-student-subscription',
+                'guard_name' => 'web',
+                'description' => 'Allows changing student subscription status.',
+            ],
+            [
+                'name' => 'Manage Third Party Status',
+                'slug' => 'manage-third-party-status',
+                'guard_name' => 'web',
+                'description' => 'Allows changing whether a student uses a third-party photo.',
+            ],
 
 
         ];

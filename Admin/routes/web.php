@@ -101,6 +101,22 @@ Route::middleware(['auth', 'force.password.change', 'admin.account'])->group(fun
         ->middleware('permission:view-student-accounts')
         ->name('student-accounts.show');
 
+    Route::patch(
+        '/student-accounts/{student}/subscription',
+        [StudentAccountController::class, 'updateSubscription']
+    )
+        ->middleware('permission:manage-student-subscription')
+        ->name('student-accounts.subscription.update');
+
+    Route::patch(
+        '/student-accounts/{student}/third-party',
+        [StudentAccountController::class, 'updateThirdPartyStatus']
+    )
+        ->middleware('permission:manage-third-party-status')
+        ->name('student-accounts.third-party.update');
+
+
+        
 
     Route::resource('roles', RoleController::class)->middleware('permission:manage-roles');
 

@@ -93,4 +93,11 @@ export interface StudentAccountDetail {
     claim_pic_date: string | null;
 
     reservations: StudentReservation[];
+
+    permissions: StudentAccountPermissions;
+}
+
+export interface StudentAccountPermissions {
+    manage_subscription: boolean;
+    manage_third_party: boolean;
 }

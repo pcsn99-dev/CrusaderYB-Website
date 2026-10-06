@@ -88,10 +88,7 @@ class BulkWriteupController extends Controller
             'college_id' => ['required', 'exists:colleges,id'],
         ]);
 
-        /*
-         * Retrieve the complete GenericWriteup models instead of
-         * plucking only their content. We need each template's ID.
-         */
+  
         $genericWriteups = GenericWriteup::query()
             ->where('year', $validated['year'])
             ->where('college_id', $validated['college_id'])
@@ -112,10 +109,7 @@ class BulkWriteupController extends Controller
             $validated['college_id']
         )->get();
 
-        /*
-         * This must happen before creating the batch.
-         * Otherwise, an empty batch record would be stored.
-         */
+
         if ($students->isEmpty()) {
             return back()
                 ->withInput()
@@ -144,10 +138,7 @@ class BulkWriteupController extends Controller
                 $createdCount = 0;
 
                 foreach ($students->shuffle()->values() as $student) {
-                    /*
-                     * Recheck inside the transaction in case another
-                     * process created a writeup after the page loaded.
-                     */
+        
                     $alreadyHasWriteup = Writeup::query()
                         ->where('student_info_id', $student->id)
                         ->exists();
@@ -162,20 +153,12 @@ class BulkWriteupController extends Controller
                     Writeup::create([
                         'student_info_id' => $student->id,
 
-                        /*
-                         * Track both the exact generic template and
-                         * the exact bulk operation.
-                         */
                         'generic_writeup_id' => $genericWriteup->id,
                         'bulk_writeup_batch_id' => $batch->id,
 
                         'writeup' => $genericWriteup->content,
                         'edited_writeup' => $genericWriteup->content,
 
-                        /*
-                         * Generic writeups are already approved, so
-                         * generated writeups begin as reviewed.
-                         */
                         'proofreader_id' => $reviewerId,
                         'is_done' => true,
                         'review_status' => 'reviewed',
@@ -190,10 +173,6 @@ class BulkWriteupController extends Controller
                     $createdCount++;
                 }
 
-                /*
-                 * This can happen only if another bulk process created
-                 * all the records during this request.
-                 */
                 if ($createdCount === 0) {
                     $batch->delete();
 
@@ -257,10 +236,7 @@ class BulkWriteupController extends Controller
     public function undo(BulkWriteupBatch $batch)
     {
         $undoResult = DB::transaction(function () use ($batch) {
-            /*
-             * Lock the batch so two Undo requests cannot process
-             * the same operation simultaneously.
-             */
+      
             $lockedBatch = BulkWriteupBatch::query()
                 ->lockForUpdate()
                 ->findOrFail($batch->id);
@@ -273,11 +249,8 @@ class BulkWriteupController extends Controller
                 ];
             }
 
-            /*
-             * This relationship contains only writeups still connected
-             * to the batch. Re-reviewed writeups will later have their
-             * batch ID cleared and will therefore not appear here.
-             */
+        
+
             $writeupsToRemove = $lockedBatch->writeups()->get();
 
             if ($writeupsToRemove->isEmpty()) {
@@ -296,10 +269,7 @@ class BulkWriteupController extends Controller
                 'undone_at',
             ]);
 
-            /*
-             * Writeup uses SoftDeletes, so these records are recoverable
-             * and remain available for audit/history purposes.
-             */
+     
             $writeupsToRemove->each(
                 fn (Writeup $writeup) => $writeup->delete()
             );

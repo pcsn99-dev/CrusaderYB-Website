@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { ref } from 'vue';
+
 import type {
     AttendanceStatus,
     StudentAccountDetail,
@@ -8,7 +10,17 @@ interface Props {
     student: StudentAccountDetail;
 }
 
-defineProps<Props>();
+const props = defineProps<Props>();
+
+const studentData = ref<StudentAccountDetail>({
+    ...props.student,
+});
+
+const isUpdatingSubscription = ref(false);
+const isUpdatingThirdParty = ref(false);
+
+const actionMessage = ref<string | null>(null);
+const actionError = ref<string | null>(null);
 
 const formatDate = (
     value: string | null,
@@ -94,6 +106,174 @@ const attendanceBadge = (
             return 'text-bg-secondary';
     }
 };
+
+const getCsrfToken = (): string => {
+    const element = document.querySelector<HTMLMetaElement>(
+        'meta[name="csrf-token"]',
+    );
+
+    return element?.content ?? '';
+};
+
+const updateSubscription = async (
+    newStatus: boolean,
+): Promise<void> => {
+    if (isUpdatingSubscription.value) {
+        return;
+    }
+
+    const confirmed = window.confirm(
+        newStatus
+            ? 'Subscribe this student?'
+            : 'Unsubscribe this student?',
+    );
+
+    if (!confirmed) {
+        return;
+    }
+
+    isUpdatingSubscription.value = true;
+    actionMessage.value = null;
+    actionError.value = null;
+
+    try {
+        const response = await fetch(
+            `/student-accounts/${studentData.value.id}/subscription`,
+            {
+                method: 'PATCH',
+
+                headers: {
+                    Accept: 'application/json',
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': getCsrfToken(),
+                },
+
+                body: JSON.stringify({
+                    is_subscribe: newStatus,
+                }),
+            },
+        );
+
+        const result = await readJsonResponse(response);
+
+        if (!response.ok) {
+            throw new Error(
+                result.message ??
+                    'Unable to update subscription status.',
+            );
+        }
+
+        if (!result.student) {
+            throw new Error(
+                'The server updated the record but returned an invalid response.',
+            );
+        }
+
+    studentData.value.is_subscribe =
+        result.student.is_subscribe;
+
+    studentData.value.subscribe_date =
+        result.student.subscribe_date;
+
+    studentData.value.unsubscribe_date =
+        result.student.unsubscribe_date;
+
+    actionMessage.value = result.message;
+
+    } catch (error) {
+        actionError.value =
+            error instanceof Error
+                ? error.message
+                : 'Unable to update subscription status.';
+    } finally {
+        isUpdatingSubscription.value = false;
+    }
+};
+
+const updateThirdParty = async (
+    newStatus: boolean,
+): Promise<void> => {
+    if (isUpdatingThirdParty.value) {
+        return;
+    }
+
+    const confirmed = window.confirm(
+        newStatus
+            ? 'Mark this student as using a third-party photo?'
+            : 'Remove this student\'s third-party photo status?',
+    );
+
+    if (!confirmed) {
+        return;
+    }
+
+    isUpdatingThirdParty.value = true;
+    actionMessage.value = null;
+    actionError.value = null;
+
+    try {
+        const response = await fetch(
+            `/student-accounts/${studentData.value.id}/third-party`,
+            {
+                method: 'PATCH',
+
+                headers: {
+                    Accept: 'application/json',
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': getCsrfToken(),
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+
+                body: JSON.stringify({
+                    is_third_party: newStatus,
+                }),
+            },
+        );
+
+        const result = await readJsonResponse(response);
+
+        if (!response.ok) {
+            throw new Error(
+                result.message ??
+                    'Unable to update third-party photo status.',
+            );
+        }
+
+        if (!result.student) {
+            throw new Error(
+                'The server updated the record but returned an invalid response.',
+            );
+        }
+
+        studentData.value.is_third_party =
+            result.student.is_third_party;
+
+        actionMessage.value = result.message;
+    } catch (error) {
+        actionError.value =
+            error instanceof Error
+                ? error.message
+                : 'Unable to update third-party photo status.';
+    } finally {
+        isUpdatingThirdParty.value = false;
+    }
+};
+
+const readJsonResponse = async (
+    response: Response,
+): Promise<any> => {
+    const contentType = response.headers.get('content-type');
+
+    if (!contentType?.includes('application/json')) {
+        throw new Error(
+            `Server returned an unexpected response (${response.status}).`,
+        );
+    }
+
+    return response.json();
+};
+
+
 </script>
 
 <template>
@@ -113,17 +293,17 @@ const attendanceBadge = (
                 </a>
 
                 <h1 class="h3 mt-2 mb-1">
-                    {{ student.full_name }}
+                    {{ studentData.full_name }}
                 </h1>
 
                 <div class="text-muted">
-                    {{ student.university_id }}
+                    {{ studentData.university_id }}
                 </div>
             </div>
 
             <div class="d-flex flex-wrap gap-2">
                 <span
-                    v-if="student.is_subscribe"
+                    v-if="studentData.is_subscribe"
                     class="badge text-bg-success fs-6"
                 >
                     Subscribed
@@ -137,7 +317,7 @@ const attendanceBadge = (
                 </span>
 
                 <span
-                    v-if="student.is_third_party"
+                    v-if="studentData.is_third_party"
                     class="badge text-bg-info fs-6"
                 >
                     Third-Party Photo
@@ -161,7 +341,7 @@ const attendanceBadge = (
                             </dt>
 
                             <dd class="col-sm-7">
-                                {{ student.university_id || '—' }}
+                                {{ studentData.university_id || '—' }}
                             </dd>
 
                             <dt class="col-sm-5">
@@ -169,7 +349,7 @@ const attendanceBadge = (
                             </dt>
 
                             <dd class="col-sm-7">
-                                {{ student.slmis_id ?? '—' }}
+                                {{ studentData.slmis_id ?? '—' }}
                             </dd>
 
                             <dt class="col-sm-5">
@@ -177,7 +357,7 @@ const attendanceBadge = (
                             </dt>
 
                             <dd class="col-sm-7">
-                                {{ student.full_name }}
+                                {{ studentData.full_name }}
                             </dd>
 
                             <dt class="col-sm-5">
@@ -185,7 +365,7 @@ const attendanceBadge = (
                             </dt>
 
                             <dd class="col-sm-7">
-                                {{ student.email || '—' }}
+                                {{ studentData.email || '—' }}
                             </dd>
 
                             <dt class="col-sm-5">
@@ -193,7 +373,7 @@ const attendanceBadge = (
                             </dt>
 
                             <dd class="col-sm-7">
-                                {{ student.contact_number || '—' }}
+                                {{ studentData.contact_number || '—' }}
                             </dd>
 
                             <dt class="col-sm-5">
@@ -201,7 +381,7 @@ const attendanceBadge = (
                             </dt>
 
                             <dd class="col-sm-7">
-                                {{ student.current_address || '—' }}
+                                {{ studentData.current_address || '—' }}
                             </dd>
 
                             <dt class="col-sm-5">
@@ -209,7 +389,7 @@ const attendanceBadge = (
                             </dt>
 
                             <dd class="col-sm-7">
-                                {{ student.permanent_address || '—' }}
+                                {{ studentData.permanent_address || '—' }}
                             </dd>
                         </dl>
                     </div>
@@ -231,7 +411,7 @@ const attendanceBadge = (
                             </dt>
 
                             <dd class="col-sm-7">
-                                {{ student.college || '—' }}
+                                {{ studentData.college || '—' }}
                             </dd>
 
                             <dt class="col-sm-5">
@@ -239,7 +419,7 @@ const attendanceBadge = (
                             </dt>
 
                             <dd class="col-sm-7">
-                                {{ student.program || '—' }}
+                                {{ studentData.program || '—' }}
                             </dd>
 
                             <dt class="col-sm-5">
@@ -247,7 +427,7 @@ const attendanceBadge = (
                             </dt>
 
                             <dd class="col-sm-7">
-                                {{ student.major || '—' }}
+                                {{ studentData.major || '—' }}
                             </dd>
 
                             <dt class="col-sm-5">
@@ -255,7 +435,7 @@ const attendanceBadge = (
                             </dt>
 
                             <dd class="col-sm-7">
-                                {{ student.graduation_year || '—' }}
+                                {{ studentData.graduation_year || '—' }}
                             </dd>
 
                             <dt class="col-sm-5">
@@ -264,7 +444,7 @@ const attendanceBadge = (
 
                             <dd class="col-sm-7">
                                 {{
-                                    student.expected_graduation_date
+                                    studentData.expected_graduation_date
                                         || '—'
                                 }}
                             </dd>
@@ -290,7 +470,7 @@ const attendanceBadge = (
 
                                 <div class="fw-semibold mt-1">
                                     {{
-                                        student.is_subscribe
+                                        studentData.is_subscribe
                                             ? 'Subscribed'
                                             : 'Not Subscribed'
                                     }}
@@ -305,7 +485,7 @@ const attendanceBadge = (
                                 <div class="fw-semibold mt-1">
                                     {{
                                         formatDate(
-                                            student.subscribe_date,
+                                            studentData.subscribe_date,
                                         )
                                     }}
                                 </div>
@@ -319,7 +499,7 @@ const attendanceBadge = (
                                 <div class="fw-semibold mt-1">
                                     {{
                                         formatDate(
-                                            student.unsubscribe_date,
+                                            studentData.unsubscribe_date,
                                         )
                                     }}
                                 </div>
@@ -332,7 +512,7 @@ const attendanceBadge = (
 
                                 <div class="fw-semibold mt-1">
                                     {{
-                                        student.is_agree_contract
+                                        studentData.is_agree_contract
                                             ? 'Agreed'
                                             : 'Not Agreed'
                                     }}
@@ -346,7 +526,7 @@ const attendanceBadge = (
 
                                 <div class="fw-semibold mt-1">
                                     {{
-                                        student.is_third_party
+                                        studentData.is_third_party
                                             ? 'Third-Party Photo'
                                             : 'CYB Pictorial'
                                     }}
@@ -360,7 +540,7 @@ const attendanceBadge = (
 
                                 <div class="fw-semibold mt-1">
                                     {{
-                                        student.claim_pic
+                                        studentData.claim_pic
                                             ? 'Yes'
                                             : 'No'
                                     }}
@@ -375,7 +555,7 @@ const attendanceBadge = (
                                 <div class="fw-semibold mt-1">
                                     {{
                                         formatDate(
-                                            student.claim_pic_date,
+                                            studentData.claim_pic_date,
                                         )
                                     }}
                                 </div>
@@ -384,6 +564,241 @@ const attendanceBadge = (
                     </div>
                 </div>
             </div>
+
+
+            <div
+                v-if="
+                    studentData.permissions.manage_subscription ||
+                    studentData.permissions.manage_third_party
+                "
+                class="col-12"
+            >
+                <div class="card shadow-sm">
+                    <div class="card-header bg-white">
+                        <h2 class="h5 mb-0">
+                            Admin Actions
+                        </h2>
+
+                        <small class="text-muted">
+                            Changes made here are recorded in the audit log.
+                        </small>
+                    </div>
+
+                    <div class="card-body">
+                        <div
+                            v-if="actionMessage"
+                            class="alert alert-success"
+                        >
+                            {{ actionMessage }}
+                        </div>
+
+                        <div
+                            v-if="actionError"
+                            class="alert alert-danger"
+                        >
+                            {{ actionError }}
+                        </div>
+
+                        <div class="row g-4">
+                            <div
+                                v-if="
+                                    studentData.permissions
+                                        .manage_subscription
+                                "
+                                class="col-12 col-lg-6"
+                            >
+                                <div class="border rounded p-3 h-100">
+                                    <div
+                                        class="d-flex
+                                            justify-content-between
+                                            align-items-start
+                                            gap-3"
+                                    >
+                                        <div>
+                                            <h3 class="h6 mb-1">
+                                                Subscription Status
+                                            </h3>
+
+                                            <p class="text-muted small mb-0">
+                                                Controls whether the student
+                                                is currently subscribed to CYB.
+                                            </p>
+                                        </div>
+
+                                        <span
+                                            class="badge"
+                                            :class="
+                                                studentData.is_subscribe
+                                                    ? 'text-bg-success'
+                                                    : 'text-bg-secondary'
+                                            "
+                                        >
+                                            {{
+                                                studentData.is_subscribe
+                                                    ? 'Subscribed'
+                                                    : 'Not Subscribed'
+                                            }}
+                                        </span>
+                                    </div>
+
+                                    <div class="mt-3">
+                                        <button
+                                            v-if="
+                                                !studentData.is_subscribe
+                                            "
+                                            type="button"
+                                            class="btn btn-success"
+                                            :disabled="
+                                                isUpdatingSubscription
+                                            "
+                                            @click="
+                                                updateSubscription(true)
+                                            "
+                                        >
+                                            <span
+                                                v-if="
+                                                    isUpdatingSubscription
+                                                "
+                                                class="
+                                                    spinner-border
+                                                    spinner-border-sm
+                                                    me-1
+                                                "
+                                            ></span>
+
+                                            Subscribe Student
+                                        </button>
+
+                                        <button
+                                            v-else
+                                            type="button"
+                                            class="btn btn-outline-danger"
+                                            :disabled="
+                                                isUpdatingSubscription
+                                            "
+                                            @click="
+                                                updateSubscription(false)
+                                            "
+                                        >
+                                            <span
+                                                v-if="
+                                                    isUpdatingSubscription
+                                                "
+                                                class="
+                                                    spinner-border
+                                                    spinner-border-sm
+                                                    me-1
+                                                "
+                                            ></span>
+
+                                            Unsubscribe Student
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div
+                                v-if="
+                                    studentData.permissions
+                                        .manage_third_party
+                                "
+                                class="col-12 col-lg-6"
+                            >
+                                <div class="border rounded p-3 h-100">
+                                    <div
+                                        class="d-flex
+                                            justify-content-between
+                                            align-items-start
+                                            gap-3"
+                                    >
+                                        <div>
+                                            <h3 class="h6 mb-1">
+                                                Photo Source
+                                            </h3>
+
+                                            <p class="text-muted small mb-0">
+                                                Identify students who will
+                                                provide a photo outside the
+                                                CYB pictorial process.
+                                            </p>
+                                        </div>
+
+                                        <span
+                                            class="badge"
+                                            :class="
+                                                studentData.is_third_party
+                                                    ? 'text-bg-info'
+                                                    : 'text-bg-primary'
+                                            "
+                                        >
+                                            {{
+                                                studentData.is_third_party
+                                                    ? 'Third-Party'
+                                                    : 'CYB'
+                                            }}
+                                        </span>
+                                    </div>
+
+                                    <div class="mt-3">
+                                        <button
+                                            v-if="
+                                                !studentData.is_third_party
+                                            "
+                                            type="button"
+                                            class="btn btn-info"
+                                            :disabled="
+                                                isUpdatingThirdParty
+                                            "
+                                            @click="
+                                                updateThirdParty(true)
+                                            "
+                                        >
+                                            <span
+                                                v-if="
+                                                    isUpdatingThirdParty
+                                                "
+                                                class="
+                                                    spinner-border
+                                                    spinner-border-sm
+                                                    me-1
+                                                "
+                                            ></span>
+
+                                            Mark as Third-Party
+                                        </button>
+
+                                        <button
+                                            v-else
+                                            type="button"
+                                            class="btn btn-outline-secondary"
+                                            :disabled="
+                                                isUpdatingThirdParty
+                                            "
+                                            @click="
+                                                updateThirdParty(false)
+                                            "
+                                        >
+                                            <span
+                                                v-if="
+                                                    isUpdatingThirdParty
+                                                "
+                                                class="
+                                                    spinner-border
+                                                    spinner-border-sm
+                                                    me-1
+                                                "
+                                            ></span>
+
+                                            Remove Third-Party Status
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
 
             <div class="col-12">
                 <div class="card shadow-sm">
@@ -405,9 +820,9 @@ const attendanceBadge = (
                         <span
                             class="badge text-bg-light"
                         >
-                            {{ student.reservations.length }}
+                            {{ studentData.reservations.length }}
                             reservation{{
-                                student.reservations.length === 1
+                                studentData.reservations.length === 1
                                     ? ''
                                     : 's'
                             }}
@@ -415,7 +830,7 @@ const attendanceBadge = (
                     </div>
 
                     <div
-                        v-if="student.reservations.length === 0"
+                        v-if="studentData.reservations.length === 0"
                         class="card-body py-5 text-center"
                     >
                         <i
@@ -454,7 +869,7 @@ const attendanceBadge = (
                             <tbody>
                                 <tr
                                     v-for="reservation
-                                        in student.reservations"
+                                        in studentData.reservations"
                                     :key="reservation.id"
                                 >
                                     <td>

@@ -4,9 +4,13 @@ namespace App\Http\Controllers;
 
 use App\Models\College;
 use App\Models\StudentInfo;
+use App\Support\AuditLogger;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
+use Illuminate\Support\Facades\DB;
+use Throwable;
 
 class StudentAccountController extends Controller
 {
@@ -193,10 +197,188 @@ class StudentAccountController extends Controller
             'claim_pic_date' => $student->claim_pic_date?->format('Y-m-d'),
 
             'reservations' => $reservations,
+
+            'permissions' => [
+                'manage_subscription' => Auth::user()?->hasPermission(
+                    'manage-student-subscription'
+                ) ?? false,
+
+                'manage_third_party' => Auth::user()?->hasPermission(
+                    'manage-third-party-status'
+                ) ?? false,
+            ],
         ];
 
         return view('student-accounts.show', [
             'student' => $studentData,
         ]);
     }
+
+    public function updateSubscription(
+        Request $request,
+        StudentInfo $student
+    ): JsonResponse {
+        $validated = $request->validate([
+            'is_subscribe' => ['required', 'boolean'],
+        ]);
+
+        $newStatus = (bool) $validated['is_subscribe'];
+        $oldStatus = (bool) $student->is_subscribe;
+
+        if ($oldStatus === $newStatus) {
+            return response()->json([
+                'message' => 'Subscription status is already up to date.',
+                'student' => [
+                    'is_subscribe' => (bool) $student->is_subscribe,
+                    'subscribe_date' => $student->subscribe_date?->format('Y-m-d'),
+                    'unsubscribe_date' => $student->unsubscribe_date?->format('Y-m-d'),
+                ],
+            ]);
+        }
+
+        try {
+            DB::transaction(function () use (
+                $student,
+                $newStatus,
+                $oldStatus
+            ) {
+                $oldValues = [
+                    'is_subscribe' => $oldStatus,
+                    'subscribe_date' => $student->subscribe_date?->format('Y-m-d'),
+                    'unsubscribe_date' => $student->unsubscribe_date?->format('Y-m-d'),
+                ];
+
+                if ($newStatus) {
+                    $student->is_subscribe = true;
+                    $student->subscribe_date = now()->toDateString();
+                    $student->unsubscribe_date = null;
+                } else {
+                    $student->is_subscribe = false;
+                    $student->unsubscribe_date = now()->toDateString();
+                }
+
+                $student->save();
+
+                $newValues = [
+                    'is_subscribe' => (bool) $student->is_subscribe,
+                    'subscribe_date' => $student->subscribe_date?->format('Y-m-d'),
+                    'unsubscribe_date' => $student->unsubscribe_date?->format('Y-m-d'),
+                ];
+
+                $adminName = Auth::user()?->name ?? 'Unknown admin';
+
+                AuditLogger::record(
+                    module: 'student_accounts',
+                    action: 'subscription_status_updated',
+                    description:
+                        "{$adminName} changed subscription status for ".
+                        "{$student->formatted_full_name} ".
+                        "({$student->university_id}) from ".
+                        ($oldStatus ? 'subscribed' : 'not subscribed').
+                        ' to '.
+                        ($newStatus ? 'subscribed' : 'not subscribed').'.',
+                    model: $student,
+                    oldValues: $oldValues,
+                    newValues: $newValues
+                );
+            });
+
+            $student->refresh();
+
+            return response()->json([
+                'message' => $newStatus
+                    ? 'Student subscribed successfully.'
+                    : 'Student unsubscribed successfully.',
+
+                'student' => [
+                    'is_subscribe' => (bool) $student->is_subscribe,
+                    'subscribe_date' => $student->subscribe_date?->format('Y-m-d'),
+                    'unsubscribe_date' => $student->unsubscribe_date?->format('Y-m-d'),
+                ],
+            ]);
+        } catch (Throwable $exception) {
+            report($exception);
+
+            return response()->json([
+                'message' => 'Unable to update the subscription status.',
+            ], 500);
+        }
+    }
+
+
+    public function updateThirdPartyStatus(
+        Request $request,
+        StudentInfo $student
+    ): JsonResponse {
+        $validated = $request->validate([
+            'is_third_party' => ['required', 'boolean'],
+        ]);
+
+        $newStatus = (bool) $validated['is_third_party'];
+        $oldStatus = (bool) $student->is_third_party;
+
+        if ($oldStatus === $newStatus) {
+            return response()->json([
+                'message' => 'Third-party photo status is already up to date.',
+                'student' => [
+                    'is_third_party' => (bool) $student->is_third_party,
+                ],
+            ]);
+        }
+
+        try {
+            DB::transaction(function () use (
+                $student,
+                $newStatus,
+                $oldStatus
+            ) {
+                $oldValues = [
+                    'is_third_party' => $oldStatus,
+                ];
+
+                $student->is_third_party = $newStatus;
+                $student->save();
+
+                $newValues = [
+                    'is_third_party' => (bool) $student->is_third_party,
+                ];
+
+                $adminName = Auth::user()?->name ?? 'Unknown admin';
+
+                AuditLogger::record(
+                    module: 'student_accounts',
+                    action: 'third_party_status_updated',
+                    description:
+                        "{$adminName} changed third-party photo status for ".
+                        "{$student->formatted_full_name} ".
+                        "({$student->university_id}) from ".
+                        ($oldStatus ? 'third-party' : 'CYB pictorial').
+                        ' to '.
+                        ($newStatus ? 'third-party' : 'CYB pictorial').'.',
+                    model: $student,
+                    oldValues: $oldValues,
+                    newValues: $newValues
+                );
+            });
+
+            $student->refresh();
+
+            return response()->json([
+                'message' => $newStatus
+                    ? 'Student marked as third-party photo.'
+                    : 'Third-party photo status removed.',
+
+                'student' => [
+                    'is_third_party' => (bool) $student->is_third_party,
+                ],
+            ]);
+        } catch (Throwable $exception) {
+            report($exception);
+
+            return response()->json([
+                'message' => 'Unable to update third-party photo status.',
+            ], 500);
+        }
+    }
+
 }

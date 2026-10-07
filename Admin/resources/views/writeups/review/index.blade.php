@@ -1,18 +1,27 @@
 <x-app-layout>
-
     <x-slot name="header">
         Writeup Review Queue
     </x-slot>
-    
+
     <x-slot name="subheader">
-        Writeup Review Queue
+        Review submitted student writeups, check content issues, and track proofreading status.
+    </x-slot>
+
+    <x-slot name="headerIcon">
+        <i class="bi bi-pencil-square"></i>
     </x-slot>
 
     <x-slot name="breadcrumbs">
-        <li class="breadcrumb-item">WriteUp</li>
-        <li class="breadcrumb-item">Queue</li>
+        <li class="breadcrumb-item">
+            Writeups
+        </li>
+
+        <li class="breadcrumb-item active">
+            Review Queue
+        </li>
     </x-slot>
-    
-    <livewire:writeup-review-queue />
-        
+
+    <div class="cyb-page">
+        <livewire:writeup-review-queue />
+    </div>
 </x-app-layout>

@@ -1,91 +1,88 @@
 <template>
-    <div class="overflow-hidden rounded-2xl border border-[var(--cyb-border)] bg-white shadow-sm">
-        <div class="p-4">
-            <div class="flex items-start justify-between gap-3">
+    <div class="cyb-card generic-writeup-count-card">
+        <div class="generic-writeup-count-body">
+            <div class="generic-writeup-count-header">
                 <div>
-                    <p class="mb-1 text-xs font-bold uppercase tracking-wide text-[var(--cyb-muted)]">
+                    <div class="generic-writeup-count-label">
                         Current Count
-                    </p>
+                    </div>
 
-                    <div class="flex items-end gap-1">
-                        <span class="text-3xl font-bold leading-none text-[var(--cyb-primary)]">
+                    <div class="generic-writeup-count-value">
+                        <span class="generic-writeup-count-current">
                             {{ currentCount }}
                         </span>
 
-                        <span class="pb-1 text-sm font-semibold text-[var(--cyb-muted)]">
+                        <span class="generic-writeup-count-limit">
                             / {{ maxLimit }}
                         </span>
                     </div>
                 </div>
 
-                <span
-                    class="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"
-                    :class="iconClass"
+                <div
+                    class="generic-writeup-count-icon"
+                    :class="stateClass"
                 >
                     <i class="bi" :class="iconName"></i>
-                </span>
+                </div>
             </div>
 
             <div
-                class="mt-4 rounded-xl border px-3 py-2 text-xs leading-5"
-                :class="messageClass"
+                class="generic-writeup-count-message"
+                :class="stateClass"
             >
-                <div class="flex items-start gap-2">
-                    <i class="bi mt-0.5" :class="messageIcon"></i>
+                <i class="bi" :class="messageIcon"></i>
 
-                    <p class="mb-0">
-                        {{ message }}
-                    </p>
-                </div>
+                <span>
+                    {{ message }}
+                </span>
             </div>
         </div>
     </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { computed } from 'vue';
 
-const props = defineProps({
-    currentCount: {
-        type: Number,
-        required: true,
+const props = withDefaults(
+    defineProps<{
+        currentCount: number;
+        hasSelectedGroup: boolean;
+        maxLimit?: number;
+    }>(),
+    {
+        maxLimit: 20,
     },
-    hasSelectedGroup: {
-        type: Boolean,
-        required: true,
-    },
-    maxLimit: {
-        type: Number,
-        default: 20,
-    },
-});
+);
 
 const remainingCount = computed(() => {
     return Math.max(props.maxLimit - props.currentCount, 0);
 });
 
 const isFull = computed(() => {
-    return props.hasSelectedGroup && props.currentCount >= props.maxLimit;
+    return props.hasSelectedGroup
+        && props.currentCount >= props.maxLimit;
 });
 
 const isNearLimit = computed(() => {
-    return props.hasSelectedGroup && !isFull.value && remainingCount.value <= 3;
+    return props.hasSelectedGroup
+        && !isFull.value
+        && remainingCount.value <= 3;
 });
 
-const iconClass = computed(() => {
+const stateClass = computed(() => {
     if (!props.hasSelectedGroup) {
-        return 'bg-slate-100 text-slate-500';
+        return 'is-neutral';
     }
 
     if (isFull.value) {
-        return 'bg-red-50 text-red-600';
+        return 'is-danger';
     }
 
     if (isNearLimit.value) {
-        return 'bg-yellow-50 text-yellow-700';
+        return 'is-warning';
     }
 
-    return 'bg-[var(--cyb-primary-soft)] text-[var(--cyb-primary)]';
+    return 'is-success';
 });
 
 const iconName = computed(() => {
@@ -102,22 +99,6 @@ const iconName = computed(() => {
     }
 
     return 'bi-check2-circle';
-});
-
-const messageClass = computed(() => {
-    if (!props.hasSelectedGroup) {
-        return 'border-slate-200 bg-slate-50 text-slate-600';
-    }
-
-    if (isFull.value) {
-        return 'border-red-200 bg-red-50 text-red-700';
-    }
-
-    if (isNearLimit.value) {
-        return 'border-yellow-200 bg-yellow-50 text-yellow-800';
-    }
-
-    return 'border-green-200 bg-green-50 text-green-700';
 });
 
 const messageIcon = computed(() => {
@@ -148,3 +129,129 @@ const message = computed(() => {
     return `${remainingCount.value} more generic writeup${remainingCount.value === 1 ? '' : 's'} can still be created.`;
 });
 </script>
+
+<style scoped>
+.generic-writeup-count-card {
+    height: 100%;
+}
+
+.generic-writeup-count-body {
+    padding: 1rem;
+}
+
+.generic-writeup-count-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.generic-writeup-count-label {
+    color: var(--cyb-muted, #6c757d);
+    font-size: 0.7rem;
+    font-weight: 650;
+    letter-spacing: 0.045em;
+    text-transform: uppercase;
+}
+
+.generic-writeup-count-value {
+    display: flex;
+    align-items: flex-end;
+    gap: 0.3rem;
+    margin-top: 0.25rem;
+}
+
+.generic-writeup-count-current {
+    color: var(--cyb-text, #212529);
+    font-size: 1.9rem;
+    font-weight: 700;
+    line-height: 1;
+}
+
+.generic-writeup-count-limit {
+    padding-bottom: 0.15rem;
+    color: var(--cyb-muted, #6c757d);
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.generic-writeup-count-icon {
+    display: flex;
+    width: 40px;
+    height: 40px;
+    flex: 0 0 40px;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.65rem;
+    font-size: 0.95rem;
+}
+
+.generic-writeup-count-message {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.55rem;
+    margin-top: 1rem;
+    padding: 0.7rem 0.75rem;
+    border: 1px solid;
+    border-radius: 0.6rem;
+    font-size: 0.72rem;
+    line-height: 1.45;
+}
+
+.generic-writeup-count-message > i {
+    flex: 0 0 auto;
+    margin-top: 0.05rem;
+}
+
+/* Neutral */
+
+.generic-writeup-count-icon.is-neutral {
+    background: #f1f3f5;
+    color: #6c757d;
+}
+
+.generic-writeup-count-message.is-neutral {
+    border-color: #dfe3e7;
+    background: #f8f9fa;
+    color: #687078;
+}
+
+/* Success */
+
+.generic-writeup-count-icon.is-success {
+    background: #e8f5ee;
+    color: #197149;
+}
+
+.generic-writeup-count-message.is-success {
+    border-color: #cce7d8;
+    background: #f1faf5;
+    color: #24724d;
+}
+
+/* Warning */
+
+.generic-writeup-count-icon.is-warning {
+    background: #fff4d8;
+    color: #87620f;
+}
+
+.generic-writeup-count-message.is-warning {
+    border-color: #ead8a8;
+    background: #fff9e7;
+    color: #7d641c;
+}
+
+/* Danger */
+
+.generic-writeup-count-icon.is-danger {
+    background: #fae8e8;
+    color: #a33a3a;
+}
+
+.generic-writeup-count-message.is-danger {
+    border-color: #edc6c6;
+    background: #fdf2f2;
+    color: #9a3d3d;
+}
+</style>

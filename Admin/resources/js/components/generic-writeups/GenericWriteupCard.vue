@@ -1,129 +1,149 @@
 <template>
-    <article
-        class="group flex h-full flex-col overflow-hidden rounded-2xl border border-[var(--cyb-border)] bg-white shadow-sm transition hover:-translate-y-0.5 hover:border-[var(--cyb-primary)]/30 hover:shadow-md"
-    >
+    <article class="cyb-card generic-writeup-card h-100">
         <!-- Header -->
-        <div class="border-b border-[var(--cyb-border)] bg-slate-50/80 px-4 py-3">
-            <div class="flex items-start justify-between gap-3">
-                <div class="min-w-0">
-                    <div class="mb-2 flex flex-wrap items-center gap-2">
-                        <span class="inline-flex items-center rounded-full border border-slate-200 bg-white px-2.5 py-1 text-xs font-bold text-slate-600">
-                            #{{ number }}
-                        </span>
+        <div class="generic-writeup-card-header">
+            <div class="generic-writeup-card-heading">
+                <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                    <span class="cyb-pill cyb-pill-neutral">
+                        #{{ number }}
+                    </span>
 
+                    <span
+                        class="cyb-pill"
+                        :class="writeup.is_active
+                            ? 'cyb-pill-success'
+                            : 'cyb-pill-neutral'"
+                    >
                         <span
-                            class="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-bold"
-                            :class="statusClass"
-                        >
-                            <i class="bi" :class="writeup.is_active ? 'bi-check2-circle' : 'bi-pause-circle'"></i>
-                            {{ writeup.is_active ? 'Active' : 'Inactive' }}
-                        </span>
-                    </div>
+                            class="cyb-status-dot"
+                            :class="writeup.is_active
+                                ? 'cyb-status-dot-success'
+                                : ''"
+                        ></span>
 
-                    <h4 class="mb-0 truncate text-sm font-bold text-[var(--cyb-primary)]">
-                        Generic Writeup
-                    </h4>
+                        {{ writeup.is_active ? 'Active' : 'Inactive' }}
+                    </span>
+                </div>
 
-                    <p class="mb-0 mt-1 truncate text-xs text-[var(--cyb-muted)]">
-                        <i class="bi bi-calendar3 me-1"></i>
+                <h3 class="generic-writeup-card-title">
+                    Generic Writeup
+                </h3>
+
+                <div class="generic-writeup-card-context">
+                    <span>
+                        <i class="bi bi-calendar3"></i>
                         {{ writeup.year || 'No year' }}
+                    </span>
 
-                        <span class="mx-1">·</span>
+                    <span class="generic-writeup-context-divider">
+                        ·
+                    </span>
 
-                        <i class="bi bi-building me-1"></i>
+                    <span>
+                        <i class="bi bi-building"></i>
                         {{ writeup.college?.college_name || 'No college' }}
-                    </p>
+                    </span>
                 </div>
+            </div>
 
-                <!-- Actions -->
-                <div class="flex shrink-0 items-center gap-1">
-                    <button
-                        type="button"
-                        class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-blue-100 bg-blue-50 text-blue-700 transition hover:bg-blue-100"
-                        title="Edit writeup"
-                        @click="$emit('edit', writeup)"
-                    >
-                        <i class="bi bi-pencil"></i>
-                    </button>
+            <!-- Actions -->
+            <div class="generic-writeup-card-actions">
+                <button
+                    type="button"
+                    class="btn btn-sm btn-light border generic-writeup-action"
+                    title="Edit writeup"
+                    aria-label="Edit writeup"
+                    @click="$emit('edit', writeup)"
+                >
+                    <i class="bi bi-pencil-square"></i>
+                </button>
 
-                    <button
-                        type="button"
-                        class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-red-100 bg-red-50 text-red-700 transition hover:bg-red-100"
-                        title="Delete writeup"
-                        @click="$emit('delete', writeup)"
-                    >
-                        <i class="bi bi-trash"></i>
-                    </button>
-                </div>
+                <button
+                    type="button"
+                    class="btn btn-sm btn-outline-danger generic-writeup-action"
+                    title="Delete writeup"
+                    aria-label="Delete writeup"
+                    @click="$emit('delete', writeup)"
+                >
+                    <i class="bi bi-trash"></i>
+                </button>
             </div>
         </div>
 
         <!-- Content -->
-        <div class="flex flex-1 flex-col p-4">
-            <div class="mb-4 flex-1">
+        <div class="generic-writeup-card-body">
+            <div class="generic-writeup-content">
                 <p
-                    class="cyb-writeup-preview mb-0 text-sm leading-7 text-[var(--cyb-text)]"
+                    class="generic-writeup-preview"
                     :title="writeup.content || 'No content available.'"
                 >
                     {{ writeup.content || 'No content available.' }}
                 </p>
             </div>
 
-            <!-- Meta -->
-            <div class="mt-auto rounded-xl border border-[var(--cyb-border)] bg-slate-50 px-3 py-2.5">
-                <div class="grid gap-2 text-xs text-[var(--cyb-muted)]">
-                    <div class="flex min-w-0 items-center gap-2">
-                        <span class="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-white text-slate-500">
-                            <i class="bi bi-person"></i>
-                        </span>
+            <!-- Metadata -->
+            <div class="generic-writeup-meta">
+                <div class="generic-writeup-meta-row">
+                    <span class="generic-writeup-meta-icon">
+                        <i class="bi bi-person"></i>
+                    </span>
 
-                        <span class="min-w-0 truncate">
-                            Created by
-                            <span class="font-semibold text-[var(--cyb-text)]">
-                                {{ writeup.creator?.name || 'Unknown' }}
-                            </span>
-                        </span>
-                    </div>
+                    <span class="generic-writeup-meta-text">
+                        Created by
 
-                    <div class="flex min-w-0 items-center gap-2">
-                        <span class="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-white text-slate-500">
-                            <i class="bi bi-clock-history"></i>
-                        </span>
+                        <strong>
+                            {{ writeup.creator?.name || 'Unknown' }}
+                        </strong>
+                    </span>
+                </div>
 
-                        <span class="min-w-0 truncate">
-                            Updated
-                            <span class="font-semibold text-[var(--cyb-text)]">
-                                {{ formattedUpdatedAt }}
-                            </span>
-                        </span>
-                    </div>
+                <div class="generic-writeup-meta-row">
+                    <span class="generic-writeup-meta-icon">
+                        <i class="bi bi-clock-history"></i>
+                    </span>
+
+                    <span class="generic-writeup-meta-text">
+                        Updated
+
+                        <strong>
+                            {{ formattedUpdatedAt }}
+                        </strong>
+                    </span>
                 </div>
             </div>
         </div>
     </article>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { computed } from 'vue';
 
-const props = defineProps({
-    writeup: {
-        type: Object,
-        required: true,
-    },
-    number: {
-        type: Number,
-        required: true,
-    },
-});
+interface College {
+    college_name?: string | null;
+}
 
-defineEmits(['edit', 'delete']);
+interface Creator {
+    name?: string | null;
+}
 
-const statusClass = computed(() => {
-    return props.writeup.is_active
-        ? 'border-green-200 bg-green-50 text-green-700'
-        : 'border-slate-200 bg-slate-50 text-slate-600';
-});
+interface GenericWriteup {
+    is_active: boolean;
+    year?: string | number | null;
+    content?: string | null;
+    updated_at?: string | null;
+    college?: College | null;
+    creator?: Creator | null;
+}
+
+const props = defineProps<{
+    writeup: GenericWriteup;
+    number: number;
+}>();
+
+defineEmits<{
+    edit: [writeup: GenericWriteup];
+    delete: [writeup: GenericWriteup];
+}>();
 
 const formattedUpdatedAt = computed(() => {
     if (!props.writeup.updated_at) {
@@ -147,11 +167,161 @@ const formattedUpdatedAt = computed(() => {
 </script>
 
 <style scoped>
-.cyb-writeup-preview {
+.generic-writeup-card {
+    display: flex;
+    min-height: 100%;
+    flex-direction: column;
+    transition:
+        border-color 0.15s ease,
+        box-shadow 0.15s ease,
+        transform 0.15s ease;
+}
+
+.generic-writeup-card:hover {
+    border-color: #ccd7e2;
+    box-shadow: 0 0.35rem 1rem rgba(0, 0, 0, 0.06);
+    transform: translateY(-1px);
+}
+
+.generic-writeup-card-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1rem;
+    border-bottom: 1px solid var(--cyb-border-soft, #edf0f2);
+    background: #fafbfc;
+}
+
+.generic-writeup-card-heading {
+    min-width: 0;
+}
+
+.generic-writeup-card-title {
+    margin: 0;
+    color: var(--cyb-text, #212529);
+    font-size: 0.9rem;
+    font-weight: 650;
+}
+
+.generic-writeup-card-context {
+    display: flex;
+    min-width: 0;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.3rem;
+    margin-top: 0.35rem;
+    color: var(--cyb-muted, #6c757d);
+    font-size: 0.72rem;
+}
+
+.generic-writeup-card-context span {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    min-width: 0;
+}
+
+.generic-writeup-context-divider {
+    color: #adb5bd;
+}
+
+.generic-writeup-card-actions {
+    display: flex;
+    flex: 0 0 auto;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.generic-writeup-action {
+    display: inline-flex;
+    width: 34px;
+    height: 34px;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+}
+
+.generic-writeup-card-body {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    padding: 1rem;
+}
+
+.generic-writeup-content {
+    flex: 1;
+}
+
+.generic-writeup-preview {
     display: -webkit-box;
     overflow: hidden;
+    margin: 0;
+    color: #343a40;
+    font-size: 0.84rem;
+    line-height: 1.65;
     white-space: pre-line;
     -webkit-box-orient: vertical;
     -webkit-line-clamp: 4;
+}
+
+.generic-writeup-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+    margin-top: 1rem;
+    padding: 0.75rem;
+    border: 1px solid var(--cyb-border, #e7eaed);
+    border-radius: 0.6rem;
+    background: #f8f9fa;
+}
+
+.generic-writeup-meta-row {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    gap: 0.55rem;
+}
+
+.generic-writeup-meta-icon {
+    display: flex;
+    width: 26px;
+    height: 26px;
+    flex: 0 0 26px;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.45rem;
+    background: #fff;
+    color: #7a8289;
+    font-size: 0.72rem;
+}
+
+.generic-writeup-meta-text {
+    overflow: hidden;
+    color: var(--cyb-muted, #6c757d);
+    font-size: 0.72rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.generic-writeup-meta-text strong {
+    color: var(--cyb-text, #212529);
+    font-weight: 600;
+}
+
+@media (max-width: 575.98px) {
+    .generic-writeup-card-header {
+        gap: 0.75rem;
+    }
+
+    .generic-writeup-card-context {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.2rem;
+    }
+
+    .generic-writeup-context-divider {
+        display: none !important;
+    }
 }
 </style>

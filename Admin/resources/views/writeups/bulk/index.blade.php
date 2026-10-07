@@ -20,624 +20,720 @@
         $selectedCollegeName = $selectedCollege->college_name ?? 'Selected college';
     @endphp
 
-    <div class="grid grid-cols-1 gap-4 xl:grid-cols-12">
+    <div class="cyb-page">
+        <div class="row g-4 align-items-start">
 
-        {{-- Left Side --}}
-        <aside class="xl:col-span-4">
-            <div class="space-y-4">
+            {{-- =========================================================
+                 LEFT SIDEBAR
+                 ========================================================= --}}
+            <aside class="col-12 col-xl-4">
+                <div class="bulk-writeup-sidebar">
 
-                {{-- Selection --}}
-                <div class="cyb-page-card overflow-hidden">
-                    <div class="border-b border-[var(--cyb-border)] bg-white px-5 py-4">
-                        <div class="flex items-start justify-between gap-3">
+                    {{-- Selection --}}
+                    <section class="cyb-card">
+                        <div class="cyb-card-header">
                             <div>
-                                <span class="cyb-chip cyb-chip-role">
-                                    <i class="bi bi-funnel"></i>
-                                    Selection
-                                </span>
-
-                                <h2 class="mb-0 mt-2 text-base font-bold text-[var(--cyb-primary)]">
+                                <h2 class="cyb-section-title">
                                     Choose Group
                                 </h2>
 
-                                <p class="mb-0 mt-1 text-sm text-[var(--cyb-muted)]">
+                                <p class="cyb-section-description">
                                     Select a school year and college to check missing writeups.
                                 </p>
                             </div>
 
-                            <span class="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--cyb-primary-soft)] text-[var(--cyb-primary)]">
-                                <i class="bi bi-search"></i>
+                            <span class="cyb-pill cyb-pill-primary">
+                                <i class="bi bi-funnel"></i>
+                                Selection
                             </span>
                         </div>
-                    </div>
 
-                    <div class="p-5">
-                        <form method="GET" action="{{ route('writeups.bulk.index') }}" class="space-y-4">
-                            <div>
-                                <label for="year" class="mb-1 block text-xs font-bold uppercase tracking-wide text-[var(--cyb-muted)]">
-                                    School Year
-                                </label>
-
-                                <select
-                                    id="year"
-                                    name="year"
-                                    class="block w-full rounded-xl border border-[var(--cyb-border)] bg-white px-3 py-2.5 text-sm font-semibold text-[var(--cyb-text)] shadow-sm transition focus:border-[var(--cyb-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--cyb-primary)]/20"
-                                    required
-                                >
-                                    <option value="">Select Year</option>
-
-                                    @foreach ($years as $year)
-                                        <option value="{{ $year }}" @selected($selectedYear == $year)>
-                                            {{ $year }}
-                                        </option>
-                                    @endforeach
-                                </select>
-                            </div>
-
-                            <div>
-                                <label for="college_id" class="mb-1 block text-xs font-bold uppercase tracking-wide text-[var(--cyb-muted)]">
-                                    College
-                                </label>
-
-                                <select
-                                    id="college_id"
-                                    name="college_id"
-                                    class="block w-full rounded-xl border border-[var(--cyb-border)] bg-white px-3 py-2.5 text-sm font-semibold text-[var(--cyb-text)] shadow-sm transition focus:border-[var(--cyb-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--cyb-primary)]/20"
-                                    required
-                                >
-                                    <option value="">Select College</option>
-
-                                    @foreach ($colleges as $college)
-                                        <option value="{{ $college->id }}" @selected($selectedCollegeId == $college->id)>
-                                            {{ $college->college_name }}
-                                        </option>
-                                    @endforeach
-                                </select>
-                            </div>
-
-                            <div class="flex flex-col gap-2 sm:flex-row">
-                                <button
-                                    type="submit"
-                                    class="inline-flex flex-1 items-center justify-center gap-2 rounded-lg bg-[var(--cyb-primary)] px-4 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-[var(--cyb-primary-dark)]"
-                                >
-                                    <i class="bi bi-search"></i>
-                                    Check Missing
-                                </button>
-
-                                @if ($hasSelection)
-                                    <a
-                                        href="{{ route('writeups.bulk.index') }}"
-                                        class="inline-flex items-center justify-center gap-2 rounded-lg border border-[var(--cyb-border)] bg-white px-4 py-2.5 text-sm font-bold text-[var(--cyb-text)] shadow-sm transition hover:bg-slate-50"
-                                    >
-                                        <i class="bi bi-x-lg"></i>
-                                        Clear
-                                    </a>
-                                @endif
-                            </div>
-                        </form>
-                    </div>
-                </div>
-
-                {{-- Instruction Card --}}
-                <div class="cyb-page-card overflow-hidden">
-                    <div class="border-b border-[var(--cyb-border)] bg-[var(--cyb-primary-soft)] px-5 py-4">
-                        <span class="cyb-chip cyb-chip-neutral">
-                            <i class="bi bi-info-circle"></i>
-                            How this works
-                        </span>
-                    </div>
-
-                    <div class="space-y-3 p-5">
-                        <div class="flex gap-3">
-                            <span class="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-white text-xs font-bold text-[var(--cyb-primary)] shadow-sm">
-                                1
-                            </span>
-
-                            <div>
-                                <p class="mb-0 text-sm font-bold text-[var(--cyb-text)]">
-                                    Select a group
-                                </p>
-                                <p class="mb-0 text-xs leading-5 text-[var(--cyb-muted)]">
-                                    Choose the school year and college you want to process.
-                                </p>
-                            </div>
-                        </div>
-
-                        <div class="flex gap-3">
-                            <span class="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-white text-xs font-bold text-[var(--cyb-primary)] shadow-sm">
-                                2
-                            </span>
-
-                            <div>
-                                <p class="mb-0 text-sm font-bold text-[var(--cyb-text)]">
-                                    Check counts
-                                </p>
-                                <p class="mb-0 text-xs leading-5 text-[var(--cyb-muted)]">
-                                    Make sure there are students missing writeups and active generic writeups available.
-                                </p>
-                            </div>
-                        </div>
-
-                        <div class="flex gap-3">
-                            <span class="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-white text-xs font-bold text-[var(--cyb-primary)] shadow-sm">
-                                3
-                            </span>
-
-                            <div>
-                                <p class="mb-0 text-sm font-bold text-[var(--cyb-text)]">
-                                    Confirm creation
-                                </p>
-                                <p class="mb-0 text-xs leading-5 text-[var(--cyb-muted)]">
-                                    The system randomly assigns active generic writeups to all eligible students.
-                                </p>
-                            </div>
-                        </div>
-
-                        <div class="rounded-xl border border-yellow-200 bg-yellow-50 px-3 py-2 text-xs font-medium leading-5 text-yellow-800">
-                            <i class="bi bi-exclamation-triangle me-1"></i>
-                            Review the selected group before confirming. Bulk creation affects multiple students at once.
-                        </div>
-                    </div>
-                </div>
-
-            </div>
-        </aside>
-
-        {{-- Main Content --}}
-        <section class="xl:col-span-8">
-            <div class="space-y-4">
-                <div class="cyb-page-card overflow-hidden">
-
-                        {{-- Summary Header --}}
-                        <div class="border-b border-[var(--cyb-border)] bg-white px-5 py-4">
-                            <div class="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                        <div class="cyb-card-body">
+                            <form
+                                method="GET"
+                                action="{{ route('writeups.bulk.index') }}"
+                                class="bulk-selection-form"
+                            >
                                 <div>
-                                    <span class="cyb-badge-soft">
-                                        <i class="bi bi-clipboard-data"></i>
-                                        Bulk Creation Summary
-                                    </span>
-
-                                    <h2 class="mb-0 mt-2 text-lg font-bold text-[var(--cyb-primary)]">
-                                        Missing Writeup Check
-                                    </h2>
-
-                                    <p class="mb-0 mt-1 text-sm text-[var(--cyb-muted)]">
-                                        Check student eligibility and available generic writeups before running bulk creation.
-                                    </p>
-                                </div>
-
-                                @if ($hasSelection)
-                                    <div class="flex flex-wrap gap-2 lg:justify-end">
-                                        <span class="inline-flex items-center gap-1.5 rounded-full border border-blue-100 bg-[var(--cyb-primary-soft)] px-2.5 py-1 text-xs font-bold text-[var(--cyb-primary)]">
-                                            <i class="bi bi-calendar3"></i>
-                                            SY {{ $selectedYear }}
-                                        </span>
-
-                                        <span class="inline-flex max-w-full items-center gap-1.5 rounded-full border border-pink-100 bg-pink-50 px-2.5 py-1 text-xs font-bold text-pink-700">
-                                            <i class="bi bi-building"></i>
-                                            <span class="truncate">
-                                                {{ $selectedCollegeName }}
-                                            </span>
-                                        </span>
-                                    </div>
-                                @endif
-                            </div>
-                        </div>
-
-                        <div class="p-5">
-                            @if (! $hasSelection)
-                                <div class="rounded-2xl border border-dashed border-[var(--cyb-border)] bg-slate-50 px-5 py-14 text-center">
-                                    <div class="mx-auto mb-3 inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-white text-[var(--cyb-primary)] shadow-sm">
-                                        <i class="bi bi-arrow-left-circle text-2xl"></i>
-                                    </div>
-
-                                    <h3 class="mb-1 text-base font-bold text-[var(--cyb-text)]">
-                                        Choose a school year and college
-                                    </h3>
-
-                                    <p class="mb-0 text-sm text-[var(--cyb-muted)]">
-                                        Use the selection panel to check which students are eligible for bulk writeup creation.
-                                    </p>
-                                </div>
-                            @else
-                                {{-- Count Cards --}}
-                                <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-
-                                    {{-- Students Missing --}}
-                                    <button
-                                        type="button"
-                                        data-bs-toggle="modal"
-                                        data-bs-target="#studentsMissingModal"
-                                        @disabled($studentCount <= 0)
-                                        class="group rounded-2xl border bg-white p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-60
-                                            {{ $studentCount > 0 ? 'border-blue-100 hover:border-blue-200' : 'border-slate-200' }}"
+                                    <label
+                                        for="year"
+                                        class="cyb-form-label"
                                     >
-                                        <div class="flex items-start justify-between gap-3">
-                                            <div>
-                                                <p class="mb-1 text-xs font-bold uppercase tracking-wide text-[var(--cyb-muted)]">
-                                                    Students Missing Writeups
-                                                </p>
+                                        School Year
+                                    </label>
 
-                                                <div class="flex items-end gap-2">
-                                                    <span class="text-4xl font-bold leading-none text-[var(--cyb-primary)]">
-                                                        {{ $studentCount }}
-                                                    </span>
+                                    <select
+                                        id="year"
+                                        name="year"
+                                        class="form-select cyb-form-control"
+                                        required
+                                    >
+                                        <option value="">
+                                            Select Year
+                                        </option>
 
-                                                    <span class="pb-1 text-xs font-semibold text-[var(--cyb-muted)]">
-                                                        eligible
-                                                    </span>
-                                                </div>
-                                            </div>
+                                        @foreach ($years as $year)
+                                            <option
+                                                value="{{ $year }}"
+                                                @selected($selectedYear == $year)
+                                            >
+                                                {{ $year }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                </div>
 
-                                            <span class="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-700">
-                                                <i class="bi bi-people"></i>
-                                            </span>
-                                        </div>
+                                <div>
+                                    <label
+                                        for="college_id"
+                                        class="cyb-form-label"
+                                    >
+                                        College
+                                    </label>
 
-                                        <p class="mb-0 mt-3 text-xs text-[var(--cyb-muted)]">
-                                            @if ($studentCount > 0)
-                                                Click to view eligible students.
-                                            @else
-                                                No eligible students found for this group.
-                                            @endif
-                                        </p>
+                                    <select
+                                        id="college_id"
+                                        name="college_id"
+                                        class="form-select cyb-form-control"
+                                        required
+                                    >
+                                        <option value="">
+                                            Select College
+                                        </option>
+
+                                        @foreach ($colleges as $college)
+                                            <option
+                                                value="{{ $college->id }}"
+                                                @selected($selectedCollegeId == $college->id)
+                                            >
+                                                {{ $college->college_name }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                </div>
+
+                                <div class="d-flex flex-column flex-sm-row gap-2">
+                                    <button
+                                        type="submit"
+                                        class="btn btn-primary flex-fill"
+                                    >
+                                        <i class="bi bi-search me-1"></i>
+                                        Check Missing
                                     </button>
 
-                                    {{-- Generic Writeups --}}
-                                    <a
-                                        href="{{ route('writeups.generic.index', ['year' => $selectedYear, 'college_id' => $selectedCollegeId]) }}"
-                                        class="group rounded-2xl border bg-white p-4 text-left text-decoration-none shadow-sm transition hover:-translate-y-0.5 hover:shadow-md
-                                            {{ $genericWriteupCount > 0 ? 'border-green-100 hover:border-green-200' : 'border-yellow-200 bg-yellow-50/40 hover:border-yellow-300' }}"
-                                    >
-                                        <div class="flex items-start justify-between gap-3">
-                                            <div>
-                                                <p class="mb-1 text-xs font-bold uppercase tracking-wide text-[var(--cyb-muted)]">
-                                                    Active Generic Writeups
-                                                </p>
+                                    @if ($hasSelection)
+                                        <a
+                                            href="{{ route('writeups.bulk.index') }}"
+                                            class="btn btn-light border"
+                                        >
+                                            <i class="bi bi-x-lg me-1"></i>
+                                            Clear
+                                        </a>
+                                    @endif
+                                </div>
+                            </form>
+                        </div>
+                    </section>
 
-                                                <div class="flex items-end gap-2">
-                                                    <span class="text-4xl font-bold leading-none {{ $genericWriteupCount > 0 ? 'text-green-700' : 'text-yellow-800' }}">
-                                                        {{ $genericWriteupCount }}
-                                                    </span>
+                    {{-- How It Works --}}
+                    <section class="cyb-card">
+                        <div class="cyb-card-header">
+                            <div>
+                                <h2 class="cyb-section-title">
+                                    How This Works
+                                </h2>
 
-                                                    <span class="pb-1 text-xs font-semibold text-[var(--cyb-muted)]">
-                                                        available
-                                                    </span>
-                                                </div>
-                                            </div>
+                                <p class="cyb-section-description">
+                                    Review the workflow before running a bulk operation.
+                                </p>
+                            </div>
 
-                                            <span class="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl {{ $genericWriteupCount > 0 ? 'bg-green-50 text-green-700' : 'bg-yellow-100 text-yellow-800' }}">
-                                                <i class="bi bi-card-text"></i>
-                                            </span>
+                            <span class="cyb-pill cyb-pill-neutral">
+                                <i class="bi bi-info-circle"></i>
+                                Guide
+                            </span>
+                        </div>
+
+                        <div class="cyb-card-body">
+                            <div class="bulk-guide-list">
+                                <div class="bulk-guide-step">
+                                    <span class="bulk-guide-number">
+                                        1
+                                    </span>
+
+                                    <div>
+                                        <div class="bulk-guide-title">
+                                            Select a group
                                         </div>
 
-                                        <p class="mb-0 mt-3 text-xs text-[var(--cyb-muted)]">
-                                            Click to manage generic writeups for this group.
-                                        </p>
-                                    </a>
+                                        <div class="bulk-guide-text">
+                                            Choose the school year and college you want to process.
+                                        </div>
+                                    </div>
+                                </div>
 
+                                <div class="bulk-guide-step">
+                                    <span class="bulk-guide-number">
+                                        2
+                                    </span>
+
+                                    <div>
+                                        <div class="bulk-guide-title">
+                                            Check counts
+                                        </div>
+
+                                        <div class="bulk-guide-text">
+                                            Make sure eligible students and active generic writeups are available.
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="bulk-guide-step">
+                                    <span class="bulk-guide-number">
+                                        3
+                                    </span>
+
+                                    <div>
+                                        <div class="bulk-guide-title">
+                                            Confirm creation
+                                        </div>
+
+                                        <div class="bulk-guide-text">
+                                            The system randomly assigns active generic writeups to eligible students.
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="cyb-notice cyb-notice-warning bulk-guide-warning">
+                                <i class="bi bi-exclamation-triangle"></i>
+
+                                <div>
+                                    Review the selected group before confirming.
+                                    Bulk creation affects multiple students at once.
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                </div>
+            </aside>
+
+            {{-- =========================================================
+                 MAIN CONTENT
+                 ========================================================= --}}
+            <section class="col-12 col-xl-8">
+                <div class="bulk-writeup-main">
+
+                    {{-- Summary --}}
+                    <section class="cyb-card">
+                        <div class="cyb-card-header">
+                            <div>
+                                <h2 class="cyb-section-title">
+                                    Missing Writeup Check
+                                </h2>
+
+                                <p class="cyb-section-description">
+                                    Check student eligibility and available generic writeups before running bulk creation.
+                                </p>
+                            </div>
+
+                            @if ($hasSelection)
+                                <div class="d-flex flex-wrap gap-2 justify-content-xl-end">
+                                    <span class="cyb-pill cyb-pill-primary">
+                                        <i class="bi bi-calendar3"></i>
+                                        SY {{ $selectedYear }}
+                                    </span>
+
+                                    <span
+                                        class="cyb-pill cyb-pill-info bulk-college-pill"
+                                        title="{{ $selectedCollegeName }}"
+                                    >
+                                        <i class="bi bi-building"></i>
+
+                                        <span>
+                                            {{ $selectedCollegeName }}
+                                        </span>
+                                    </span>
+                                </div>
+                            @endif
+                        </div>
+
+                        <div class="cyb-card-body">
+                            @if (! $hasSelection)
+
+                                <div class="cyb-empty-state bulk-selection-empty">
+                                    <div class="cyb-empty-state-icon">
+                                        <i class="bi bi-arrow-left-circle"></i>
+                                    </div>
+
+                                    <h3 class="cyb-empty-state-title">
+                                        Choose a School Year and College
+                                    </h3>
+
+                                    <p class="cyb-empty-state-text">
+                                        Use the selection panel to check which students
+                                        are eligible for bulk writeup creation.
+                                    </p>
+                                </div>
+
+                            @else
+
+                                {{-- Count Cards --}}
+                                <div class="row g-4">
+                                    <div class="col-12 col-md-6">
+                                        <button
+                                            type="button"
+                                            data-bs-toggle="modal"
+                                            data-bs-target="#studentsMissingModal"
+                                            @disabled($studentCount <= 0)
+                                            class="bulk-summary-card bulk-summary-card-primary"
+                                        >
+                                            <div class="bulk-summary-card-header">
+                                                <div>
+                                                    <div class="bulk-summary-label">
+                                                        Students Missing Writeups
+                                                    </div>
+
+                                                    <div class="bulk-summary-value-row">
+                                                        <span class="bulk-summary-value">
+                                                            {{ $studentCount }}
+                                                        </span>
+
+                                                        <span class="bulk-summary-unit">
+                                                            eligible
+                                                        </span>
+                                                    </div>
+                                                </div>
+
+                                                <span class="bulk-summary-icon">
+                                                    <i class="bi bi-people"></i>
+                                                </span>
+                                            </div>
+
+                                            <div class="bulk-summary-help">
+                                                @if ($studentCount > 0)
+                                                    Click to view eligible students.
+                                                @else
+                                                    No eligible students found for this group.
+                                                @endif
+                                            </div>
+                                        </button>
+                                    </div>
+
+                                    <div class="col-12 col-md-6">
+                                        <a
+                                            href="{{ route('writeups.generic.index', [
+                                                'year' => $selectedYear,
+                                                'college_id' => $selectedCollegeId,
+                                            ]) }}"
+                                            class="bulk-summary-card {{ $genericWriteupCount > 0
+                                                ? 'bulk-summary-card-success'
+                                                : 'bulk-summary-card-warning' }}"
+                                        >
+                                            <div class="bulk-summary-card-header">
+                                                <div>
+                                                    <div class="bulk-summary-label">
+                                                        Active Generic Writeups
+                                                    </div>
+
+                                                    <div class="bulk-summary-value-row">
+                                                        <span class="bulk-summary-value">
+                                                            {{ $genericWriteupCount }}
+                                                        </span>
+
+                                                        <span class="bulk-summary-unit">
+                                                            available
+                                                        </span>
+                                                    </div>
+                                                </div>
+
+                                                <span class="bulk-summary-icon">
+                                                    <i class="bi bi-card-text"></i>
+                                                </span>
+                                            </div>
+
+                                            <div class="bulk-summary-help">
+                                                Click to manage generic writeups for this group.
+                                            </div>
+                                        </a>
+                                    </div>
                                 </div>
 
                                 {{-- Status / Action --}}
-                                <div class="mt-5">
+                                <div class="mt-4">
                                     @if ($studentCount <= 0)
-                                        <div class="rounded-2xl border border-blue-100 bg-blue-50 px-4 py-4 text-blue-700">
-                                            <div class="flex gap-3">
-                                                <i class="bi bi-info-circle mt-0.5"></i>
 
-                                                <div>
-                                                    <p class="mb-1 font-bold">
-                                                        No eligible students found.
-                                                    </p>
+                                        <div class="cyb-notice cyb-notice-info bulk-status-notice">
+                                            <i class="bi bi-info-circle"></i>
 
-                                                    <p class="mb-0 text-sm">
-                                                        There are no subscribed students without pictorial attendance and without writeups for this selected group.
-                                                    </p>
+                                            <div>
+                                                <div class="bulk-status-title">
+                                                    No eligible students found.
+                                                </div>
+
+                                                <div class="bulk-status-text">
+                                                    There are no subscribed students without pictorial attendance
+                                                    and without writeups for this selected group.
                                                 </div>
                                             </div>
                                         </div>
+
                                     @elseif ($genericWriteupCount <= 0)
-                                        <div class="rounded-2xl border border-yellow-200 bg-yellow-50 px-4 py-4 text-yellow-800">
-                                            <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                                                <div class="flex gap-3">
-                                                    <i class="bi bi-exclamation-triangle mt-0.5"></i>
 
-                                                    <div>
-                                                        <p class="mb-1 font-bold">
-                                                            No active generic writeups found.
-                                                        </p>
+                                        <div class="cyb-notice cyb-notice-warning bulk-status-notice">
+                                            <i class="bi bi-exclamation-triangle"></i>
 
-                                                        <p class="mb-0 text-sm">
-                                                            Create active generic writeups first before running bulk creation.
-                                                        </p>
+                                            <div class="bulk-status-content">
+                                                <div>
+                                                    <div class="bulk-status-title">
+                                                        No active generic writeups found.
+                                                    </div>
+
+                                                    <div class="bulk-status-text">
+                                                        Create active generic writeups first before running bulk creation.
                                                     </div>
                                                 </div>
 
                                                 <a
-                                                    href="{{ route('writeups.generic.index', ['year' => $selectedYear, 'college_id' => $selectedCollegeId]) }}"
-                                                    class="inline-flex items-center justify-center gap-2 rounded-lg bg-yellow-100 px-3 py-2 text-sm font-bold text-yellow-900 transition hover:bg-yellow-200"
+                                                    href="{{ route('writeups.generic.index', [
+                                                        'year' => $selectedYear,
+                                                        'college_id' => $selectedCollegeId,
+                                                    ]) }}"
+                                                    class="btn btn-sm btn-warning"
                                                 >
-                                                    <i class="bi bi-plus-lg"></i>
+                                                    <i class="bi bi-plus-lg me-1"></i>
                                                     Manage Generic Writeups
                                                 </a>
                                             </div>
                                         </div>
+
                                     @else
-                                        <div class="rounded-2xl border border-green-200 bg-green-50 px-4 py-4 text-green-700">
-                                            <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-                                                <div class="flex gap-3">
-                                                    <i class="bi bi-check2-circle mt-0.5"></i>
 
-                                                    <div>
-                                                        <p class="mb-1 font-bold">
-                                                            Ready for bulk creation.
-                                                        </p>
+                                        <div class="cyb-notice bulk-ready-notice">
+                                            <i class="bi bi-check2-circle"></i>
 
-                                                        <p class="mb-0 text-sm">
-                                                            The system will randomly assign
-                                                            <strong>{{ $genericWriteupCount }}</strong>
-                                                            active generic writeups to
-                                                            <strong>{{ $studentCount }}</strong>
-                                                            eligible students.
-                                                        </p>
+                                            <div class="bulk-status-content">
+                                                <div>
+                                                    <div class="bulk-status-title">
+                                                        Ready for bulk creation.
+                                                    </div>
+
+                                                    <div class="bulk-status-text">
+                                                        The system will randomly assign
+                                                        <strong>{{ $genericWriteupCount }}</strong>
+                                                        active generic writeups to
+                                                        <strong>{{ $studentCount }}</strong>
+                                                        eligible students.
                                                     </div>
                                                 </div>
 
                                                 <button
                                                     type="button"
-                                                    class="inline-flex items-center justify-center gap-2 rounded-lg bg-[var(--cyb-primary)] px-4 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-[var(--cyb-primary-dark)]"
+                                                    class="btn btn-primary"
                                                     data-bs-toggle="modal"
                                                     data-bs-target="#confirmBulkCreateModal"
                                                 >
-                                                    <i class="bi bi-magic"></i>
+                                                    <i class="bi bi-magic me-1"></i>
                                                     Bulk Create Writeups
                                                 </button>
                                             </div>
                                         </div>
+
                                     @endif
                                 </div>
+
                             @endif
                         </div>
-            </div>
+                    </section>
 
-            {{-- Bulk Batch History --}}
-            @if ($hasSelection)
-                <div class="cyb-page-card overflow-hidden">
-                    <div class="border-b border-[var(--cyb-border)] bg-white px-5 py-4">
-                        <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                            <div>
-                                <span class="cyb-chip cyb-chip-neutral">
-                                    <i class="bi bi-clock-history"></i>
-                                    Bulk History
+                    {{-- =================================================
+                         BULK HISTORY
+                         ================================================= --}}
+                    @if ($hasSelection)
+                        <section class="cyb-card">
+                            <div class="cyb-card-header">
+                                <div>
+                                    <h2 class="cyb-section-title">
+                                        Previous Bulk Operations
+                                    </h2>
+
+                                    <p class="cyb-section-description">
+                                        Undo writeups still connected to their original bulk operation.
+                                    </p>
+                                </div>
+
+                                <span class="cyb-pill cyb-pill-neutral">
+                                    <i class="bi bi-layers"></i>
+
+                                    {{ $bulkBatches->count() }}
+                                    {{ \Illuminate\Support\Str::plural('batch', $bulkBatches->count()) }}
                                 </span>
-
-                                <h2 class="mb-0 mt-2 text-base font-bold text-[var(--cyb-primary)]">
-                                    Previous Bulk Operations
-                                </h2>
-
-                                <p class="mb-0 mt-1 text-sm text-[var(--cyb-muted)]">
-                                    Undo writeups that are still connected to their original bulk operation.
-                                </p>
                             </div>
 
-                            <span class="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-bold text-slate-700">
-                                <i class="bi bi-layers"></i>
-                                {{ $bulkBatches->count() }}
-                                {{ \Illuminate\Support\Str::plural('batch', $bulkBatches->count()) }}
-                            </span>
-                        </div>
-                    </div>
+                            @if ($bulkBatches->isEmpty())
 
-                    @if ($bulkBatches->isEmpty())
-                        <div class="px-5 py-10 text-center">
-                            <div class="mx-auto mb-3 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-slate-100 text-slate-500">
-                                <i class="bi bi-clock-history text-xl"></i>
-                            </div>
-
-                            <h3 class="mb-1 text-sm font-bold text-[var(--cyb-text)]">
-                                No bulk operations yet
-                            </h3>
-
-                            <p class="mb-0 text-xs text-[var(--cyb-muted)]">
-                                Bulk-create history for this school year and college will appear here.
-                            </p>
-                        </div>
-                    @else
-                        <div class="divide-y divide-[var(--cyb-border)] bg-white">
-                            @foreach ($bulkBatches as $batch)
-                                @php
-                                    $undoableCount = (int) $batch->undoable_writeups_count;
-
-                                    $stillLinkedTotal = (int) $batch->linked_writeups_total_count;
-
-                                    $protectedCount = max(
-                                        0,
-                                        (int) $batch->created_count - $stillLinkedTotal
-                                    );
-
-                                    $isUndone = filled($batch->undone_at);
-
-                                    $canUndoBatch = ! $isUndone && $undoableCount > 0;
-                                @endphp
-
-                                <div class="px-5 py-4">
-                                    <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-
-                                        <div class="min-w-0">
-                                            <div class="flex flex-wrap items-center gap-2">
-                                                <span class="text-sm font-bold text-[var(--cyb-primary)]">
-                                                    Batch #{{ $batch->id }}
-                                                </span>
-
-                                                @if ($isUndone)
-                                                    <span class="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-100 px-2 py-0.5 text-[11px] font-bold text-slate-600">
-                                                        <i class="bi bi-arrow-counterclockwise"></i>
-                                                        Undone
-                                                    </span>
-                                                @elseif ($canUndoBatch)
-                                                    <span class="inline-flex items-center gap-1 rounded-full border border-green-200 bg-green-50 px-2 py-0.5 text-[11px] font-bold text-green-700">
-                                                        <i class="bi bi-check2-circle"></i>
-                                                        Active
-                                                    </span>
-                                                @else
-                                                    <span class="inline-flex items-center gap-1 rounded-full border border-blue-200 bg-blue-50 px-2 py-0.5 text-[11px] font-bold text-blue-700">
-                                                        <i class="bi bi-shield-check"></i>
-                                                        Fully protected
-                                                    </span>
-                                                @endif
-                                            </div>
-
-                                            <div class="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-[var(--cyb-muted)]">
-                                                <span>
-                                                    <i class="bi bi-person me-1"></i>
-                                                    {{ $batch->creator?->name ?? 'Unknown admin' }}
-                                                </span>
-
-                                                <span>
-                                                    <i class="bi bi-calendar-event me-1"></i>
-                                                    {{ $batch->created_at?->format('M d, Y h:i A') }}
-                                                </span>
-                                            </div>
-
-                                            @if ($isUndone)
-                                                <div class="mt-2 text-xs text-slate-600">
-                                                    Undone by
-                                                    <span class="font-semibold">
-                                                        {{ $batch->undoneBy?->name ?? 'Unknown admin' }}
-                                                    </span>
-
-                                                    @if ($batch->undone_at)
-                                                        on {{ $batch->undone_at->format('M d, Y h:i A') }}
-                                                    @endif
-                                                </div>
-                                            @endif
-                                        </div>
-
-                                        <div class="flex flex-col gap-3 sm:flex-row sm:items-center">
-                                            <div class="grid grid-cols-3 gap-2">
-                                                <div class="rounded-xl border border-blue-100 bg-blue-50 px-3 py-2 text-center">
-                                                    <div class="text-lg font-bold leading-none text-blue-700">
-                                                        {{ $batch->created_count }}
-                                                    </div>
-
-                                                    <div class="mt-1 text-[10px] font-bold uppercase tracking-wide text-blue-600">
-                                                        Created
-                                                    </div>
-                                                </div>
-
-                                                <div class="rounded-xl border border-yellow-200 bg-yellow-50 px-3 py-2 text-center">
-                                                    <div class="text-lg font-bold leading-none text-yellow-800">
-                                                        {{ $undoableCount }}
-                                                    </div>
-
-                                                    <div class="mt-1 text-[10px] font-bold uppercase tracking-wide text-yellow-700">
-                                                        Undoable
-                                                    </div>
-                                                </div>
-
-                                                <div class="rounded-xl border border-green-200 bg-green-50 px-3 py-2 text-center">
-                                                    <div class="text-lg font-bold leading-none text-green-700">
-                                                        {{ $protectedCount }}
-                                                    </div>
-
-                                                    <div class="mt-1 text-[10px] font-bold uppercase tracking-wide text-green-600">
-                                                        Protected
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                            @if ($canUndoBatch)
-                                                <button
-                                                    type="button"
-                                                    data-bs-toggle="modal"
-                                                    data-bs-target="#undoBulkBatchModal{{ $batch->id }}"
-                                                    class="inline-flex items-center justify-center gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2.5 text-xs font-bold text-red-700 shadow-sm transition hover:bg-red-100"
-                                                >
-                                                    <i class="bi bi-arrow-counterclockwise"></i>
-                                                    Undo
-                                                </button>
-                                            @endif
-                                        </div>
+                                <div class="cyb-empty-state bulk-history-empty">
+                                    <div class="cyb-empty-state-icon">
+                                        <i class="bi bi-clock-history"></i>
                                     </div>
 
-                                    @if (! $isUndone && $undoableCount === 0 && $protectedCount > 0)
-                                        <div class="mt-3 rounded-lg border border-green-100 bg-green-50 px-3 py-2 text-xs text-green-700">
-                                            <i class="bi bi-shield-check me-1"></i>
-                                            All writeups from this batch have already been individually re-reviewed and cannot be removed through Undo.
-                                        </div>
-                                    @endif
+                                    <h3 class="cyb-empty-state-title">
+                                        No Bulk Operations Yet
+                                    </h3>
+
+                                    <p class="cyb-empty-state-text">
+                                        Bulk-create history for this school year and college
+                                        will appear here.
+                                    </p>
                                 </div>
-                            @endforeach
-                        </div>
+
+                            @else
+
+                                <div class="bulk-history-list">
+                                    @foreach ($bulkBatches as $batch)
+                                        @php
+                                            $undoableCount = (int) $batch->undoable_writeups_count;
+
+                                            $stillLinkedTotal = (int) $batch->linked_writeups_total_count;
+
+                                            $protectedCount = max(
+                                                0,
+                                                (int) $batch->created_count - $stillLinkedTotal
+                                            );
+
+                                            $isUndone = filled($batch->undone_at);
+
+                                            $canUndoBatch =
+                                                ! $isUndone
+                                                && $undoableCount > 0;
+                                        @endphp
+
+                                        <article class="bulk-history-row">
+                                            <div class="bulk-history-row-main">
+                                                <div class="bulk-history-info">
+                                                    <div class="d-flex flex-wrap align-items-center gap-2">
+                                                        <strong class="bulk-history-title">
+                                                            Batch #{{ $batch->id }}
+                                                        </strong>
+
+                                                        @if ($isUndone)
+                                                            <span class="cyb-pill cyb-pill-neutral">
+                                                                <i class="bi bi-arrow-counterclockwise"></i>
+                                                                Undone
+                                                            </span>
+                                                        @elseif ($canUndoBatch)
+                                                            <span class="cyb-pill cyb-pill-success">
+                                                                <span class="cyb-status-dot cyb-status-dot-success"></span>
+                                                                Active
+                                                            </span>
+                                                        @else
+                                                            <span class="cyb-pill cyb-pill-info">
+                                                                <i class="bi bi-shield-check"></i>
+                                                                Fully Protected
+                                                            </span>
+                                                        @endif
+                                                    </div>
+
+                                                    <div class="bulk-history-meta">
+                                                        <span>
+                                                            <i class="bi bi-person"></i>
+                                                            {{ $batch->creator?->name ?? 'Unknown admin' }}
+                                                        </span>
+
+                                                        <span>
+                                                            <i class="bi bi-calendar-event"></i>
+                                                            {{ $batch->created_at?->format('M d, Y h:i A') }}
+                                                        </span>
+                                                    </div>
+
+                                                    @if ($isUndone)
+                                                        <div class="bulk-history-undone">
+                                                            Undone by
+                                                            <strong>
+                                                                {{ $batch->undoneBy?->name ?? 'Unknown admin' }}
+                                                            </strong>
+
+                                                            @if ($batch->undone_at)
+                                                                on {{ $batch->undone_at->format('M d, Y h:i A') }}
+                                                            @endif
+                                                        </div>
+                                                    @endif
+                                                </div>
+
+                                                <div class="bulk-history-actions">
+                                                    <div class="bulk-history-counts">
+                                                        <div class="bulk-history-count">
+                                                            <strong>
+                                                                {{ $batch->created_count }}
+                                                            </strong>
+
+                                                            <span>
+                                                                Created
+                                                            </span>
+                                                        </div>
+
+                                                        <div class="bulk-history-count">
+                                                            <strong>
+                                                                {{ $undoableCount }}
+                                                            </strong>
+
+                                                            <span>
+                                                                Undoable
+                                                            </span>
+                                                        </div>
+
+                                                        <div class="bulk-history-count">
+                                                            <strong>
+                                                                {{ $protectedCount }}
+                                                            </strong>
+
+                                                            <span>
+                                                                Protected
+                                                            </span>
+                                                        </div>
+                                                    </div>
+
+                                                    @if ($canUndoBatch)
+                                                        <button
+                                                            type="button"
+                                                            class="btn btn-sm btn-outline-danger"
+                                                            data-bs-toggle="modal"
+                                                            data-bs-target="#undoBulkBatchModal{{ $batch->id }}"
+                                                        >
+                                                            <i class="bi bi-arrow-counterclockwise me-1"></i>
+                                                            Undo
+                                                        </button>
+                                                    @endif
+                                                </div>
+                                            </div>
+
+                                            @if (
+                                                ! $isUndone
+                                                && $undoableCount === 0
+                                                && $protectedCount > 0
+                                            )
+                                                <div class="cyb-notice bulk-protected-notice">
+                                                    <i class="bi bi-shield-check"></i>
+
+                                                    <div>
+                                                        All writeups from this batch have already been
+                                                        individually re-reviewed and cannot be removed through Undo.
+                                                    </div>
+                                                </div>
+                                            @endif
+                                        </article>
+                                    @endforeach
+                                </div>
+
+                            @endif
+                        </section>
                     @endif
+
                 </div>
-            @endif
-
+            </section>
         </div>
-    </section>
-
     </div>
 
-    {{-- Confirm Bulk Create Modal --}}
+    {{-- =============================================================
+         CONFIRM BULK CREATE MODAL
+         ============================================================= --}}
     @if ($canBulkCreate)
-        <div class="modal fade" id="confirmBulkCreateModal" tabindex="-1" aria-hidden="true">
+        <div
+            class="modal fade"
+            id="confirmBulkCreateModal"
+            tabindex="-1"
+            aria-labelledby="confirmBulkCreateModalLabel"
+            aria-hidden="true"
+        >
             <div class="modal-dialog modal-dialog-centered">
-                <form method="POST" action="{{ route('writeups.bulk.store') }}" class="modal-content overflow-hidden rounded-2xl border-0 shadow-lg">
+                <form
+                    method="POST"
+                    action="{{ route('writeups.bulk.store') }}"
+                    class="modal-content bulk-modal"
+                >
                     @csrf
 
-                    <input type="hidden" name="year" value="{{ $selectedYear }}">
-                    <input type="hidden" name="college_id" value="{{ $selectedCollegeId }}">
+                    <input
+                        type="hidden"
+                        name="year"
+                        value="{{ $selectedYear }}"
+                    >
 
-                    <div class="modal-header border-bottom bg-[var(--cyb-primary-soft)] px-4 py-3">
+                    <input
+                        type="hidden"
+                        name="college_id"
+                        value="{{ $selectedCollegeId }}"
+                    >
+
+                    <div class="modal-header">
                         <div>
-                            <span class="cyb-chip cyb-chip-role">
+                            <span class="cyb-pill cyb-pill-primary mb-2">
                                 <i class="bi bi-magic"></i>
                                 Confirm Action
                             </span>
 
-                            <h5 class="modal-title mt-2 font-bold text-[var(--cyb-primary)]">
+                            <h5
+                                class="modal-title"
+                                id="confirmBulkCreateModalLabel"
+                            >
                                 Confirm Bulk Creation
                             </h5>
                         </div>
 
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        <button
+                            type="button"
+                            class="btn-close"
+                            data-bs-dismiss="modal"
+                            aria-label="Close"
+                        ></button>
                     </div>
 
-                    <div class="modal-body px-4 py-4">
-                        <div class="rounded-xl border border-yellow-200 bg-yellow-50 px-3 py-3 text-sm text-yellow-800">
-                            <i class="bi bi-exclamation-triangle me-1"></i>
-                            This action will create and mark multiple generic writeups as reviewed.
+                    <div class="modal-body">
+                        <div class="cyb-notice cyb-notice-warning bulk-modal-notice">
+                            <i class="bi bi-exclamation-triangle"></i>
+
+                            <div>
+                                This action will create and mark multiple generic writeups as reviewed.
+                            </div>
                         </div>
 
-                    <div class="mt-4 space-y-3 text-sm text-[var(--cyb-text)]">
-                        <p class="mb-0">
-                            This will create writeups for
-                            <strong>{{ $studentCount }}</strong>
-                            eligible students under
-                            <strong>{{ $selectedCollegeName }}</strong>
-                            for school year
-                            <strong>{{ $selectedYear }}</strong>.
-                        </p>
+                        <div class="bulk-confirm-details">
+                            <p>
+                                This will create writeups for
+                                <strong>{{ $studentCount }}</strong>
+                                eligible students under
+                                <strong>{{ $selectedCollegeName }}</strong>
+                                for school year
+                                <strong>{{ $selectedYear }}</strong>.
+                            </p>
 
-                        <p class="mb-0">
-                            The system will randomly reuse
-                            <strong>{{ $genericWriteupCount }}</strong>
-                            active generic writeups.
-                        </p>
+                            <p>
+                                The system will randomly reuse
+                                <strong>{{ $genericWriteupCount }}</strong>
+                                active generic writeups.
+                            </p>
 
-                        <p class="mb-0">
-                            These records will remain linked to this bulk operation.
-                            They may be undone later unless they are individually re-reviewed.
-                        </p>
+                            <p>
+                                These records remain linked to this bulk operation.
+                                They may be undone later unless they are individually re-reviewed.
+                            </p>
+                        </div>
                     </div>
-                    </div>
 
-                    <div class="modal-footer border-top bg-slate-50 px-4 py-3">
-                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                    <div class="modal-footer">
+                        <button
+                            type="button"
+                            class="btn btn-light border"
+                            data-bs-dismiss="modal"
+                        >
                             Cancel
                         </button>
 
-                        <button type="submit" class="btn btn-primary fw-bold">
+                        <button
+                            type="submit"
+                            class="btn btn-primary"
+                        >
                             <i class="bi bi-check2-circle me-1"></i>
                             Confirm and Create
                         </button>
@@ -647,8 +743,9 @@
         </div>
     @endif
 
-
-    {{-- Undo Bulk Batch Modals --}}
+    {{-- =============================================================
+         UNDO MODALS
+         ============================================================= --}}
     @if ($hasSelection && $bulkBatches->isNotEmpty())
         @foreach ($bulkBatches as $batch)
             @php
@@ -661,7 +758,9 @@
                     (int) $batch->created_count - $stillLinkedTotal
                 );
 
-                $canUndoBatch = ! $batch->undone_at && $undoableCount > 0;
+                $canUndoBatch =
+                    ! $batch->undone_at
+                    && $undoableCount > 0;
             @endphp
 
             @if ($canUndoBatch)
@@ -669,25 +768,29 @@
                     class="modal fade"
                     id="undoBulkBatchModal{{ $batch->id }}"
                     tabindex="-1"
+                    aria-labelledby="undoBulkBatchModalLabel{{ $batch->id }}"
                     aria-hidden="true"
                 >
                     <div class="modal-dialog modal-dialog-centered">
                         <form
                             method="POST"
                             action="{{ route('writeups.bulk.undo', $batch) }}"
-                            class="modal-content overflow-hidden rounded-2xl border-0 shadow-lg"
+                            class="modal-content bulk-modal"
                         >
                             @csrf
                             @method('DELETE')
 
-                            <div class="modal-header border-bottom bg-red-50 px-4 py-3">
+                            <div class="modal-header">
                                 <div>
-                                    <span class="inline-flex items-center gap-1.5 rounded-full border border-red-200 bg-white px-2.5 py-1 text-xs font-bold text-red-700">
+                                    <span class="cyb-pill cyb-pill-danger mb-2">
                                         <i class="bi bi-arrow-counterclockwise"></i>
                                         Undo Bulk Creation
                                     </span>
 
-                                    <h5 class="modal-title mt-2 font-bold text-red-800">
+                                    <h5
+                                        class="modal-title"
+                                        id="undoBulkBatchModalLabel{{ $batch->id }}"
+                                    >
                                         Undo Batch #{{ $batch->id }}?
                                     </h5>
                                 </div>
@@ -700,43 +803,53 @@
                                 ></button>
                             </div>
 
-                            <div class="modal-body px-4 py-4">
-                                <div class="rounded-xl border border-red-200 bg-red-50 px-3 py-3 text-sm text-red-800">
-                                    <i class="bi bi-exclamation-triangle me-1"></i>
-                                    This will remove all writeups that are still connected to this bulk operation.
-                                </div>
+                            <div class="modal-body">
+                                <div class="cyb-notice cyb-notice-danger bulk-modal-notice">
+                                    <i class="bi bi-exclamation-triangle"></i>
 
-                                <div class="mt-4 grid grid-cols-2 gap-3">
-                                    <div class="rounded-xl border border-red-100 bg-white p-3 text-center">
-                                        <div class="text-2xl font-bold text-red-700">
-                                            {{ $undoableCount }}
-                                        </div>
-
-                                        <div class="mt-1 text-xs font-semibold text-[var(--cyb-muted)]">
-                                            Writeups removed
-                                        </div>
-                                    </div>
-
-                                    <div class="rounded-xl border border-green-100 bg-white p-3 text-center">
-                                        <div class="text-2xl font-bold text-green-700">
-                                            {{ $protectedCount }}
-                                        </div>
-
-                                        <div class="mt-1 text-xs font-semibold text-[var(--cyb-muted)]">
-                                            Re-reviewed and preserved
-                                        </div>
+                                    <div>
+                                        This removes all writeups that are still connected
+                                        to this bulk operation.
                                     </div>
                                 </div>
 
-                                <p class="mb-0 mt-4 text-sm leading-6 text-[var(--cyb-muted)]">
-                                    Students whose writeups are removed will appear as missing writeups again. Individually re-reviewed writeups will not be deleted.
+                                <div class="row g-3 mt-1">
+                                    <div class="col-6">
+                                        <div class="bulk-modal-stat">
+                                            <strong class="text-danger">
+                                                {{ $undoableCount }}
+                                            </strong>
+
+                                            <span>
+                                                Writeups Removed
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    <div class="col-6">
+                                        <div class="bulk-modal-stat">
+                                            <strong class="text-success">
+                                                {{ $protectedCount }}
+                                            </strong>
+
+                                            <span>
+                                                Re-reviewed & Preserved
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <p class="bulk-modal-description">
+                                    Students whose writeups are removed will appear as
+                                    missing writeups again. Individually re-reviewed writeups
+                                    will not be deleted.
                                 </p>
                             </div>
 
-                            <div class="modal-footer border-top bg-slate-50 px-4 py-3">
+                            <div class="modal-footer">
                                 <button
                                     type="button"
-                                    class="btn btn-outline-secondary"
+                                    class="btn btn-light border"
                                     data-bs-dismiss="modal"
                                 >
                                     Cancel
@@ -744,7 +857,7 @@
 
                                 <button
                                     type="submit"
-                                    class="btn btn-danger fw-bold"
+                                    class="btn btn-danger"
                                 >
                                     <i class="bi bi-arrow-counterclockwise me-1"></i>
                                     Confirm Undo
@@ -757,38 +870,53 @@
         @endforeach
     @endif
 
-
-    {{-- Students Missing Modal --}}
+    {{-- =============================================================
+         STUDENTS MISSING MODAL
+         ============================================================= --}}
     @if ($hasStudents && $students->count())
-        <div class="modal fade" id="studentsMissingModal" tabindex="-1" aria-hidden="true">
+        <div
+            class="modal fade"
+            id="studentsMissingModal"
+            tabindex="-1"
+            aria-labelledby="studentsMissingModalLabel"
+            aria-hidden="true"
+        >
             <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
-                <div class="modal-content overflow-hidden rounded-2xl border-0 shadow-lg">
-
-                    <div class="modal-header border-bottom bg-white px-4 py-3">
+                <div class="modal-content bulk-modal">
+                    <div class="modal-header">
                         <div>
-                            <span class="cyb-chip cyb-chip-username">
+                            <span class="cyb-pill cyb-pill-primary mb-2">
                                 <i class="bi bi-people"></i>
                                 Eligible Students
                             </span>
 
-                            <h5 class="modal-title mt-2 font-bold text-[var(--cyb-primary)]">
+                            <h5
+                                class="modal-title"
+                                id="studentsMissingModalLabel"
+                            >
                                 Students Missing Writeups
                             </h5>
 
-                            <div class="text-sm text-[var(--cyb-muted)]">
-                                Showing up to {{ $students->count() }} eligible students for {{ $selectedCollegeName }} · SY {{ $selectedYear }}.
-                            </div>
+                            <p class="bulk-modal-subtitle">
+                                Showing up to {{ $students->count() }} eligible students for
+                                {{ $selectedCollegeName }} · SY {{ $selectedYear }}.
+                            </p>
                         </div>
 
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        <button
+                            type="button"
+                            class="btn-close"
+                            data-bs-dismiss="modal"
+                            aria-label="Close"
+                        ></button>
                     </div>
 
                     <div class="modal-body p-0">
                         <div class="table-responsive">
-                            <table class="table table-hover align-middle mb-0">
+                            <table class="table cyb-table mb-0">
                                 <thead>
                                     <tr>
-                                        <th width="60">#</th>
+                                        <th style="width: 60px;">#</th>
                                         <th>Name</th>
                                         <th>University ID</th>
                                         <th>Program</th>
@@ -799,16 +927,25 @@
                                 <tbody>
                                     @foreach ($students as $student)
                                         <tr>
-                                            <td class="text-secondary">
+                                            <td class="text-muted">
                                                 {{ $loop->iteration }}
                                             </td>
 
-                                            <td class="fw-semibold">
-                                                {{ $student->formatted_full_name ?? trim($student->last_name . ', ' . $student->first_name) }}
+                                            <td>
+                                                <strong>
+                                                    {{ $student->formatted_full_name
+                                                        ?? trim($student->last_name . ', ' . $student->first_name) }}
+                                                </strong>
                                             </td>
 
                                             <td>
-                                                {{ $student->university_id ?? 'N/A' }}
+                                                @if ($student->university_id)
+                                                    <span class="cyb-code">
+                                                        {{ $student->university_id }}
+                                                    </span>
+                                                @else
+                                                    —
+                                                @endif
                                             </td>
 
                                             <td>
@@ -825,22 +962,520 @@
                         </div>
 
                         @if ($studentCount > $students->count())
-                            <div class="border-top bg-slate-50 px-4 py-3 text-sm text-[var(--cyb-muted)]">
-                                <i class="bi bi-info-circle me-1"></i>
-                                {{ $studentCount - $students->count() }} more eligible students are not shown in this list.
+                            <div class="bulk-students-more">
+                                <i class="bi bi-info-circle"></i>
+
+                                {{ $studentCount - $students->count() }}
+                                more eligible students are not shown in this list.
                             </div>
                         @endif
                     </div>
 
-                    <div class="modal-footer border-top bg-slate-50 px-4 py-3">
-                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                    <div class="modal-footer">
+                        <button
+                            type="button"
+                            class="btn btn-light border"
+                            data-bs-dismiss="modal"
+                        >
                             Close
                         </button>
                     </div>
-
                 </div>
             </div>
         </div>
     @endif
 
+    @push('styles')
+        <style>
+            /*
+             * Bulk Writeup Creation specific styling.
+             * Shared cards, forms, pills, notices, tables and empty states
+             * come from the CYB shared styles.
+             */
+
+            .bulk-writeup-sidebar,
+            .bulk-writeup-main {
+                display: flex;
+                flex-direction: column;
+                gap: 1rem;
+            }
+
+            .bulk-selection-form {
+                display: flex;
+                flex-direction: column;
+                gap: 1rem;
+            }
+
+            /*
+             * Guide
+             */
+
+            .bulk-guide-list {
+                display: flex;
+                flex-direction: column;
+                gap: 1rem;
+            }
+
+            .bulk-guide-step {
+                display: flex;
+                align-items: flex-start;
+                gap: 0.75rem;
+            }
+
+            .bulk-guide-number {
+                display: inline-flex;
+                width: 28px;
+                height: 28px;
+                flex: 0 0 28px;
+                align-items: center;
+                justify-content: center;
+                border-radius: 0.5rem;
+                background: #eef3f8;
+                color: #49637c;
+                font-size: 0.72rem;
+                font-weight: 700;
+            }
+
+            .bulk-guide-title {
+                color: var(--cyb-text, #212529);
+                font-size: 0.8rem;
+                font-weight: 600;
+            }
+
+            .bulk-guide-text {
+                margin-top: 0.15rem;
+                color: var(--cyb-muted, #6c757d);
+                font-size: 0.73rem;
+                line-height: 1.45;
+            }
+
+            .bulk-guide-warning {
+                margin-top: 1rem;
+                border: 1px solid #ead8a8;
+                border-radius: 0.6rem;
+            }
+
+            /*
+             * Selected college
+             */
+
+            .bulk-college-pill {
+                max-width: 260px;
+            }
+
+            .bulk-college-pill span {
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+            }
+
+            /*
+             * Summary cards
+             */
+
+            .bulk-summary-card {
+                display: block;
+                width: 100%;
+                min-height: 145px;
+                padding: 1rem;
+                border: 1px solid var(--cyb-border, #e7eaed);
+                border-radius: 0.75rem;
+                background: #fff;
+                color: inherit;
+                text-align: left;
+                text-decoration: none;
+                box-shadow: 0 0.125rem 0.4rem rgba(0, 0, 0, 0.03);
+                transition:
+                    transform 0.15s ease,
+                    border-color 0.15s ease,
+                    box-shadow 0.15s ease;
+            }
+
+            button.bulk-summary-card {
+                appearance: none;
+            }
+
+            .bulk-summary-card:hover:not(:disabled) {
+                color: inherit;
+                transform: translateY(-1px);
+                box-shadow: 0 0.4rem 1rem rgba(0, 0, 0, 0.06);
+            }
+
+            .bulk-summary-card:disabled {
+                cursor: not-allowed;
+                opacity: 0.6;
+            }
+
+            .bulk-summary-card-primary:hover:not(:disabled) {
+                border-color: #b9cce0;
+            }
+
+            .bulk-summary-card-success {
+                border-color: #cce7d8;
+            }
+
+            .bulk-summary-card-success:hover {
+                border-color: #a8d4bd;
+            }
+
+            .bulk-summary-card-warning {
+                border-color: #ead8a8;
+                background: #fffdf7;
+            }
+
+            .bulk-summary-card-warning:hover {
+                border-color: #dfc67f;
+            }
+
+            .bulk-summary-card-header {
+                display: flex;
+                align-items: flex-start;
+                justify-content: space-between;
+                gap: 1rem;
+            }
+
+            .bulk-summary-label {
+                color: var(--cyb-muted, #6c757d);
+                font-size: 0.68rem;
+                font-weight: 650;
+                letter-spacing: 0.04em;
+                text-transform: uppercase;
+            }
+
+            .bulk-summary-value-row {
+                display: flex;
+                align-items: flex-end;
+                gap: 0.35rem;
+                margin-top: 0.35rem;
+            }
+
+            .bulk-summary-value {
+                color: var(--cyb-text, #212529);
+                font-size: 2rem;
+                font-weight: 700;
+                line-height: 1;
+            }
+
+            .bulk-summary-unit {
+                padding-bottom: 0.15rem;
+                color: var(--cyb-muted, #6c757d);
+                font-size: 0.72rem;
+                font-weight: 600;
+            }
+
+            .bulk-summary-icon {
+                display: inline-flex;
+                width: 40px;
+                height: 40px;
+                flex: 0 0 40px;
+                align-items: center;
+                justify-content: center;
+                border-radius: 0.65rem;
+                background: #f1f3f5;
+                color: #607080;
+                font-size: 0.95rem;
+            }
+
+            .bulk-summary-card-success .bulk-summary-icon {
+                background: #e8f5ee;
+                color: #197149;
+            }
+
+            .bulk-summary-card-warning .bulk-summary-icon {
+                background: #fff4d8;
+                color: #87620f;
+            }
+
+            .bulk-summary-help {
+                margin-top: 1rem;
+                color: var(--cyb-muted, #6c757d);
+                font-size: 0.72rem;
+                line-height: 1.45;
+            }
+
+            /*
+             * Status
+             */
+
+            .bulk-status-notice,
+            .bulk-ready-notice {
+                border-radius: 0.65rem;
+            }
+
+            .bulk-ready-notice {
+                border: 1px solid #cce7d8;
+                background: #f1faf5;
+                color: #24724d;
+            }
+
+            .bulk-status-content {
+                display: flex;
+                width: 100%;
+                align-items: center;
+                justify-content: space-between;
+                gap: 1rem;
+            }
+
+            .bulk-status-title {
+                font-size: 0.82rem;
+                font-weight: 650;
+            }
+
+            .bulk-status-text {
+                margin-top: 0.15rem;
+                font-size: 0.76rem;
+                line-height: 1.5;
+            }
+
+            /*
+             * History
+             */
+
+            .bulk-history-list {
+                background: #fff;
+            }
+
+            .bulk-history-row {
+                padding: 1rem 1.2rem;
+                border-bottom: 1px solid var(--cyb-border-soft, #edf0f2);
+            }
+
+            .bulk-history-row:last-child {
+                border-bottom: 0;
+            }
+
+            .bulk-history-row-main {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 1.25rem;
+            }
+
+            .bulk-history-info {
+                min-width: 0;
+            }
+
+            .bulk-history-title {
+                color: var(--cyb-text, #212529);
+                font-size: 0.86rem;
+            }
+
+            .bulk-history-meta {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 0.35rem 1rem;
+                margin-top: 0.45rem;
+                color: var(--cyb-muted, #6c757d);
+                font-size: 0.72rem;
+            }
+
+            .bulk-history-meta span {
+                display: inline-flex;
+                align-items: center;
+                gap: 0.3rem;
+            }
+
+            .bulk-history-undone {
+                margin-top: 0.4rem;
+                color: var(--cyb-muted, #6c757d);
+                font-size: 0.72rem;
+            }
+
+            .bulk-history-actions {
+                display: flex;
+                flex: 0 0 auto;
+                align-items: center;
+                gap: 0.75rem;
+            }
+
+            .bulk-history-counts {
+                display: flex;
+                gap: 0.4rem;
+            }
+
+            .bulk-history-count {
+                min-width: 70px;
+                padding: 0.45rem 0.55rem;
+                border: 1px solid var(--cyb-border, #e7eaed);
+                border-radius: 0.5rem;
+                background: #f8f9fa;
+                text-align: center;
+            }
+
+            .bulk-history-count strong {
+                display: block;
+                color: #343a40;
+                font-size: 0.92rem;
+                line-height: 1.1;
+            }
+
+            .bulk-history-count span {
+                display: block;
+                margin-top: 0.15rem;
+                color: var(--cyb-muted, #6c757d);
+                font-size: 0.58rem;
+                font-weight: 650;
+                letter-spacing: 0.03em;
+                text-transform: uppercase;
+            }
+
+            .bulk-protected-notice {
+                margin-top: 0.75rem;
+                border: 1px solid #cce7d8;
+                border-radius: 0.55rem;
+                background: #f1faf5;
+                color: #24724d;
+            }
+
+            /*
+             * Modals
+             */
+
+            .bulk-modal {
+                overflow: hidden;
+                border: 0;
+                border-radius: 0.8rem;
+                box-shadow: 0 1.25rem 3.5rem rgba(0, 0, 0, 0.18);
+            }
+
+            .bulk-modal .modal-header {
+                align-items: flex-start;
+                padding: 1rem 1.2rem;
+                border-bottom-color: var(--cyb-border-soft, #edf0f2);
+            }
+
+            .bulk-modal .modal-title {
+                margin: 0;
+                color: var(--cyb-text, #212529);
+                font-size: 1rem;
+                font-weight: 650;
+            }
+
+            .bulk-modal .modal-body {
+                padding: 1.2rem;
+            }
+
+            .bulk-modal .modal-footer {
+                padding: 0.85rem 1.2rem;
+                border-top-color: var(--cyb-border-soft, #edf0f2);
+                background: #fafbfc;
+            }
+
+            .bulk-modal-notice {
+                border-radius: 0.55rem;
+            }
+
+            .bulk-confirm-details {
+                margin-top: 1rem;
+                color: #343a40;
+                font-size: 0.82rem;
+                line-height: 1.55;
+            }
+
+            .bulk-confirm-details p {
+                margin-bottom: 0.8rem;
+            }
+
+            .bulk-confirm-details p:last-child {
+                margin-bottom: 0;
+            }
+
+            .bulk-modal-stat {
+                height: 100%;
+                padding: 0.85rem;
+                border: 1px solid var(--cyb-border, #e7eaed);
+                border-radius: 0.6rem;
+                background: #f8f9fa;
+                text-align: center;
+            }
+
+            .bulk-modal-stat strong {
+                display: block;
+                font-size: 1.4rem;
+                line-height: 1.1;
+            }
+
+            .bulk-modal-stat span {
+                display: block;
+                margin-top: 0.25rem;
+                color: var(--cyb-muted, #6c757d);
+                font-size: 0.7rem;
+                font-weight: 600;
+            }
+
+            .bulk-modal-description,
+            .bulk-modal-subtitle {
+                color: var(--cyb-muted, #6c757d);
+                font-size: 0.76rem;
+                line-height: 1.5;
+            }
+
+            .bulk-modal-description {
+                margin: 1rem 0 0;
+            }
+
+            .bulk-modal-subtitle {
+                margin: 0.25rem 0 0;
+            }
+
+            .bulk-students-more {
+                display: flex;
+                align-items: center;
+                gap: 0.45rem;
+                padding: 0.75rem 1rem;
+                border-top: 1px solid var(--cyb-border-soft, #edf0f2);
+                background: #f8f9fa;
+                color: var(--cyb-muted, #6c757d);
+                font-size: 0.76rem;
+            }
+
+            /*
+             * Responsive
+             */
+
+            @media (min-width: 1200px) {
+                .bulk-writeup-sidebar {
+                    position: sticky;
+                    top: 1rem;
+                }
+            }
+
+            @media (max-width: 991.98px) {
+                .bulk-history-row-main {
+                    align-items: flex-start;
+                    flex-direction: column;
+                }
+
+                .bulk-history-actions {
+                    width: 100%;
+                    justify-content: space-between;
+                }
+            }
+
+            @media (max-width: 767.98px) {
+                .bulk-status-content {
+                    align-items: flex-start;
+                    flex-direction: column;
+                }
+
+                .bulk-status-content .btn {
+                    width: 100%;
+                }
+
+                .bulk-history-actions {
+                    align-items: flex-start;
+                    flex-direction: column;
+                }
+
+                .bulk-history-counts {
+                    width: 100%;
+                }
+
+                .bulk-history-count {
+                    flex: 1;
+                    min-width: 0;
+                }
+            }
+        </style>
+    @endpush
 </x-app-layout>

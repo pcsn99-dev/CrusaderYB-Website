@@ -88,3 +88,112 @@
 .tabulator .tabulator-cell {
     border-right-color: var(--cyb-border);
 }
+
+
+
+
+/* =========================================================
+   CYB ADMIN - SHARED TABLES
+   ========================================================= */
+
+.cyb-table {
+    width: 100%;
+    margin-bottom: 0;
+    vertical-align: middle;
+}
+
+.cyb-table thead th {
+    padding: 0.85rem 1rem;
+    border-bottom-width: 1px;
+    background: #f8f9fa;
+    color: var(--cyb-muted, #6c757d);
+    font-size: 0.74rem;
+    font-weight: 650;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.cyb-table tbody td {
+    padding: 1rem;
+    border-color: var(--cyb-border-soft, #edf0f2);
+    color: #343a40;
+    font-size: 0.86rem;
+}
+
+.cyb-table tbody tr {
+    transition: background 0.12s ease;
+}
+
+.cyb-table tbody tr:hover {
+    background: #fafbfc;
+}
+
+
+/* ---------- Primary row identity ---------- */
+
+.cyb-table-identity {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    min-width: 0;
+}
+
+.cyb-table-identity-content {
+    min-width: 0;
+}
+
+.cyb-table-primary {
+    overflow: hidden;
+    color: #212529;
+    font-size: 0.87rem;
+    font-weight: 600;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.cyb-table-secondary {
+    overflow: hidden;
+    margin-top: 0.15rem;
+    color: var(--cyb-muted, #6c757d);
+    font-size: 0.73rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+
+/* ---------- Row actions ---------- */
+
+.cyb-table-action-button {
+    display: inline-flex;
+    width: 36px;
+    height: 36px;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+}
+
+
+/* ---------- Pagination ---------- */
+
+.cyb-pagination-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.85rem 1.2rem;
+    border-top: 1px solid var(--cyb-border-soft, #edf0f2);
+    background: #fff;
+}
+
+.cyb-pagination-summary {
+    color: var(--cyb-muted, #6c757d);
+    font-size: 0.8rem;
+}
+
+@media (max-width: 767.98px) {
+    .cyb-pagination-footer {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+}

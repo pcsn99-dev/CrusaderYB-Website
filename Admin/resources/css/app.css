@@ -5,7 +5,3 @@
 @import "./components.css";
 @import "./tables.css";
 @import "./utilities.css";
-
-@tailwind base;
-@tailwind components;
-@tailwind utilities;

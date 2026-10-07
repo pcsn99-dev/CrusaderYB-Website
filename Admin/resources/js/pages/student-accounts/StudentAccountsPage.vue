@@ -119,7 +119,6 @@ const searchStudents = async (page = 1): Promise<void> => {
 
         students.value = result.data;
         pagination.value = result.meta;
-
         hasSearched.value = true;
     } catch (error) {
         students.value = [];
@@ -168,45 +167,63 @@ const resetFilters = (): void => {
 };
 </script>
 
+
+
+
+
 <template>
-    <div class="container-fluid">
-        <div class="mb-4">
-            <h1 class="h3 mb-1">
-                Student Accounts
-            </h1>
+    <div class="student-module">
+        <!-- Search -->
+        <div class="cyb-card search-card">
+            <div class="cyb-card-header">
+                <div>
+                    <h2 class="cyb-section-title">
+                        Find Student Accounts
+                    </h2>
 
-            <p class="text-muted mb-0">
-                Search and view CYB student account information.
-            </p>
-        </div>
+                    <p class="cyb-section-description">
+                        Search by student ID or name, or narrow results by college and graduation year.
+                    </p>
+                </div>
 
-        <div class="card shadow-sm">
-            <div class="card-body">
+                <span class="cyb-pill cyb-pill-neutral">
+                    <i class="bi bi-search"></i>
+                    Search
+                </span>
+            </div>
+
+            <div class="cyb-card-body">
                 <form
-                    class="row g-3"
+                    class="row g-3 align-items-end"
                     @submit.prevent="searchStudents(1)"
                 >
-                    <div class="col-12 col-lg-6">
+                    <div class="col-12 col-xl-6">
                         <label
                             for="student-search"
-                            class="form-label"
+                            class="cyb-form-label"
                         >
-                            Search Student
+                            Search
                         </label>
 
-                        <input
-                            id="student-search"
-                            v-model.trim="filters.search"
-                            type="text"
-                            class="form-control"
-                            placeholder="Student ID, first name, or last name"
-                        >
+                        <div class="input-group">
+                            <span class="input-group-text">
+                                <i class="bi bi-search"></i>
+                            </span>
+
+                            <input
+                                id="student-search"
+                                v-model.trim="filters.search"
+                                type="text"
+                                class="form-control cyb-form-control"
+                                placeholder="Student ID, first name, or last name"
+                            >
+                        </div>
                     </div>
 
-                    <div class="col-12 col-md-6 col-lg-3">
+                    <div class="col-12 col-md-6 col-xl-3">
                         <label
                             for="college-filter"
-                            class="form-label"
+                            class="cyb-form-label"
                         >
                             College
                         </label>
@@ -214,7 +231,7 @@ const resetFilters = (): void => {
                         <select
                             id="college-filter"
                             v-model="filters.collegeId"
-                            class="form-select"
+                            class="form-select cyb-form-control"
                         >
                             <option :value="null">
                                 All Colleges
@@ -230,10 +247,10 @@ const resetFilters = (): void => {
                         </select>
                     </div>
 
-                    <div class="col-12 col-md-6 col-lg-3">
+                    <div class="col-12 col-md-6 col-xl-3">
                         <label
                             for="graduation-year-filter"
-                            class="form-label"
+                            class="cyb-form-label"
                         >
                             Graduation Year
                         </label>
@@ -241,7 +258,7 @@ const resetFilters = (): void => {
                         <select
                             id="graduation-year-filter"
                             v-model="filters.graduationYear"
-                            class="form-select"
+                            class="form-select cyb-form-control"
                         >
                             <option value="">
                                 All Years
@@ -258,7 +275,7 @@ const resetFilters = (): void => {
                     </div>
 
                     <div class="col-12">
-                        <div class="d-flex gap-2">
+                        <div class="d-flex flex-wrap gap-2">
                             <button
                                 type="submit"
                                 class="btn btn-primary"
@@ -266,25 +283,29 @@ const resetFilters = (): void => {
                             >
                                 <span
                                     v-if="isLoading"
-                                    class="spinner-border spinner-border-sm me-1"
+                                    class="spinner-border spinner-border-sm me-2"
                                     aria-hidden="true"
                                 ></span>
 
                                 <i
                                     v-else
-                                    class="bi bi-search me-1"
+                                    class="bi bi-search me-2"
                                 ></i>
 
-                                {{ isLoading ? 'Searching...' : 'Search Students' }}
+                                {{
+                                    isLoading
+                                        ? 'Searching...'
+                                        : 'Search Students'
+                                }}
                             </button>
 
                             <button
                                 type="button"
-                                class="btn btn-outline-secondary"
+                                class="btn btn-light border"
                                 :disabled="isLoading"
                                 @click="resetFilters"
                             >
-                                Clear
+                                Clear Filters
                             </button>
                         </div>
                     </div>
@@ -293,18 +314,22 @@ const resetFilters = (): void => {
                         v-if="searchError"
                         class="col-12"
                     >
-                        <div class="alert alert-danger mb-0">
-                            {{ searchError }}
+                        <div class="cyb-notice cyb-notice-warning rounded-3">
+                            <i class="bi bi-exclamation-circle"></i>
+
+                            <div>
+                                {{ searchError }}
+                            </div>
                         </div>
                     </div>
                 </form>
             </div>
         </div>
 
-        <div class="card shadow-sm mt-4">
+        <div class="card module-card mt-4">
             <div
                 v-if="isLoading"
-                class="card-body py-5 text-center"
+                class="empty-state"
             >
                 <div
                     class="spinner-border"
@@ -315,80 +340,88 @@ const resetFilters = (): void => {
                     </span>
                 </div>
 
-                <p class="text-muted mt-3 mb-0">
+                <p class="empty-state-text mt-3">
                     Searching student accounts...
                 </p>
             </div>
 
             <div
                 v-else-if="!hasSearched"
-                class="card-body py-5 text-center"
+                class="empty-state"
             >
-                <i class="bi bi-search fs-1 text-muted"></i>
+                <div class="empty-state-icon">
+                    <i class="bi bi-search"></i>
+                </div>
 
-                <h2 class="h5 mt-3">
-                    Find a student
+                <h2 class="empty-state-title">
+                    Search for a student
                 </h2>
 
-                <p class="text-muted mb-0">
-                    Search by student ID or name, or filter by college
-                    and graduation year.
+                <p class="empty-state-text">
+                    Use the search field or filters above to find student
+                    accounts. No student records are loaded until you search.
                 </p>
             </div>
 
             <div
                 v-else-if="students.length === 0"
-                class="card-body py-5 text-center"
+                class="empty-state"
             >
-                <i class="bi bi-person-x fs-1 text-muted"></i>
+                <div class="empty-state-icon">
+                    <i class="bi bi-people"></i>
+                </div>
 
-                <h2 class="h5 mt-3">
+                <h2 class="empty-state-title">
                     No students found
                 </h2>
 
-                <p class="text-muted mb-0">
-                    Try changing your search or filters.
+                <p class="empty-state-text">
+                    Try adjusting your search term or filters.
                 </p>
             </div>
 
             <template v-else>
-                <div class="card-header bg-white">
-                    <div
-                        class="d-flex flex-column flex-md-row
-                               align-items-md-center
-                               justify-content-between gap-2"
-                    >
-                        <div>
-                            <strong>
-                                {{ pagination.total }}
-                            </strong>
-
-                            student{{ pagination.total === 1 ? '' : 's' }}
-                            found
+                <div
+                    class="card-header results-header"
+                >
+                    <div>
+                        <div class="results-title">
+                            Search Results
                         </div>
 
-                        <small class="text-muted">
-                            Showing
-                            {{ pagination.from }}
-                            –
-                            {{ pagination.to }}
-                        </small>
+                        <div class="results-summary">
+                            {{ pagination.total }}
+                            student{{
+                                pagination.total === 1
+                                    ? ''
+                                    : 's'
+                            }}
+                            found
+                        </div>
+                    </div>
+
+                    <div class="results-range">
+                        Showing
+                        {{ pagination.from }}
+                        –
+                        {{ pagination.to }}
                     </div>
                 </div>
 
                 <div class="table-responsive">
                     <table
-                        class="table table-hover align-middle mb-0"
+                        class="table student-table align-middle mb-0"
                     >
-                        <thead class="table-light">
+                        <thead>
                             <tr>
-                                <th>Student ID</th>
                                 <th>Student</th>
                                 <th>College</th>
                                 <th>Program</th>
                                 <th>Grad. Year</th>
                                 <th>Status</th>
-                                <th class="text-end">Action</th>
+                                <th class="text-end">
+                                    Action
+                                </th>
                             </tr>
                         </thead>
 
@@ -397,60 +430,77 @@ const resetFilters = (): void => {
                                 v-for="student in students"
                                 :key="student.id"
                             >
-                                <td class="text-nowrap">
-                                    {{ student.university_id }}
-                                </td>
-
                                 <td>
-                                    <strong>
+                                    <div class="student-name">
                                         {{ student.full_name }}
-                                    </strong>
+                                    </div>
+
+                                    <div class="student-id">
+                                        {{ student.university_id }}
+                                    </div>
                                 </td>
 
                                 <td>
-                                    {{ student.college ?? '—' }}
+                                    <span class="table-value">
+                                        {{ student.college ?? '—' }}
+                                    </span>
                                 </td>
 
                                 <td>
-                                    <div>
+                                    <div class="table-value">
                                         {{ student.program ?? '—' }}
                                     </div>
 
-                                    <small
+                                    <div
                                         v-if="student.major"
-                                        class="text-muted"
+                                        class="table-secondary-value"
                                     >
                                         {{ student.major }}
-                                    </small>
-                                </td>
-
-                                <td class="text-nowrap">
-                                    {{ student.year ?? '—' }}
+                                    </div>
                                 </td>
 
                                 <td>
-                                    <span
-                                        v-if="student.is_subscribe"
-                                        class="badge text-bg-success"
-                                    >
-                                        Subscribed
+                                    <span class="table-value">
+                                        {{ student.year ?? '—' }}
                                     </span>
+                                </td>
 
-                                    <span
-                                        v-else
-                                        class="badge text-bg-secondary"
+                                <td>
+                                    <div
+                                        class="d-flex flex-wrap gap-2"
                                     >
-                                        Not Subscribed
-                                    </span>
+                                        <span
+                                            class="status-pill"
+                                            :class="
+                                                student.is_subscribe
+                                                    ? 'status-success'
+                                                    : 'status-neutral'
+                                            "
+                                        >
+                                            {{
+                                                student.is_subscribe
+                                                    ? 'Subscribed'
+                                                    : 'Not Subscribed'
+                                            }}
+                                        </span>
+
+                                        <span
+                                            v-if="student.is_third_party"
+                                            class="status-pill status-info"
+                                        >
+                                            Third-Party
+                                        </span>
+                                    </div>
                                 </td>
 
                                 <td class="text-end">
                                     <a
-                                        :href="`/student-accounts/${student.id}`"
+                                        :href="
+                                            `/student-accounts/${student.id}`
+                                        "
                                         class="btn btn-sm btn-outline-primary"
                                     >
-                                        <i class="bi bi-eye me-1"></i>
-                                        View
+                                        View Details
                                     </a>
                                 </td>
                             </tr>
@@ -460,14 +510,19 @@ const resetFilters = (): void => {
 
                 <div
                     v-if="pagination.last_page > 1"
-                    class="card-footer bg-white"
+                    class="card-footer pagination-footer"
                 >
+                    <div class="pagination-summary">
+                        Page
+                        {{ pagination.current_page }}
+                        of
+                        {{ pagination.last_page }}
+                    </div>
+
                     <nav
                         aria-label="Student account pagination"
                     >
-                        <ul
-                            class="pagination justify-content-end mb-0"
-                        >
+                        <ul class="pagination mb-0">
                             <li
                                 class="page-item"
                                 :class="{
@@ -541,3 +596,208 @@ const resetFilters = (): void => {
         </div>
     </div>
 </template>
+
+<style scoped>
+.student-module {
+    font-size: 0.94rem;
+}
+
+.page-heading {
+    max-width: 760px;
+}
+
+.page-title {
+    margin: 0;
+    font-size: 1.65rem;
+    font-weight: 650;
+    letter-spacing: -0.02em;
+    color: #212529;
+}
+
+.page-description {
+    margin: 0.4rem 0 0;
+    color: #6c757d;
+    font-size: 0.94rem;
+}
+
+.module-card {
+    border: 1px solid #e9ecef;
+    border-radius: 0.75rem;
+    box-shadow: 0 0.125rem 0.45rem rgba(0, 0, 0, 0.035);
+    overflow: hidden;
+}
+
+.search-card .card-body {
+    padding: 1.25rem;
+}
+
+.form-label {
+    margin-bottom: 0.45rem;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: #495057;
+}
+
+.form-control,
+.form-select,
+.input-group-text {
+    min-height: 42px;
+}
+
+.input-group-text {
+    background: #f8f9fa;
+    color: #6c757d;
+}
+
+.btn {
+    min-height: 40px;
+    font-weight: 500;
+}
+
+.results-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1rem 1.25rem;
+    background: #fff;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.results-title {
+    font-weight: 600;
+    color: #212529;
+}
+
+.results-summary,
+.results-range,
+.pagination-summary {
+    margin-top: 0.15rem;
+    font-size: 0.82rem;
+    color: #6c757d;
+}
+
+.student-table thead th {
+    padding: 0.85rem 1rem;
+    border-bottom-width: 1px;
+    background: #f8f9fa;
+    color: #6c757d;
+    font-size: 0.76rem;
+    font-weight: 650;
+    letter-spacing: 0.025em;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.student-table tbody td {
+    padding: 1rem;
+    border-color: #edf0f2;
+    vertical-align: middle;
+}
+
+.student-table tbody tr:hover {
+    background: #fafbfc;
+}
+
+.student-name {
+    color: #212529;
+    font-weight: 600;
+}
+
+.student-id {
+    margin-top: 0.2rem;
+    color: #6c757d;
+    font-size: 0.82rem;
+}
+
+.table-value {
+    color: #343a40;
+}
+
+.table-secondary-value {
+    margin-top: 0.2rem;
+    color: #6c757d;
+    font-size: 0.8rem;
+}
+
+.status-pill {
+    display: inline-flex;
+    align-items: center;
+    min-height: 24px;
+    padding: 0.2rem 0.55rem;
+    border-radius: 999px;
+    font-size: 0.74rem;
+    font-weight: 600;
+    line-height: 1;
+}
+
+.status-success {
+    background: #e8f5ee;
+    color: #197149;
+}
+
+.status-neutral {
+    background: #f1f3f5;
+    color: #687078;
+}
+
+.status-info {
+    background: #e8f3f8;
+    color: #24657b;
+}
+
+.empty-state {
+    max-width: 520px;
+    margin: 0 auto;
+    padding: 4.5rem 1.5rem;
+    text-align: center;
+}
+
+.empty-state-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 52px;
+    height: 52px;
+    margin: 0 auto;
+    border-radius: 50%;
+    background: #f1f3f5;
+    color: #6c757d;
+    font-size: 1.35rem;
+}
+
+.empty-state-title {
+    margin: 1rem 0 0.35rem;
+    font-size: 1rem;
+    font-weight: 600;
+    color: #343a40;
+}
+
+.empty-state-text {
+    margin: 0;
+    color: #6c757d;
+    font-size: 0.88rem;
+    line-height: 1.55;
+}
+
+.pagination-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.85rem 1.25rem;
+    background: #fff;
+}
+
+@media (max-width: 767.98px) {
+    .results-header,
+    .pagination-footer {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .student-table {
+        min-width: 820px;
+    }
+}
+</style>

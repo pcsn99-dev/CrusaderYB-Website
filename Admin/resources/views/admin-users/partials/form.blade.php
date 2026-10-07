@@ -1,173 +1,291 @@
-<div class="space-y-6">
+<div class="cyb-stack">
 
     {{-- Section intro --}}
     <div>
-        <h2 class="mb-1 text-base font-semibold text-[var(--cyb-primary)]">
+        <h2 class="cyb-section-title">
             Account Details
         </h2>
 
-        <p class="mb-0 text-sm text-[var(--cyb-muted)]">
+        <p class="cyb-section-description">
             Fill in the staff member’s information and choose the role that controls their system access.
         </p>
     </div>
 
     {{-- Name and Email --}}
-    <div class="grid grid-cols-1 gap-5 md:grid-cols-2">
-        <div>
-            <label for="name" class="mb-1 block text-sm font-semibold text-[var(--cyb-text)]">
+    <div class="row g-4">
+        <div class="col-12 col-md-6">
+            <label
+                for="name"
+                class="cyb-form-label"
+            >
                 Full Name
+                <span class="text-danger">*</span>
             </label>
 
-            <input type="text"
-                   name="name"
-                   id="name"
-                   value="{{ old('name', $adminUser?->name) }}"
-                   required
-                   autocomplete="name"
-                   placeholder="Example: Juan Dela Cruz"
-                   class="@error('name') border-red-300 focus:border-red-500 focus:ring-red-200 @else border-[var(--cyb-border)] focus:border-[var(--cyb-primary)] focus:ring-[var(--cyb-primary)]/20 @enderror block w-full rounded-lg px-3 py-2 text-sm shadow-sm">
+            <input
+                type="text"
+                name="name"
+                id="name"
+                value="{{ old('name', $adminUser?->name) }}"
+                required
+                autocomplete="name"
+                placeholder="Example: Juan Dela Cruz"
+                class="form-control cyb-form-control @error('name') is-invalid @enderror"
+            >
 
             @error('name')
-                <p class="mt-2 flex items-center gap-1 text-sm text-red-600">
-                    <i class="bi bi-exclamation-circle"></i>
+                <div class="invalid-feedback">
                     {{ $message }}
-                </p>
+                </div>
             @enderror
         </div>
 
-        <div>
-            <label for="email" class="mb-1 block text-sm font-semibold text-[var(--cyb-text)]">
+        <div class="col-12 col-md-6">
+            <label
+                for="email"
+                class="cyb-form-label"
+            >
                 Email Address
+                <span class="text-danger">*</span>
             </label>
 
-            <input type="email"
-                   name="email"
-                   id="email"
-                   value="{{ old('email', $adminUser?->email) }}"
-                   required
-                   autocomplete="email"
-                   placeholder="staff@example.com"
-                   class="@error('email') border-red-300 focus:border-red-500 focus:ring-red-200 @else border-[var(--cyb-border)] focus:border-[var(--cyb-primary)] focus:ring-[var(--cyb-primary)]/20 @enderror block w-full rounded-lg px-3 py-2 text-sm shadow-sm">
+            <input
+                type="email"
+                name="email"
+                id="email"
+                value="{{ old('email', $adminUser?->email) }}"
+                required
+                autocomplete="email"
+                placeholder="staff@example.com"
+                class="form-control cyb-form-control @error('email') is-invalid @enderror"
+            >
 
             @error('email')
-                <p class="mt-2 flex items-center gap-1 text-sm text-red-600">
-                    <i class="bi bi-exclamation-circle"></i>
+                <div class="invalid-feedback">
                     {{ $message }}
-                </p>
+                </div>
             @enderror
         </div>
     </div>
 
     {{-- Username and Role --}}
-    <div class="grid grid-cols-1 gap-5 md:grid-cols-2">
-        <div>
-            <label for="username" class="mb-1 block text-sm font-semibold text-[var(--cyb-text)]">
+    <div class="row g-4">
+        <div class="col-12 col-md-6">
+            <label
+                for="username"
+                class="cyb-form-label"
+            >
                 Username
+                <span class="text-danger">*</span>
             </label>
 
-            <input type="text"
-                   name="username"
-                   id="username"
-                   value="{{ old('username', $adminUser?->username) }}"
-                   required
-                   autocomplete="username"
-                   placeholder="Example: jdelacruz"
-                   class="@error('username') border-red-300 focus:border-red-500 focus:ring-red-200 @else border-[var(--cyb-border)] focus:border-[var(--cyb-primary)] focus:ring-[var(--cyb-primary)]/20 @enderror block w-full rounded-lg px-3 py-2 text-sm shadow-sm">
+            <input
+                type="text"
+                name="username"
+                id="username"
+                value="{{ old('username', $adminUser?->username) }}"
+                required
+                autocomplete="username"
+                placeholder="Example: jdelacruz"
+                class="form-control cyb-form-control @error('username') is-invalid @enderror"
+            >
 
             @error('username')
-                <p class="mt-2 flex items-center gap-1 text-sm text-red-600">
-                    <i class="bi bi-exclamation-circle"></i>
+                <div class="invalid-feedback">
                     {{ $message }}
-                </p>
+                </div>
             @enderror
         </div>
 
-        <div>
-            <label for="role_id" class="mb-1 block text-sm font-semibold text-[var(--cyb-text)]">
+        <div class="col-12 col-md-6">
+            <label
+                for="role_id"
+                class="cyb-form-label"
+            >
                 Role
+                <span class="text-danger">*</span>
             </label>
 
-            <select name="role_id"
-                    id="role_id"
-                    required
-                    class="@error('role_id') border-red-300 focus:border-red-500 focus:ring-red-200 @else border-[var(--cyb-border)] focus:border-[var(--cyb-primary)] focus:ring-[var(--cyb-primary)]/20 @enderror block w-full rounded-lg px-3 py-2 text-sm shadow-sm">
-                <option value="">Select Role</option>
+            <select
+                name="role_id"
+                id="role_id"
+                required
+                class="form-select cyb-form-control @error('role_id') is-invalid @enderror"
+            >
+                <option value="">
+                    Select Role
+                </option>
 
                 @foreach ($roles as $role)
-                    <option value="{{ $role->id }}"
-                            @selected((int) old('role_id', $adminUser?->role_id) === (int) $role->id)>
+                    <option
+                        value="{{ $role->id }}"
+                        @selected((int) old('role_id', $adminUser?->role_id) === (int) $role->id)
+                    >
                         {{ $role->name }}
                     </option>
                 @endforeach
             </select>
 
             @error('role_id')
-                <p class="mt-2 flex items-center gap-1 text-sm text-red-600">
-                    <i class="bi bi-exclamation-circle"></i>
+                <div class="invalid-feedback">
                     {{ $message }}
-                </p>
+                </div>
             @enderror
+
+            <div class="cyb-form-help">
+                The selected role determines which areas and actions this administrator can access.
+            </div>
         </div>
     </div>
 
     {{-- Account Status --}}
-    <div class="rounded-xl border border-[var(--cyb-border)] bg-[var(--cyb-primary-soft)]/50 p-4">
-        <input type="hidden" name="active" value="0">
+    <div class="admin-account-status">
+        <input
+            type="hidden"
+            name="active"
+            value="0"
+        >
 
-        <label class="flex cursor-pointer items-start gap-3">
-            <input type="checkbox"
-                   name="active"
-                   value="1"
-                   class="mt-1 rounded border-[var(--cyb-border)] text-[var(--cyb-primary)] shadow-sm focus:ring-[var(--cyb-primary)]/30"
-                   @checked((bool) old('active', $adminUser?->active ?? true))>
+        <div class="form-check admin-account-status-check">
+            <input
+                type="checkbox"
+                name="active"
+                id="active"
+                value="1"
+                class="form-check-input"
+                @checked((bool) old('active', $adminUser?->active ?? true))
+            >
 
-            <div>
-                <div class="text-sm font-semibold text-[var(--cyb-text)]">
+            <label
+                for="active"
+                class="form-check-label admin-account-status-label"
+            >
+                <span class="admin-account-status-title">
                     Active Account
-                </div>
+                </span>
 
-                <p class="mb-0 text-sm text-[var(--cyb-muted)]">
-                    Active admin users can log in. Inactive users will be blocked from accessing the admin panel.
-                </p>
-            </div>
-        </label>
+                <span class="admin-account-status-description">
+                    Active administrators can log in. Inactive accounts are blocked from accessing the admin panel.
+                </span>
+            </label>
+        </div>
 
         @error('active')
-            <p class="mt-2 flex items-center gap-1 text-sm text-red-600">
-                <i class="bi bi-exclamation-circle"></i>
+            <div class="text-danger small mt-2">
+                <i class="bi bi-exclamation-circle me-1"></i>
                 {{ $message }}
-            </p>
+            </div>
         @enderror
     </div>
 
     {{-- Temporary Password Notice --}}
     @if (! $adminUser)
-        <div class="flex items-start gap-3 rounded-xl border border-yellow-200 bg-yellow-50 px-4 py-3 text-sm text-yellow-800">
-            <i class="bi bi-key-fill mt-0.5"></i>
+        <div class="cyb-notice cyb-notice-warning admin-password-notice">
+            <i class="bi bi-key-fill"></i>
 
             <div>
-                <p class="mb-1 font-semibold">
+                <div class="admin-password-notice-title">
                     Temporary password required
-                </p>
+                </div>
 
-                <p class="mb-0">
-                    The system will generate a temporary password and send it to this user’s email. The user must change it after logging in.
-                </p>
+                <div class="admin-password-notice-text">
+                    The system will generate a temporary password and send it to this user’s email.
+                    The user will be required to change it after signing in.
+                </div>
             </div>
         </div>
     @endif
 
     {{-- Actions --}}
-    <div class="flex flex-col-reverse gap-3 border-t border-[var(--cyb-border)] pt-5 sm:flex-row sm:items-center sm:justify-end">
-        <a href="{{ route('admin-users.index') }}"
-           class="inline-flex items-center justify-center gap-2 rounded-lg border border-[var(--cyb-border)] bg-white px-4 py-2 text-sm font-semibold text-[var(--cyb-text)] shadow-sm transition hover:bg-[var(--cyb-primary-soft)]">
+    <div class="cyb-form-actions">
+        <a
+            href="{{ route('admin-users.index') }}"
+            class="btn btn-light border"
+        >
             Cancel
         </a>
 
-        <button type="submit"
-                class="inline-flex items-center justify-center gap-2 rounded-lg bg-[var(--cyb-primary)] px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-[var(--cyb-primary-dark)] focus:outline-none focus:ring-2 focus:ring-[var(--cyb-primary)] focus:ring-offset-2">
-            <i class="bi bi-check2-circle"></i>
+        <button
+            type="submit"
+            class="btn btn-primary"
+        >
+            <i class="bi bi-check2-circle me-1"></i>
             {{ $buttonText }}
         </button>
     </div>
 </div>
+
+@push('styles')
+    <style>
+        /*
+         * Admin-user form specific styles only.
+         * General form spacing, labels, controls, notices,
+         * and actions come from the shared CYB styles.
+         */
+
+        .admin-account-status {
+            padding: 1rem;
+            border: 1px solid var(--cyb-border, #e7eaed);
+            border-radius: 0.7rem;
+            background: #f8f9fa;
+        }
+
+        .admin-account-status-check {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.75rem;
+            margin: 0;
+            padding: 0;
+        }
+
+        .admin-account-status-check .form-check-input {
+            width: 1.05rem;
+            height: 1.05rem;
+            flex: 0 0 1.05rem;
+            margin: 0.15rem 0 0;
+            float: none;
+            cursor: pointer;
+        }
+
+        .admin-account-status-label {
+            display: block;
+            margin: 0;
+            cursor: pointer;
+        }
+
+        .admin-account-status-title {
+            display: block;
+            color: var(--cyb-text, #212529);
+            font-size: 0.86rem;
+            font-weight: 600;
+        }
+
+        .admin-account-status-description {
+            display: block;
+            margin-top: 0.2rem;
+            color: var(--cyb-muted, #6c757d);
+            font-size: 0.78rem;
+            line-height: 1.5;
+        }
+
+        .admin-password-notice {
+            border: 1px solid #f2dfaa;
+            border-radius: 0.7rem;
+        }
+
+        .admin-password-notice > i {
+            margin-top: 0.1rem;
+        }
+
+        .admin-password-notice-title {
+            font-size: 0.84rem;
+            font-weight: 600;
+        }
+
+        .admin-password-notice-text {
+            margin-top: 0.2rem;
+            font-size: 0.78rem;
+            line-height: 1.5;
+        }
+    </style>
+@endpush

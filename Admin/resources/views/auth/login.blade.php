@@ -1,87 +1,208 @@
 <x-guest-layout>
-    <!-- Session Status -->
-    <x-auth-session-status class="mb-4" :status="session('status')" />
+    {{-- Session Status --}}
+    @if (session('status'))
+        <div class="alert alert-success mb-4" role="alert">
+            <i class="bi bi-check2-circle me-1"></i>
+            {{ session('status') }}
+        </div>
+    @endif
 
-    <!-- Google Login -->
-    <div class="mb-4">
-        <a href="{{ route('google.redirect') }}"
-           class="w-full inline-flex justify-center items-center px-4 py-2 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-md font-semibold text-xs text-gray-700 dark:text-gray-300 uppercase tracking-widest shadow-sm hover:bg-gray-50 dark:hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:focus:ring-offset-gray-800 transition ease-in-out duration-150">
+    <div class="auth-header">
+        <h1 class="auth-title">
+            Sign In
+        </h1>
+
+        <p class="auth-subtitle">
+            Access your Crusader Yearbook account.
+        </p>
+    </div>
+
+    {{-- Google Login --}}
+    <div class="d-grid mb-4">
+        <a
+            href="{{ route('google.redirect') }}"
+            class="btn btn-light border auth-google-button"
+        >
+            <i class="bi bi-google"></i>
             Continue with Google
         </a>
     </div>
 
-    <!-- Divider -->
-    <div class="relative my-6">
-        <div class="absolute inset-0 flex items-center">
-            <div class="w-full border-t border-gray-300 dark:border-gray-700"></div>
-        </div>
-
-        <div class="relative flex justify-center text-sm">
-            <span class="px-2 bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400">
-                Or sign in with email
-            </span>
-        </div>
+    {{-- Divider --}}
+    <div class="auth-divider">
+        <span>
+            Or sign in with email
+        </span>
     </div>
 
-    <!-- Email Login Form -->
+    {{-- Email Login --}}
     <form method="POST" action="{{ route('login') }}">
         @csrf
 
-        <!-- Email Address -->
-        <div>
-            <x-input-label for="email" :value="__('Email')" />
-
-            <x-text-input id="email"
-                          class="block mt-1 w-full"
-                          type="email"
-                          name="email"
-                          :value="old('email')"
-                          required
-                          autofocus
-                          autocomplete="username" />
-
-            <x-input-error :messages="$errors->get('email')" class="mt-2" />
-        </div>
-
-        <!-- Password -->
-        <div class="mt-4">
-            <x-input-label for="password" :value="__('Password')" />
-
-            <x-text-input id="password"
-                          class="block mt-1 w-full"
-                          type="password"
-                          name="password"
-                          required
-                          autocomplete="current-password" />
-
-            <x-input-error :messages="$errors->get('password')" class="mt-2" />
-        </div>
-
-        <!-- Remember Me -->
-        <div class="block mt-4">
-            <label for="remember_me" class="inline-flex items-center">
-                <input id="remember_me"
-                       type="checkbox"
-                       class="rounded dark:bg-gray-900 border-gray-300 dark:border-gray-700 text-indigo-600 shadow-sm focus:ring-indigo-500 dark:focus:ring-indigo-600 dark:focus:ring-offset-gray-800"
-                       name="remember">
-
-                <span class="ms-2 text-sm text-gray-600 dark:text-gray-400">
-                    {{ __('Remember me') }}
-                </span>
+        {{-- Email --}}
+        <div class="mb-3">
+            <label
+                for="email"
+                class="cyb-form-label"
+            >
+                Email
             </label>
+
+            <input
+                id="email"
+                type="email"
+                name="email"
+                value="{{ old('email') }}"
+                required
+                autofocus
+                autocomplete="username"
+                class="form-control cyb-form-control @error('email') is-invalid @enderror"
+            >
+
+            @error('email')
+                <div class="invalid-feedback">
+                    {{ $message }}
+                </div>
+            @enderror
         </div>
 
-        <div class="flex items-center justify-end mt-4">
+        {{-- Password --}}
+        <div class="mb-3">
+            <label
+                for="password"
+                class="cyb-form-label"
+            >
+                Password
+            </label>
+
+            <input
+                id="password"
+                type="password"
+                name="password"
+                required
+                autocomplete="current-password"
+                class="form-control cyb-form-control @error('password') is-invalid @enderror"
+            >
+
+            @error('password')
+                <div class="invalid-feedback">
+                    {{ $message }}
+                </div>
+            @enderror
+        </div>
+
+        {{-- Remember --}}
+        <div class="d-flex align-items-center justify-content-between gap-3 mb-4">
+            <div class="form-check mb-0">
+                <input
+                    id="remember_me"
+                    type="checkbox"
+                    name="remember"
+                    class="form-check-input"
+                >
+
+                <label
+                    for="remember_me"
+                    class="form-check-label auth-remember-label"
+                >
+                    Remember me
+                </label>
+            </div>
+
             @if (Route::has('password.request'))
-                <a class="underline text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:focus:ring-offset-gray-800"
-                   href="{{ route('password.request') }}">
-                    {{ __('Forgot your password?') }}
+                <a
+                    href="{{ route('password.request') }}"
+                    class="auth-link"
+                >
+                    Forgot your password?
                 </a>
             @endif
+        </div>
 
-            <x-primary-button class="ms-3">
-                {{ __('Log in') }}
-            </x-primary-button>
+        {{-- Submit --}}
+        <div class="d-grid">
+            <button
+                type="submit"
+                class="btn btn-primary auth-submit-button"
+            >
+                <i class="bi bi-box-arrow-in-right me-1"></i>
+                Log In
+            </button>
         </div>
     </form>
+
+    @push('styles')
+        <style>
+            .auth-header {
+                margin-bottom: 1.5rem;
+                text-align: center;
+            }
+
+            .auth-title {
+                margin: 0;
+                color: var(--cyb-text, #212529);
+                font-size: 1.35rem;
+                font-weight: 700;
+            }
+
+            .auth-subtitle {
+                margin: 0.35rem 0 0;
+                color: var(--cyb-muted, #6c757d);
+                font-size: 0.82rem;
+                line-height: 1.45;
+            }
+
+            .auth-google-button {
+                display: inline-flex;
+                min-height: 42px;
+                align-items: center;
+                justify-content: center;
+                gap: 0.5rem;
+                font-size: 0.85rem;
+                font-weight: 600;
+            }
+
+            .auth-divider {
+                display: flex;
+                align-items: center;
+                gap: 0.75rem;
+                margin: 1.25rem 0;
+                color: var(--cyb-muted, #6c757d);
+                font-size: 0.72rem;
+            }
+
+            .auth-divider::before,
+            .auth-divider::after {
+                content: "";
+                flex: 1;
+                height: 1px;
+                background: var(--cyb-border, #e7eaed);
+            }
+
+            .auth-divider span {
+                white-space: nowrap;
+            }
+
+            .auth-remember-label {
+                color: var(--cyb-muted, #6c757d);
+                font-size: 0.8rem;
+            }
+
+            .auth-link {
+                color: var(--cyb-primary, #0d6efd);
+                font-size: 0.8rem;
+                font-weight: 500;
+                text-decoration: none;
+            }
+
+            .auth-link:hover {
+                text-decoration: underline;
+            }
+
+            .auth-submit-button {
+                min-height: 42px;
+                font-weight: 600;
+            }
+        </style>
+    @endpush
 </x-guest-layout>

@@ -11,6 +11,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RoleController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\StudentAccountController;
+use App\Http\Controllers\DashboardController;
 
 
 /*
@@ -79,11 +80,15 @@ Route::middleware(['auth'])->group(function () {
 
 
 
-Route::get('/dashboard', function () {
-    return view('dashboard');
-})->middleware(['auth', 'verified', 'force.password.change', 'admin.account'])->name('dashboard');
-
-
+Route::get('/dashboard', [DashboardController::class, 'index'])
+    ->middleware([
+        'auth',
+        'verified',
+        'force.password.change',
+        'admin.account',
+        'permission:view-admin-dashboard',
+    ])
+    ->name('dashboard');
 
 Route::middleware(['auth', 'force.password.change', 'admin.account'])->group(function () {
 

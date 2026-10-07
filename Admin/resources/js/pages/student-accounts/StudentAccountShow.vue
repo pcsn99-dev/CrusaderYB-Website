@@ -89,21 +89,21 @@ const attendanceLabel = (
     }
 };
 
-const attendanceBadge = (
+const attendanceClass = (
     status: AttendanceStatus,
 ): string => {
     switch (status) {
         case 'present':
-            return 'text-bg-success';
+            return 'status-success';
 
         case 'absent':
-            return 'text-bg-danger';
+            return 'status-danger';
 
         case 'late':
-            return 'text-bg-warning';
+            return 'status-warning';
 
         default:
-            return 'text-bg-secondary';
+            return 'status-neutral';
     }
 };
 
@@ -113,6 +113,20 @@ const getCsrfToken = (): string => {
     );
 
     return element?.content ?? '';
+};
+
+const readJsonResponse = async (
+    response: Response,
+): Promise<any> => {
+    const contentType = response.headers.get('content-type');
+
+    if (!contentType?.includes('application/json')) {
+        throw new Error(
+            `Server returned an unexpected response (${response.status}).`,
+        );
+    }
+
+    return response.json();
 };
 
 const updateSubscription = async (
@@ -146,6 +160,7 @@ const updateSubscription = async (
                     Accept: 'application/json',
                     'Content-Type': 'application/json',
                     'X-CSRF-TOKEN': getCsrfToken(),
+                    'X-Requested-With': 'XMLHttpRequest',
                 },
 
                 body: JSON.stringify({
@@ -165,21 +180,20 @@ const updateSubscription = async (
 
         if (!result.student) {
             throw new Error(
-                'The server updated the record but returned an invalid response.',
+                'The server returned an invalid response.',
             );
         }
 
-    studentData.value.is_subscribe =
-        result.student.is_subscribe;
+        studentData.value.is_subscribe =
+            result.student.is_subscribe;
 
-    studentData.value.subscribe_date =
-        result.student.subscribe_date;
+        studentData.value.subscribe_date =
+            result.student.subscribe_date;
 
-    studentData.value.unsubscribe_date =
-        result.student.unsubscribe_date;
+        studentData.value.unsubscribe_date =
+            result.student.unsubscribe_date;
 
-    actionMessage.value = result.message;
-
+        actionMessage.value = result.message;
     } catch (error) {
         actionError.value =
             error instanceof Error
@@ -241,7 +255,7 @@ const updateThirdParty = async (
 
         if (!result.student) {
             throw new Error(
-                'The server updated the record but returned an invalid response.',
+                'The server returned an invalid response.',
             );
         }
 
@@ -258,217 +272,295 @@ const updateThirdParty = async (
         isUpdatingThirdParty.value = false;
     }
 };
-
-const readJsonResponse = async (
-    response: Response,
-): Promise<any> => {
-    const contentType = response.headers.get('content-type');
-
-    if (!contentType?.includes('application/json')) {
-        throw new Error(
-            `Server returned an unexpected response (${response.status}).`,
-        );
-    }
-
-    return response.json();
-};
-
-
 </script>
 
 <template>
-    <div class="container-fluid">
-        <div
-            class="d-flex flex-column flex-md-row
-                   justify-content-between
-                   align-items-md-start gap-3 mb-4"
-        >
-            <div>
-                <a
-                    href="/student-accounts"
-                    class="text-decoration-none"
-                >
-                    <i class="bi bi-arrow-left me-1"></i>
-                    Student Accounts
-                </a>
+    <div class="student-module container-fluid px-0">
+        <div class="detail-header mb-4">
+            <a
+                href="/student-accounts"
+                class="back-link"
+            >
+                <i class="bi bi-arrow-left"></i>
+                Student Accounts
+            </a>
 
-                <h1 class="h3 mt-2 mb-1">
-                    {{ studentData.full_name }}
-                </h1>
+            <div
+                class="d-flex flex-column flex-lg-row
+                       justify-content-between
+                       align-items-lg-start gap-3 mt-3"
+            >
+                <div>
+                    <h1 class="student-title">
+                        {{ studentData.full_name }}
+                    </h1>
 
-                <div class="text-muted">
-                    {{ studentData.university_id }}
+                    <div class="student-meta">
+                        <span>
+                            {{ studentData.university_id }}
+                        </span>
+
+                        <span class="meta-divider">
+                            ·
+                        </span>
+
+                        <span>
+                            {{ studentData.college || 'No college' }}
+                        </span>
+
+                        <span class="meta-divider">
+                            ·
+                        </span>
+
+                        <span>
+                            {{ studentData.program || 'No program' }}
+                        </span>
+
+                        <template
+                            v-if="studentData.graduation_year"
+                        >
+                            <span class="meta-divider">
+                                ·
+                            </span>
+
+                            <span>
+                                Class of
+                                {{ studentData.graduation_year }}
+                            </span>
+                        </template>
+                    </div>
                 </div>
-            </div>
 
-            <div class="d-flex flex-wrap gap-2">
-                <span
-                    v-if="studentData.is_subscribe"
-                    class="badge text-bg-success fs-6"
-                >
-                    Subscribed
-                </span>
+                <div class="status-group">
+                    <span
+                        class="status-pill"
+                        :class="
+                            studentData.is_subscribe
+                                ? 'status-success'
+                                : 'status-neutral'
+                        "
+                    >
+                        {{
+                            studentData.is_subscribe
+                                ? 'Subscribed'
+                                : 'Not Subscribed'
+                        }}
+                    </span>
 
-                <span
-                    v-else
-                    class="badge text-bg-secondary fs-6"
-                >
-                    Not Subscribed
-                </span>
-
-                <span
-                    v-if="studentData.is_third_party"
-                    class="badge text-bg-info fs-6"
-                >
-                    Third-Party Photo
-                </span>
+                    <span
+                        v-if="studentData.is_third_party"
+                        class="status-pill status-info"
+                    >
+                        Third-Party Photo
+                    </span>
+                </div>
             </div>
         </div>
 
+        <div
+            v-if="actionMessage"
+            class="alert alert-success"
+        >
+            <i class="bi bi-check-circle me-2"></i>
+            {{ actionMessage }}
+        </div>
+
+        <div
+            v-if="actionError"
+            class="alert alert-danger"
+        >
+            <i class="bi bi-exclamation-circle me-2"></i>
+            {{ actionError }}
+        </div>
+
         <div class="row g-4">
-            <div class="col-12 col-xl-6">
-                <div class="card shadow-sm h-100">
-                    <div class="card-header bg-white">
-                        <h2 class="h5 mb-0">
-                            Basic Information
-                        </h2>
+            <div class="col-12 col-xl-7">
+                <div class="card module-card h-100">
+                    <div class="section-header">
+                        <div>
+                            <h2 class="section-title">
+                                Student Information
+                            </h2>
+
+                            <p class="section-description">
+                                Personal and academic information
+                            </p>
+                        </div>
                     </div>
 
                     <div class="card-body">
-                        <dl class="row mb-0">
-                            <dt class="col-sm-5">
-                                Student ID
-                            </dt>
+                        <div class="info-section">
+                            <div class="info-section-label">
+                                Contact
+                            </div>
 
-                            <dd class="col-sm-7">
-                                {{ studentData.university_id || '—' }}
-                            </dd>
+                            <div class="row g-4">
+                                <div class="col-12 col-md-6">
+                                    <div class="info-label">
+                                        Email
+                                    </div>
 
-                            <dt class="col-sm-5">
-                                SLMIS ID
-                            </dt>
+                                    <div class="info-value">
+                                        {{ studentData.email || '—' }}
+                                    </div>
+                                </div>
 
-                            <dd class="col-sm-7">
-                                {{ studentData.slmis_id ?? '—' }}
-                            </dd>
+                                <div class="col-12 col-md-6">
+                                    <div class="info-label">
+                                        Contact Number
+                                    </div>
 
-                            <dt class="col-sm-5">
-                                Full Name
-                            </dt>
+                                    <div class="info-value">
+                                        {{
+                                            studentData.contact_number
+                                                || '—'
+                                        }}
+                                    </div>
+                                </div>
 
-                            <dd class="col-sm-7">
-                                {{ studentData.full_name }}
-                            </dd>
+                                <div class="col-12 col-md-6">
+                                    <div class="info-label">
+                                        Current Address
+                                    </div>
 
-                            <dt class="col-sm-5">
-                                Email
-                            </dt>
+                                    <div class="info-value">
+                                        {{
+                                            studentData.current_address
+                                                || '—'
+                                        }}
+                                    </div>
+                                </div>
 
-                            <dd class="col-sm-7">
-                                {{ studentData.email || '—' }}
-                            </dd>
+                                <div class="col-12 col-md-6">
+                                    <div class="info-label">
+                                        Permanent Address
+                                    </div>
 
-                            <dt class="col-sm-5">
-                                Contact Number
-                            </dt>
+                                    <div class="info-value">
+                                        {{
+                                            studentData.permanent_address
+                                                || '—'
+                                        }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
 
-                            <dd class="col-sm-7">
-                                {{ studentData.contact_number || '—' }}
-                            </dd>
+                        <div class="section-divider"></div>
 
-                            <dt class="col-sm-5">
-                                Current Address
-                            </dt>
+                        <div class="info-section">
+                            <div class="info-section-label">
+                                Academic
+                            </div>
 
-                            <dd class="col-sm-7">
-                                {{ studentData.current_address || '—' }}
-                            </dd>
+                            <div class="row g-4">
+                                <div class="col-12 col-md-6">
+                                    <div class="info-label">
+                                        College
+                                    </div>
 
-                            <dt class="col-sm-5">
-                                Permanent Address
-                            </dt>
+                                    <div class="info-value">
+                                        {{
+                                            studentData.college
+                                                || '—'
+                                        }}
+                                    </div>
+                                </div>
 
-                            <dd class="col-sm-7">
-                                {{ studentData.permanent_address || '—' }}
-                            </dd>
-                        </dl>
+                                <div class="col-12 col-md-6">
+                                    <div class="info-label">
+                                        Program
+                                    </div>
+
+                                    <div class="info-value">
+                                        {{
+                                            studentData.program
+                                                || '—'
+                                        }}
+                                    </div>
+                                </div>
+
+                                <div class="col-12 col-md-6">
+                                    <div class="info-label">
+                                        Major
+                                    </div>
+
+                                    <div class="info-value">
+                                        {{
+                                            studentData.major
+                                                || '—'
+                                        }}
+                                    </div>
+                                </div>
+
+                                <div class="col-12 col-md-6">
+                                    <div class="info-label">
+                                        Graduation Year
+                                    </div>
+
+                                    <div class="info-value">
+                                        {{
+                                            studentData
+                                                .graduation_year
+                                                || '—'
+                                        }}
+                                    </div>
+                                </div>
+
+                                <div class="col-12 col-md-6">
+                                    <div class="info-label">
+                                        Expected Graduation
+                                    </div>
+
+                                    <div class="info-value">
+                                        {{
+                                            studentData
+                                                .expected_graduation_date
+                                                || '—'
+                                        }}
+                                    </div>
+                                </div>
+
+                                <div class="col-12 col-md-6">
+                                    <div class="info-label">
+                                        SLMIS ID
+                                    </div>
+
+                                    <div class="info-value">
+                                        {{
+                                            studentData.slmis_id
+                                                ?? '—'
+                                        }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <div class="col-12 col-xl-6">
-                <div class="card shadow-sm h-100">
-                    <div class="card-header bg-white">
-                        <h2 class="h5 mb-0">
-                            Academic Information
-                        </h2>
+            <div class="col-12 col-xl-5">
+                <div class="card module-card h-100">
+                    <div class="section-header">
+                        <div>
+                            <h2 class="section-title">
+                                CYB Status
+                            </h2>
+
+                            <p class="section-description">
+                                Current yearbook participation details
+                            </p>
+                        </div>
                     </div>
 
                     <div class="card-body">
-                        <dl class="row mb-0">
-                            <dt class="col-sm-5">
-                                College
-                            </dt>
-
-                            <dd class="col-sm-7">
-                                {{ studentData.college || '—' }}
-                            </dd>
-
-                            <dt class="col-sm-5">
-                                Program
-                            </dt>
-
-                            <dd class="col-sm-7">
-                                {{ studentData.program || '—' }}
-                            </dd>
-
-                            <dt class="col-sm-5">
-                                Major
-                            </dt>
-
-                            <dd class="col-sm-7">
-                                {{ studentData.major || '—' }}
-                            </dd>
-
-                            <dt class="col-sm-5">
-                                Graduation Year
-                            </dt>
-
-                            <dd class="col-sm-7">
-                                {{ studentData.graduation_year || '—' }}
-                            </dd>
-
-                            <dt class="col-sm-5">
-                                Expected Graduation
-                            </dt>
-
-                            <dd class="col-sm-7">
-                                {{
-                                    studentData.expected_graduation_date
-                                        || '—'
-                                }}
-                            </dd>
-                        </dl>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-12">
-                <div class="card shadow-sm">
-                    <div class="card-header bg-white">
-                        <h2 class="h5 mb-0">
-                            CYB Status
-                        </h2>
-                    </div>
-
-                    <div class="card-body">
-                        <div class="row g-4">
-                            <div class="col-12 col-md-6 col-xl-3">
-                                <div class="text-muted small">
+                        <div class="status-row">
+                            <div>
+                                <div class="info-label">
                                     Subscription
                                 </div>
 
-                                <div class="fw-semibold mt-1">
+                                <div class="info-value">
                                     {{
                                         studentData.is_subscribe
                                             ? 'Subscribed'
@@ -477,54 +569,23 @@ const readJsonResponse = async (
                                 </div>
                             </div>
 
-                            <div class="col-12 col-md-6 col-xl-3">
-                                <div class="text-muted small">
-                                    Subscription Date
-                                </div>
+                            <span
+                                class="status-dot"
+                                :class="
+                                    studentData.is_subscribe
+                                        ? 'dot-success'
+                                        : 'dot-neutral'
+                                "
+                            ></span>
+                        </div>
 
-                                <div class="fw-semibold mt-1">
-                                    {{
-                                        formatDate(
-                                            studentData.subscribe_date,
-                                        )
-                                    }}
-                                </div>
-                            </div>
-
-                            <div class="col-12 col-md-6 col-xl-3">
-                                <div class="text-muted small">
-                                    Unsubscribe Date
-                                </div>
-
-                                <div class="fw-semibold mt-1">
-                                    {{
-                                        formatDate(
-                                            studentData.unsubscribe_date,
-                                        )
-                                    }}
-                                </div>
-                            </div>
-
-                            <div class="col-12 col-md-6 col-xl-3">
-                                <div class="text-muted small">
-                                    Contract Agreement
-                                </div>
-
-                                <div class="fw-semibold mt-1">
-                                    {{
-                                        studentData.is_agree_contract
-                                            ? 'Agreed'
-                                            : 'Not Agreed'
-                                    }}
-                                </div>
-                            </div>
-
-                            <div class="col-12 col-md-6 col-xl-3">
-                                <div class="text-muted small">
+                        <div class="status-row">
+                            <div>
+                                <div class="info-label">
                                     Photo Source
                                 </div>
 
-                                <div class="fw-semibold mt-1">
+                                <div class="info-value">
                                     {{
                                         studentData.is_third_party
                                             ? 'Third-Party Photo'
@@ -532,39 +593,88 @@ const readJsonResponse = async (
                                     }}
                                 </div>
                             </div>
+                        </div>
 
-                            <div class="col-12 col-md-6 col-xl-3">
-                                <div class="text-muted small">
+                        <div class="status-row">
+                            <div>
+                                <div class="info-label">
+                                    Contract Agreement
+                                </div>
+
+                                <div class="info-value">
+                                    {{
+                                        studentData.is_agree_contract
+                                            ? 'Agreed'
+                                            : 'Not Agreed'
+                                    }}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="status-row">
+                            <div>
+                                <div class="info-label">
+                                    Subscription Date
+                                </div>
+
+                                <div class="info-value">
+                                    {{
+                                        formatDate(
+                                            studentData.subscribe_date,
+                                        )
+                                    }}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="status-row">
+                            <div>
+                                <div class="info-label">
+                                    Unsubscribe Date
+                                </div>
+
+                                <div class="info-value">
+                                    {{
+                                        formatDate(
+                                            studentData.unsubscribe_date,
+                                        )
+                                    }}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="status-row border-bottom-0">
+                            <div>
+                                <div class="info-label">
                                     Picture Claimed
                                 </div>
 
-                                <div class="fw-semibold mt-1">
+                                <div class="info-value">
                                     {{
                                         studentData.claim_pic
                                             ? 'Yes'
                                             : 'No'
                                     }}
-                                </div>
-                            </div>
 
-                            <div class="col-12 col-md-6 col-xl-3">
-                                <div class="text-muted small">
-                                    Picture Claim Date
-                                </div>
-
-                                <div class="fw-semibold mt-1">
-                                    {{
-                                        formatDate(
-                                            studentData.claim_pic_date,
-                                        )
-                                    }}
+                                    <span
+                                        v-if="
+                                            studentData.claim_pic_date
+                                        "
+                                        class="secondary-inline"
+                                    >
+                                        {{
+                                            formatDate(
+                                                studentData
+                                                    .claim_pic_date,
+                                            )
+                                        }}
+                                    </span>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
-
 
             <div
                 v-if="
@@ -573,33 +683,21 @@ const readJsonResponse = async (
                 "
                 class="col-12"
             >
-                <div class="card shadow-sm">
-                    <div class="card-header bg-white">
-                        <h2 class="h5 mb-0">
-                            Admin Actions
-                        </h2>
+                <div class="card module-card">
+                    <div class="section-header">
+                        <div>
+                            <h2 class="section-title">
+                                Admin Actions
+                            </h2>
 
-                        <small class="text-muted">
-                            Changes made here are recorded in the audit log.
-                        </small>
+                            <p class="section-description">
+                                Changes are recorded in the audit log.
+                            </p>
+                        </div>
                     </div>
 
                     <div class="card-body">
-                        <div
-                            v-if="actionMessage"
-                            class="alert alert-success"
-                        >
-                            {{ actionMessage }}
-                        </div>
-
-                        <div
-                            v-if="actionError"
-                            class="alert alert-danger"
-                        >
-                            {{ actionError }}
-                        </div>
-
-                        <div class="row g-4">
+                        <div class="row g-3">
                             <div
                                 v-if="
                                     studentData.permissions
@@ -607,93 +705,47 @@ const readJsonResponse = async (
                                 "
                                 class="col-12 col-lg-6"
                             >
-                                <div class="border rounded p-3 h-100">
-                                    <div
-                                        class="d-flex
-                                            justify-content-between
-                                            align-items-start
-                                            gap-3"
-                                    >
-                                        <div>
-                                            <h3 class="h6 mb-1">
-                                                Subscription Status
-                                            </h3>
-
-                                            <p class="text-muted small mb-0">
-                                                Controls whether the student
-                                                is currently subscribed to CYB.
-                                            </p>
+                                <div class="action-panel">
+                                    <div>
+                                        <div class="action-title">
+                                            Subscription
                                         </div>
 
-                                        <span
-                                            class="badge"
-                                            :class="
-                                                studentData.is_subscribe
-                                                    ? 'text-bg-success'
-                                                    : 'text-bg-secondary'
-                                            "
-                                        >
-                                            {{
-                                                studentData.is_subscribe
-                                                    ? 'Subscribed'
-                                                    : 'Not Subscribed'
-                                            }}
-                                        </span>
+                                        <p class="action-description">
+                                            Change whether this student
+                                            is currently subscribed to CYB.
+                                        </p>
                                     </div>
 
-                                    <div class="mt-3">
-                                        <button
-                                            v-if="
-                                                !studentData.is_subscribe
-                                            "
-                                            type="button"
-                                            class="btn btn-success"
-                                            :disabled="
-                                                isUpdatingSubscription
-                                            "
-                                            @click="
-                                                updateSubscription(true)
-                                            "
-                                        >
-                                            <span
-                                                v-if="
-                                                    isUpdatingSubscription
-                                                "
-                                                class="
-                                                    spinner-border
-                                                    spinner-border-sm
-                                                    me-1
-                                                "
-                                            ></span>
+                                    <button
+                                        v-if="
+                                            !studentData.is_subscribe
+                                        "
+                                        type="button"
+                                        class="btn btn-success"
+                                        :disabled="
+                                            isUpdatingSubscription
+                                        "
+                                        @click="
+                                            updateSubscription(true)
+                                        "
+                                    >
+                                        Subscribe Student
+                                    </button>
 
-                                            Subscribe Student
-                                        </button>
-
-                                        <button
-                                            v-else
-                                            type="button"
-                                            class="btn btn-outline-danger"
-                                            :disabled="
-                                                isUpdatingSubscription
-                                            "
-                                            @click="
-                                                updateSubscription(false)
-                                            "
-                                        >
-                                            <span
-                                                v-if="
-                                                    isUpdatingSubscription
-                                                "
-                                                class="
-                                                    spinner-border
-                                                    spinner-border-sm
-                                                    me-1
-                                                "
-                                            ></span>
-
-                                            Unsubscribe Student
-                                        </button>
-                                    </div>
+                                    <button
+                                        v-else
+                                        type="button"
+                                        class="btn btn-outline-danger"
+                                        :disabled="
+                                            isUpdatingSubscription
+                                        "
+                                        @click="
+                                            updateSubscription(false)
+                                        "
+                                    >
+                                        Unsubscribe Student
+                                    </button>
                                 </div>
                             </div>
 
@@ -704,94 +756,47 @@ const readJsonResponse = async (
                                 "
                                 class="col-12 col-lg-6"
                             >
-                                <div class="border rounded p-3 h-100">
-                                    <div
-                                        class="d-flex
-                                            justify-content-between
-                                            align-items-start
-                                            gap-3"
-                                    >
-                                        <div>
-                                            <h3 class="h6 mb-1">
-                                                Photo Source
-                                            </h3>
-
-                                            <p class="text-muted small mb-0">
-                                                Identify students who will
-                                                provide a photo outside the
-                                                CYB pictorial process.
-                                            </p>
+                                <div class="action-panel">
+                                    <div>
+                                        <div class="action-title">
+                                            Photo Source
                                         </div>
 
-                                        <span
-                                            class="badge"
-                                            :class="
-                                                studentData.is_third_party
-                                                    ? 'text-bg-info'
-                                                    : 'text-bg-primary'
-                                            "
-                                        >
-                                            {{
-                                                studentData.is_third_party
-                                                    ? 'Third-Party'
-                                                    : 'CYB'
-                                            }}
-                                        </span>
+                                        <p class="action-description">
+                                            Mark students who will submit
+                                            photos outside the CYB pictorial.
+                                        </p>
                                     </div>
 
-                                    <div class="mt-3">
-                                        <button
-                                            v-if="
-                                                !studentData.is_third_party
-                                            "
-                                            type="button"
-                                            class="btn btn-info"
-                                            :disabled="
-                                                isUpdatingThirdParty
-                                            "
-                                            @click="
-                                                updateThirdParty(true)
-                                            "
-                                        >
-                                            <span
-                                                v-if="
-                                                    isUpdatingThirdParty
-                                                "
-                                                class="
-                                                    spinner-border
-                                                    spinner-border-sm
-                                                    me-1
-                                                "
-                                            ></span>
+                                    <button
+                                        v-if="
+                                            !studentData.is_third_party
+                                        "
+                                        type="button"
+                                        class="btn btn-outline-primary"
+                                        :disabled="
+                                            isUpdatingThirdParty
+                                        "
+                                        @click="
+                                            updateThirdParty(true)
+                                        "
+                                    >
+                                        Mark as Third-Party
+                                    </button>
 
-                                            Mark as Third-Party
-                                        </button>
-
-                                        <button
-                                            v-else
-                                            type="button"
-                                            class="btn btn-outline-secondary"
-                                            :disabled="
-                                                isUpdatingThirdParty
-                                            "
-                                            @click="
-                                                updateThirdParty(false)
-                                            "
-                                        >
-                                            <span
-                                                v-if="
-                                                    isUpdatingThirdParty
-                                                "
-                                                class="
-                                                    spinner-border
-                                                    spinner-border-sm
-                                                    me-1
-                                                "
-                                            ></span>
-
-                                            Remove Third-Party Status
-                                        </button>
-                                    </div>
+                                    <button
+                                        v-else
+                                        type="button"
+                                        class="btn btn-outline-secondary"
+                                        :disabled="
+                                            isUpdatingThirdParty
+                                        "
+                                        @click="
+                                            updateThirdParty(false)
+                                        "
+                                    >
+                                        Remove Third-Party Status
+                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -799,52 +804,50 @@ const readJsonResponse = async (
                 </div>
             </div>
 
-
             <div class="col-12">
-                <div class="card shadow-sm">
+                <div class="card module-card">
                     <div
-                        class="card-header bg-white
-                               d-flex justify-content-between
+                        class="section-header d-flex
+                               justify-content-between
                                align-items-center"
                     >
                         <div>
-                            <h2 class="h5 mb-0">
+                            <h2 class="section-title">
                                 Pictorial Reservations
                             </h2>
 
-                            <small class="text-muted">
+                            <p class="section-description">
                                 Reservation and attendance history
-                            </small>
+                            </p>
                         </div>
 
-                        <span
-                            class="badge text-bg-light"
-                        >
+                        <div class="record-count">
                             {{ studentData.reservations.length }}
-                            reservation{{
+                            record{{
                                 studentData.reservations.length === 1
                                     ? ''
                                     : 's'
                             }}
-                        </span>
+                        </div>
                     </div>
 
                     <div
-                        v-if="studentData.reservations.length === 0"
-                        class="card-body py-5 text-center"
+                        v-if="
+                            studentData.reservations.length === 0
+                        "
+                        class="empty-state"
                     >
-                        <i
-                            class="bi bi-calendar-x
-                                   fs-1 text-muted"
-                        ></i>
+                        <div class="empty-state-icon">
+                            <i class="bi bi-calendar-x"></i>
+                        </div>
 
-                        <h3 class="h6 mt-3">
+                        <h3 class="empty-state-title">
                             No pictorial reservation
                         </h3>
 
-                        <p class="text-muted mb-0">
-                            This student does not currently have
-                            any reservation records.
+                        <p class="empty-state-text">
+                            This student does not have any
+                            reservation records yet.
                         </p>
                     </div>
 
@@ -853,13 +856,12 @@ const readJsonResponse = async (
                         class="table-responsive"
                     >
                         <table
-                            class="table table-hover
+                            class="table reservation-table
                                    align-middle mb-0"
                         >
-                            <thead class="table-light">
+                            <thead>
                                 <tr>
-                                    <th>Date</th>
-                                    <th>Time</th>
+                                    <th>Schedule</th>
                                     <th>Reservation</th>
                                     <th>Attendance</th>
                                     <th>Reschedule Date</th>
@@ -873,22 +875,23 @@ const readJsonResponse = async (
                                     :key="reservation.id"
                                 >
                                     <td>
-                                        {{
-                                            reservation.pictorial
-                                                ? formatDate(
-                                                    reservation
-                                                        .pictorial
-                                                        .date,
-                                                )
-                                                : '—'
-                                        }}
-                                    </td>
+                                        <div class="schedule-date">
+                                            {{
+                                                reservation.pictorial
+                                                    ? formatDate(
+                                                        reservation
+                                                            .pictorial
+                                                            .date,
+                                                    )
+                                                    : '—'
+                                            }}
+                                        </div>
 
-                                    <td class="text-nowrap">
-                                        <template
+                                        <div
                                             v-if="
                                                 reservation.pictorial
                                             "
+                                            class="schedule-time"
                                         >
                                             {{
                                                 formatTime(
@@ -897,9 +900,7 @@ const readJsonResponse = async (
                                                         .start_time,
                                                 )
                                             }}
-
                                             –
-
                                             {{
                                                 formatTime(
                                                     reservation
@@ -907,39 +908,33 @@ const readJsonResponse = async (
                                                         .end_time,
                                                 )
                                             }}
-                                        </template>
-
-                                        <template v-else>
-                                            —
-                                        </template>
+                                        </div>
                                     </td>
 
                                     <td>
                                         <span
-                                            v-if="
+                                            class="status-pill"
+                                            :class="
                                                 reservation
                                                     .is_rescheduled
+                                                    ? 'status-neutral'
+                                                    : 'status-primary'
                                             "
-                                            class="badge
-                                                   text-bg-secondary"
                                         >
-                                            Rescheduled
-                                        </span>
-
-                                        <span
-                                            v-else
-                                            class="badge
-                                                   text-bg-primary"
-                                        >
-                                            Current
+                                            {{
+                                                reservation
+                                                    .is_rescheduled
+                                                    ? 'Rescheduled'
+                                                    : 'Current'
+                                            }}
                                         </span>
                                     </td>
 
                                     <td>
                                         <span
-                                            class="badge"
+                                            class="status-pill"
                                             :class="
-                                                attendanceBadge(
+                                                attendanceClass(
                                                     reservation
                                                         .attendance_status,
                                                 )
@@ -955,12 +950,14 @@ const readJsonResponse = async (
                                     </td>
 
                                     <td>
-                                        {{
-                                            formatDate(
-                                                reservation
-                                                    .reschedule_date,
-                                            )
-                                        }}
+                                        <span class="table-value">
+                                            {{
+                                                formatDate(
+                                                    reservation
+                                                        .reschedule_date,
+                                                )
+                                            }}
+                                        </span>
                                     </td>
                                 </tr>
                             </tbody>
@@ -971,3 +968,292 @@ const readJsonResponse = async (
         </div>
     </div>
 </template>
+
+<style scoped>
+.student-module {
+    font-size: 0.94rem;
+}
+
+.detail-header {
+    padding-bottom: 0.25rem;
+}
+
+.back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    color: #6c757d;
+    font-size: 0.86rem;
+    font-weight: 500;
+    text-decoration: none;
+}
+
+.back-link:hover {
+    color: #0d6efd;
+}
+
+.student-title {
+    margin: 0;
+    color: #212529;
+    font-size: 1.7rem;
+    font-weight: 650;
+    letter-spacing: -0.025em;
+}
+
+.student-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    margin-top: 0.45rem;
+    color: #6c757d;
+    font-size: 0.87rem;
+}
+
+.meta-divider {
+    color: #adb5bd;
+}
+
+.status-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.status-pill {
+    display: inline-flex;
+    align-items: center;
+    min-height: 26px;
+    padding: 0.22rem 0.6rem;
+    border-radius: 999px;
+    font-size: 0.74rem;
+    font-weight: 600;
+    line-height: 1;
+}
+
+.status-success {
+    background: #e8f5ee;
+    color: #197149;
+}
+
+.status-neutral {
+    background: #f1f3f5;
+    color: #687078;
+}
+
+.status-info {
+    background: #e8f3f8;
+    color: #24657b;
+}
+
+.status-primary {
+    background: #e8f0fe;
+    color: #315ca8;
+}
+
+.status-danger {
+    background: #fae8e8;
+    color: #a33a3a;
+}
+
+.status-warning {
+    background: #fff4d8;
+    color: #87620f;
+}
+
+.module-card {
+    border: 1px solid #e9ecef;
+    border-radius: 0.75rem;
+    box-shadow: 0 0.125rem 0.45rem rgba(0, 0, 0, 0.035);
+    overflow: hidden;
+}
+
+.section-header {
+    padding: 1rem 1.25rem;
+    background: #fff;
+    border-bottom: 1px solid #edf0f2;
+}
+
+.section-title {
+    margin: 0;
+    color: #212529;
+    font-size: 1rem;
+    font-weight: 650;
+}
+
+.section-description {
+    margin: 0.2rem 0 0;
+    color: #6c757d;
+    font-size: 0.8rem;
+}
+
+.info-section-label {
+    margin-bottom: 1rem;
+    color: #6c757d;
+    font-size: 0.74rem;
+    font-weight: 650;
+    letter-spacing: 0.045em;
+    text-transform: uppercase;
+}
+
+.info-label {
+    margin-bottom: 0.25rem;
+    color: #6c757d;
+    font-size: 0.76rem;
+    font-weight: 550;
+}
+
+.info-value {
+    color: #292d32;
+    font-size: 0.92rem;
+    line-height: 1.45;
+    word-break: break-word;
+}
+
+.section-divider {
+    height: 1px;
+    margin: 1.5rem 0;
+    background: #edf0f2;
+}
+
+.status-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.85rem 0;
+    border-bottom: 1px solid #edf0f2;
+}
+
+.status-dot {
+    width: 9px;
+    height: 9px;
+    flex: 0 0 9px;
+    border-radius: 50%;
+}
+
+.dot-success {
+    background: #28a06a;
+}
+
+.dot-neutral {
+    background: #adb5bd;
+}
+
+.secondary-inline {
+    margin-left: 0.35rem;
+    color: #6c757d;
+    font-size: 0.78rem;
+}
+
+.action-panel {
+    display: flex;
+    min-height: 100%;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1.25rem;
+    padding: 1rem;
+    border: 1px solid #e9ecef;
+    border-radius: 0.65rem;
+    background: #fafbfc;
+}
+
+.action-title {
+    color: #292d32;
+    font-size: 0.92rem;
+    font-weight: 600;
+}
+
+.action-description {
+    max-width: 520px;
+    margin: 0.3rem 0 0;
+    color: #6c757d;
+    font-size: 0.8rem;
+    line-height: 1.5;
+}
+
+.btn {
+    min-height: 39px;
+    font-weight: 500;
+}
+
+.record-count {
+    color: #6c757d;
+    font-size: 0.78rem;
+    font-weight: 500;
+}
+
+.reservation-table thead th {
+    padding: 0.85rem 1rem;
+    background: #f8f9fa;
+    color: #6c757d;
+    font-size: 0.75rem;
+    font-weight: 650;
+    letter-spacing: 0.025em;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.reservation-table tbody td {
+    padding: 1rem;
+    border-color: #edf0f2;
+}
+
+.schedule-date {
+    color: #292d32;
+    font-weight: 550;
+}
+
+.schedule-time {
+    margin-top: 0.2rem;
+    color: #6c757d;
+    font-size: 0.8rem;
+}
+
+.table-value {
+    color: #343a40;
+}
+
+.empty-state {
+    max-width: 520px;
+    margin: 0 auto;
+    padding: 4rem 1.5rem;
+    text-align: center;
+}
+
+.empty-state-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 52px;
+    height: 52px;
+    margin: 0 auto;
+    border-radius: 50%;
+    background: #f1f3f5;
+    color: #6c757d;
+    font-size: 1.35rem;
+}
+
+.empty-state-title {
+    margin: 1rem 0 0.35rem;
+    color: #343a40;
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+.empty-state-text {
+    margin: 0;
+    color: #6c757d;
+    font-size: 0.86rem;
+}
+
+@media (max-width: 767.98px) {
+    .student-title {
+        font-size: 1.45rem;
+    }
+
+    .reservation-table {
+        min-width: 680px;
+    }
+}
+</style>

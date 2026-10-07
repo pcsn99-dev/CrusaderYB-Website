@@ -87,3 +87,516 @@
 .border {
     border-color: var(--cyb-border) !important;
 }
+
+
+
+/* =========================================================
+   CYB ADMIN - SHARED COMPONENTS
+   ========================================================= */
+
+/* ---------- Page spacing ---------- */
+
+.cyb-page {
+    padding-bottom: 2rem;
+}
+
+.cyb-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+
+/* ---------- Standard cards ---------- */
+
+.cyb-card {
+    overflow: hidden;
+    border: 1px solid var(--cyb-border, #e7eaed);
+    border-radius: 0.75rem;
+    background: #fff;
+    box-shadow: 0 0.125rem 0.4rem rgba(0, 0, 0, 0.03);
+}
+
+.cyb-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1rem 1.2rem;
+    border-bottom: 1px solid var(--cyb-border-soft, #edf0f2);
+    background: #fff;
+}
+
+.cyb-card-body {
+    padding: 1.25rem;
+}
+
+.cyb-card-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.85rem 1.2rem;
+    border-top: 1px solid var(--cyb-border-soft, #edf0f2);
+    background: #fff;
+}
+
+
+/* ---------- Section headings ---------- */
+
+.cyb-section-title {
+    margin: 0;
+    color: var(--cyb-text, #212529);
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+.cyb-section-description {
+    margin: 0.2rem 0 0;
+    color: var(--cyb-muted, #6c757d);
+    font-size: 0.79rem;
+    line-height: 1.45;
+}
+
+
+/* ---------- Context/status labels ---------- */
+
+.cyb-pill {
+    display: inline-flex;
+    min-height: 25px;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.18rem 0.55rem;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    line-height: 1;
+    white-space: nowrap;
+}
+
+.cyb-pill-neutral {
+    background: #f1f3f5;
+    color: #687078;
+}
+
+.cyb-pill-primary {
+    background: #e8f0fe;
+    color: #315ca8;
+}
+
+.cyb-pill-success {
+    background: #e8f5ee;
+    color: #197149;
+}
+
+.cyb-pill-warning {
+    background: #fff4d8;
+    color: #87620f;
+}
+
+.cyb-pill-danger {
+    background: #fae8e8;
+    color: #a33a3a;
+}
+
+.cyb-pill-info {
+    background: #e8f3f8;
+    color: #24657b;
+}
+
+
+/* ---------- Small status dot ---------- */
+
+.cyb-status-dot {
+    display: inline-block;
+    width: 7px;
+    height: 7px;
+    flex: 0 0 7px;
+    border-radius: 50%;
+    background: #adb5bd;
+}
+
+.cyb-status-dot-success {
+    background: #28a06a;
+}
+
+.cyb-status-dot-danger {
+    background: #c95050;
+}
+
+.cyb-status-dot-warning {
+    background: #c69322;
+}
+
+
+/* ---------- Technical metadata ---------- */
+
+.cyb-code {
+    display: inline-block;
+    padding: 0.16rem 0.42rem;
+    border-radius: 0.35rem;
+    background: #f1f3f5;
+    color: #5f676f;
+    font-family:
+        ui-monospace,
+        SFMono-Regular,
+        Menlo,
+        Monaco,
+        Consolas,
+        monospace;
+    font-size: 0.7rem;
+    font-weight: 500;
+}
+
+
+/* ---------- Summary/stat cards ---------- */
+
+.cyb-stat-card {
+    display: flex;
+    min-height: 92px;
+    align-items: center;
+    gap: 0.9rem;
+    padding: 1rem 1.1rem;
+    border: 1px solid var(--cyb-border, #e7eaed);
+    border-radius: 0.75rem;
+    background: #fff;
+    box-shadow: 0 0.125rem 0.4rem rgba(0, 0, 0, 0.03);
+}
+
+.cyb-stat-icon {
+    display: flex;
+    width: 42px;
+    height: 42px;
+    flex: 0 0 42px;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.65rem;
+    background: #f1f4f7;
+    color: #495057;
+    font-size: 1.05rem;
+}
+
+.cyb-stat-value {
+    color: var(--cyb-text, #212529);
+    font-size: 1.35rem;
+    font-weight: 650;
+    line-height: 1.1;
+}
+
+.cyb-stat-label {
+    margin-top: 0.2rem;
+    color: var(--cyb-muted, #6c757d);
+    font-size: 0.78rem;
+}
+
+
+/* ---------- Empty states ---------- */
+
+.cyb-empty-state {
+    max-width: 480px;
+    margin: 0 auto;
+    padding: 3.75rem 1.5rem;
+    text-align: center;
+}
+
+.cyb-empty-state-icon {
+    display: flex;
+    width: 52px;
+    height: 52px;
+    margin: 0 auto;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: #f1f3f5;
+    color: #6c757d;
+    font-size: 1.2rem;
+}
+
+.cyb-empty-state-title {
+    margin: 1rem 0 0.3rem;
+    color: #343a40;
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+.cyb-empty-state-text {
+    margin: 0;
+    color: var(--cyb-muted, #6c757d);
+    font-size: 0.82rem;
+    line-height: 1.5;
+}
+
+
+/* ---------- Form styling ---------- */
+
+.cyb-form-label {
+    margin-bottom: 0.45rem;
+    color: #343a40;
+    font-size: 0.82rem;
+    font-weight: 600;
+}
+
+.cyb-form-control {
+    min-height: 42px;
+    border-color: #dfe3e7;
+    font-size: 0.9rem;
+}
+
+.cyb-form-control:focus {
+    border-color: #86b7fe;
+    box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.12);
+}
+
+textarea.cyb-form-control {
+    resize: vertical;
+}
+
+.cyb-form-help {
+    margin-top: 0.4rem;
+    color: var(--cyb-muted, #6c757d);
+    font-size: 0.75rem;
+}
+
+
+/* ---------- Action/footer rows ---------- */
+
+.cyb-form-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.65rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid var(--cyb-border, #e7eaed);
+}
+
+.cyb-form-actions .btn {
+    min-height: 40px;
+    min-width: 100px;
+    font-weight: 500;
+}
+
+
+/* ---------- Notice panels ---------- */
+
+.cyb-notice {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 0.9rem 1rem;
+    font-size: 0.8rem;
+    line-height: 1.45;
+}
+
+.cyb-notice-info {
+    border-color: #d9e4f5;
+    background: #f4f8fd;
+    color: #355779;
+}
+
+.cyb-notice-warning {
+    border-color: #f2dfaa;
+    background: #fff8e1;
+    color: #735d18;
+}
+
+.cyb-notice-danger {
+    border-color: #efcaca;
+    background: #fdf1f1;
+    color: #8b3838;
+}
+
+
+/* ---------- Toolbars ---------- */
+
+.cyb-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1rem 1.2rem;
+    border-bottom: 1px solid var(--cyb-border-soft, #edf0f2);
+    background: #fff;
+}
+
+.cyb-toolbar-search {
+    width: min(100%, 340px);
+}
+
+.cyb-toolbar-search .form-control,
+.cyb-toolbar-search .input-group-text {
+    min-height: 40px;
+}
+
+.cyb-toolbar-search .input-group-text {
+    background: #f8f9fa;
+    color: #6c757d;
+}
+
+
+/* ---------- Responsive ---------- */
+
+@media (max-width: 767.98px) {
+    .cyb-card-header,
+    .cyb-card-footer,
+    .cyb-toolbar {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .cyb-toolbar-search {
+        width: 100%;
+    }
+
+    .cyb-form-actions {
+        align-items: stretch;
+        flex-direction: column-reverse;
+    }
+
+    .cyb-form-actions .btn {
+        width: 100%;
+    }
+}
+
+
+
+/* =========================================================
+   CYB FILTERS
+   ========================================================= */
+
+.cyb-filter-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.cyb-filter-scroll {
+    max-height: 18rem;
+    overflow-y: auto;
+    padding-right: 0.2rem;
+}
+
+.cyb-filter-option {
+    display: flex;
+    width: 100%;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.6rem 0.7rem;
+    border: 1px solid transparent;
+    border-radius: 0.6rem;
+    background: #fff;
+    color: var(--cyb-text, #212529);
+    text-align: left;
+    font-size: 0.82rem;
+    transition:
+        background 0.15s ease,
+        border-color 0.15s ease,
+        color 0.15s ease;
+}
+
+.cyb-filter-option:hover {
+    background: #f8f9fa;
+}
+
+.cyb-filter-option-active {
+    border-color: #b8c9dc;
+    background: #eef3f8;
+    color: #315b80;
+}
+
+.cyb-filter-option-danger-active {
+    border-color: #efb8b8;
+    background: #fdf0f0;
+    color: #9b3939;
+}
+
+.cyb-filter-option-warning-active {
+    border-color: #ecd592;
+    background: #fff8e1;
+    color: #7b6119;
+}
+
+.cyb-filter-option-info-active {
+    border-color: #b8d8e6;
+    background: #edf7fb;
+    color: #24657b;
+}
+
+.cyb-filter-option-success-active {
+    border-color: #b8ddc9;
+    background: #edf8f2;
+    color: #197149;
+}
+
+.cyb-filter-option-main {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    gap: 0.65rem;
+}
+
+.cyb-filter-option-icon {
+    display: flex;
+    width: 28px;
+    height: 28px;
+    flex: 0 0 28px;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.5rem;
+    background: #f1f3f5;
+    color: #6c757d;
+    font-size: 0.8rem;
+}
+
+.cyb-filter-option-active .cyb-filter-option-icon,
+.cyb-filter-option-danger-active .cyb-filter-option-icon,
+.cyb-filter-option-warning-active .cyb-filter-option-icon,
+.cyb-filter-option-info-active .cyb-filter-option-icon,
+.cyb-filter-option-success-active .cyb-filter-option-icon {
+    background: rgba(255, 255, 255, 0.7);
+    color: inherit;
+}
+
+.cyb-filter-option-text {
+    min-width: 0;
+}
+
+.cyb-filter-option-title {
+    display: block;
+    overflow: hidden;
+    font-weight: 600;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.cyb-filter-option-description {
+    display: block;
+    margin-top: 0.1rem;
+    color: var(--cyb-muted, #6c757d);
+    font-size: 0.72rem;
+    line-height: 1.4;
+}
+
+.cyb-filter-count {
+    display: inline-flex;
+    min-width: 27px;
+    height: 22px;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    padding: 0 0.4rem;
+    border-radius: 999px;
+    background: #f1f3f5;
+    color: #687078;
+    font-size: 0.68rem;
+    font-weight: 650;
+}
+
+.cyb-filter-option-active .cyb-filter-count,
+.cyb-filter-option-danger-active .cyb-filter-count,
+.cyb-filter-option-warning-active .cyb-filter-count,
+.cyb-filter-option-info-active .cyb-filter-count,
+.cyb-filter-option-success-active .cyb-filter-count {
+    background: rgba(255, 255, 255, 0.75);
+    color: inherit;
+}

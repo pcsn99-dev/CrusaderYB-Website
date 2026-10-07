@@ -15,6 +15,22 @@
     $writeupsActive = request()->routeIs('writeups.*');
 
     $studentAccountsActive = request()->routeIs('student-accounts.*');
+
+    $canManageYears = $user?->hasPermission('manage-years');
+
+    $canViewPictorialSchedules =
+        $user?->hasPermission('view-pictorial-schedules');
+
+    $canManagePictorialSchedules =
+        $user?->hasPermission('manage-pictorial-schedules');
+
+    $canAccessPictorialSchedules =
+        $canViewPictorialSchedules ||
+        $canManagePictorialSchedules;
+
+    $canAccessSettings =
+        $canManageYears ||
+        $canAccessPictorialSchedules;
 @endphp
 
 <aside class="app-sidebar shadow" data-bs-theme="dark">

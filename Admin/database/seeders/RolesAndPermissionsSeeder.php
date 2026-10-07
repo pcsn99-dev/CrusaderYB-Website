@@ -59,6 +59,24 @@ class RolesAndPermissionsSeeder extends Seeder
                 'guard_name' => 'web',
                 'description' => 'Allows changing whether a student uses a third-party photo.',
             ],
+            [
+                'name' => 'Manage Years',
+                'slug' => 'manage-years',
+                'guard_name' => 'web',
+                'description' => 'Allows creating, updating, and activating CYB years and subscription periods.',
+            ],
+            [
+                'name' => 'View Pictorial Schedules',
+                'slug' => 'view-pictorial-schedules',
+                'guard_name' => 'web',
+                'description' => 'Allows viewing pictorial schedules and their reservations.',
+            ],
+            [
+                'name' => 'Manage Pictorial Schedules',
+                'slug' => 'manage-pictorial-schedules',
+                'guard_name' => 'web',
+                'description' => 'Allows creating, bulk creating, deleting, and managing pictorial schedules.',
+            ],
 
 
         ];

@@ -2,96 +2,40 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
-// use Backpack\CRUD\CrudTrait;
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Reservation extends Model
 {
-    // use CrudTrait;
-
-    /*
-    |--------------------------------------------------------------------------
-    | GLOBAL VARIABLES
-    |--------------------------------------------------------------------------
-    */
-
     protected $table = 'reservations';
-    // protected $primaryKey = 'id';
-    public $timestamps = false;
-    // protected $guarded = ['id'];
-    protected $fillable = ['pictorial_id', 'student_info_id', 'is_present', 'is_reschedule', 'is_present_date', 'reschedule_date'];
-    // protected $hidden = [];
-    // protected $dates = [];
+
+    protected $fillable = [
+        'pictorial_id',
+        'student_info_id',
+        'is_present',
+        'is_reschedule',
+        'is_present_date',
+        'reschedule_date',
+        'cancelled_at',
+        'cancellation_reason',
+    ];
+
+    protected $casts = [
+        'is_present' => 'integer',
+        'is_reschedule' => 'boolean',
+        'is_present_date' => 'date',
+        'reschedule_date' => 'date',
+        'cancelled_at' => 'datetime',
+    ];
 
     /*
     |--------------------------------------------------------------------------
-    | FUNCTIONS
+    | Relationships
     |--------------------------------------------------------------------------
     */
-    public function getPictorialSchedule()
-    {
-        if (!$this->pictorial)
-            return null;
 
-        return Carbon::parse($this->pictorial->date)->format('M j, Y').' '.Carbon::parse($this->pictorial->start_time)->format('h:i A');
-    }
-
-    public function getFullname()
-    {
-        // return $this->first_name.' '.$this->student_info->middle_name.' '.$this->student_info->last_name.' '.$this->student_info->suffix;
-        return $this->student_info->first_name . " ". $this->student_info->middle_name . " " . $this->student_info->last_name;
-    }
-
-    public function getReservationStatus()
-    {
-        if (!is_null($this->is_present)) {
-            if ($this->is_present == 1) {
-                // return '<label class="label label-success">Present</label>';
-                return '<span class="badge badge-success ms-auto">Present</span>';
-            } else if ($this->is_present == 0) {
-                // return '<label class="label label-danger">Absent</label>';
-                return '<span class="badge badge-danger ms-auto">Absent</span>';
-            } else {
-                return '<span class="badge badge-warning ms-auto">Late</span>';
-            }
-        } else {
-            return '<span class="badge badge-secondary ms-auto">NA</span>';
-        }
-    }
-
-    public function getTimestamp() {
-        if (is_null($this->timestamp)) {
-            return '<span class="badge badge-secondary ms-auto">NA</span>';
-        } else {
-            return '<span class="ms-auto">{{ $this->timestamp }}</span>';
-        }
-    }
-
-    public function getReservationLink()
-    {
-        if(isset($this->id)){
-            $url = url("reservation/".$this->id);
-            return '<a class="btn btn-link text-info btn-sm px-3 mb-0" href="'.$url.'" target="_blank" data-bs-toggle="tooltip" data-bs-original-title="Click to view reservation details"><i class="fas fa-eye me-2" aria-hidden="true"></i>View Details</a>';
-        }
-    }
-
-    public function ifReschedule(){
-        if(isset($this->id)){
-            if($this->reschedule_date != NULL && $this->is_reschedule == 1){
-                return '<span class="badge badge-secondary ms-auto">(RESCHEDULED)</span>';
-            }else{
-                return '<span class="badge badge-success ms-auto">CURRENT RESERVATION SCHED.</span>';
-            }
-        }
-    }
-
-    /*
-    |--------------------------------------------------------------------------
-    | RELATIONS
-    |--------------------------------------------------------------------------
-    */
     public function pictorial(): BelongsTo
     {
         return $this->belongsTo(Pictorial::class, 'pictorial_id');
@@ -102,4 +46,129 @@ class Reservation extends Model
         return $this->belongsTo(StudentInfo::class, 'student_info_id');
     }
 
+    /*
+    |--------------------------------------------------------------------------
+    | Scopes
+    |--------------------------------------------------------------------------
+    */
+
+    public function scopeActive(Builder $query): Builder
+    {
+        return $query
+            ->whereNull('cancelled_at')
+            ->where('is_reschedule', false);
+    }
+
+    public function scopeCancelled(Builder $query): Builder
+    {
+        return $query->whereNotNull('cancelled_at');
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Helpers
+    |--------------------------------------------------------------------------
+    */
+
+    public function isCancelled(): bool
+    {
+        return $this->cancelled_at !== null;
+    }
+
+    public function cancel(
+        string $reason = 'Pictorial schedule cancelled by admin'
+    ): void {
+        $this->update([
+            'cancelled_at' => now(),
+            'cancellation_reason' => $reason,
+        ]);
+    }
+
+    public function getPictorialSchedule(): ?string
+    {
+        if (!$this->pictorial) {
+            return null;
+        }
+
+        return Carbon::parse($this->pictorial->date)->format('M j, Y')
+            .' '
+            .Carbon::parse($this->pictorial->start_time)->format('h:i A');
+    }
+
+    public function getFullname(): ?string
+    {
+        if (!$this->studentInfo) {
+            return null;
+        }
+
+        return $this->studentInfo->formatted_full_name;
+    }
+
+    public function getReservationStatus(): string
+    {
+        if ($this->isCancelled()) {
+            return '<span class="badge text-bg-danger ms-auto">Cancelled</span>';
+        }
+
+        if ($this->is_present === 1) {
+            return '<span class="badge text-bg-success ms-auto">Present</span>';
+        }
+
+        if ($this->is_present === 0) {
+            return '<span class="badge text-bg-danger ms-auto">Absent</span>';
+        }
+
+        if (!is_null($this->is_present)) {
+            return '<span class="badge text-bg-warning ms-auto">Late</span>';
+        }
+
+        return '<span class="badge text-bg-secondary ms-auto">NA</span>';
+    }
+
+    public function getTimestamp(): string
+    {
+        if (is_null($this->timestamp)) {
+            return '<span class="badge text-bg-secondary ms-auto">NA</span>';
+        }
+
+        return '<span class="ms-auto">'
+            .e($this->timestamp)
+            .'</span>';
+    }
+
+    public function getReservationLink(): ?string
+    {
+        if (!isset($this->id)) {
+            return null;
+        }
+
+        $url = url('reservation/'.$this->id);
+
+        return '<a class="btn btn-link text-info btn-sm px-3 mb-0" '
+            .'href="'.$url.'" target="_blank" '
+            .'data-bs-toggle="tooltip" '
+            .'data-bs-original-title="Click to view reservation details">'
+            .'<i class="bi bi-eye me-2" aria-hidden="true"></i>'
+            .'View Details</a>';
+    }
+
+    public function ifReschedule(): ?string
+    {
+        if (!isset($this->id)) {
+            return null;
+        }
+
+        if (
+            $this->reschedule_date !== null &&
+            $this->is_reschedule
+        ) {
+            return '<span class="badge text-bg-secondary ms-auto">'
+                .'(RESCHEDULED)'
+                .'</span>';
+        }
+
+        return '<span class="badge text-bg-success ms-auto">'
+            .'CURRENT RESERVATION SCHED.'
+            .'</span>';
+    }
 }

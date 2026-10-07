@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class StudentInfo extends Model
 {
@@ -45,6 +46,7 @@ class StudentInfo extends Model
         'claim_pic',
         'claim_yb_date',
         'claim_pic_date',
+        'is_third_party',
     ];
 
 
@@ -60,6 +62,7 @@ class StudentInfo extends Model
         'claim_yb_date' => 'date',
         'claim_pic_date' => 'date',
         'free_same_day_resched' => 'boolean',
+        'is_third_party' => 'boolean',
     ];
 
     public $timestamps = true;
@@ -119,10 +122,16 @@ class StudentInfo extends Model
 
 
 
-    public function reservations()
+    public function reservations(): HasMany
     {
         return $this->hasMany(Reservation::class, 'student_info_id');
     }
 
+    public function activeReservations(): HasMany
+    {
+        return $this->reservations()
+            ->whereNull('cancelled_at')
+            ->where('is_reschedule', false);
+    }
 
 }

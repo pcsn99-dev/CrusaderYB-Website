@@ -145,10 +145,19 @@ Route::middleware(['auth', 'force.password.change', 'admin.account'])->group(fun
                 ->name('activate');
         });
 
-        Route::get(
-            '/pictorial-schedules',
-            [PictorialScheduleController::class, 'index']
-        )->name('pictorial-schedules.index');
+    Route::prefix('pictorial-schedules')
+        ->name('pictorial-schedules.')
+        ->group(function () {
+            Route::get(
+                '/',
+                [PictorialScheduleController::class, 'index']
+            )->name('index');
+
+            Route::get(
+                '/search',
+                [PictorialScheduleController::class, 'search']
+            )->name('search');
+        });
     });    
 
 

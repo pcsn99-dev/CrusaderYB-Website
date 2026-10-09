@@ -11,6 +11,7 @@ export default defineConfig({
                 'resources/js/app.js',
                 'resources/js/student-accounts.ts',
                 'resources/js/student-account-show.ts',
+                'resources/js/pictorial-schedules.ts',
             ],
             refresh: true,
         }),

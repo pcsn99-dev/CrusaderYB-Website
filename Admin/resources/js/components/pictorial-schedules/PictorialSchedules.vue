@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
+import CreatePictorialScheduleModal from './CreatePictorialScheduleModal.vue';
 
 interface College {
     id: number;
@@ -47,11 +48,130 @@ interface PaginationMeta {
 interface Props {
     activeYear: ActiveYear | null;
     colleges: College[];
+    canManage: boolean;
 }
+
+const showCreateModal = ref(false);
+const isCreating = ref(false);
+
+const createErrors = ref<Record<string, string[]>>({});
+const successMessage = ref<string | null>(null);
+
+interface CreateSchedulePayload {
+    date: string;
+    start_time: string;
+    end_time: string;
+    no_of_slots: number;
+    is_delayed: boolean;
+    college_id: number | null;
+    allowed_college_ids: number[];
+}
+
+const createSchedule = async (
+    payload: CreateSchedulePayload,
+): Promise<void> => {
+    isCreating.value = true;
+    createErrors.value = {};
+    successMessage.value = null;
+
+    try {
+        const csrfToken = document
+            .querySelector<HTMLMetaElement>(
+                'meta[name="csrf-token"]',
+            )
+            ?.getAttribute('content');
+
+        const response = await fetch(
+            '/settings/pictorial-schedules',
+            {
+                method: 'POST',
+
+                headers: {
+                    Accept: 'application/json',
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': csrfToken ?? '',
+                },
+
+                credentials: 'same-origin',
+
+                body: JSON.stringify(payload),
+            },
+        );
+
+        const contentType =
+            response.headers.get('content-type') ?? '';
+
+        if (!contentType.includes('application/json')) {
+            const responseText = await response.text();
+
+            console.error('Expected JSON response', {
+                status: response.status,
+                redirected: response.redirected,
+                finalUrl: response.url,
+                contentType,
+                responseText,
+            });
+
+            throw new Error(
+                response.redirected
+                    ? `The request was redirected to ${response.url}.`
+                    : `Server returned HTML instead of JSON (${response.status}).`,
+            );
+        }
+
+        const result = await response.json();
+
+        if (response.status === 422) {
+            createErrors.value =
+                result.errors ?? {
+                    schedule: [
+                        'Please check the schedule information.',
+                    ],
+                };
+
+            return;
+        }
+
+        if (!response.ok) {
+            throw new Error(
+                result.message ??
+                    'Unable to create pictorial schedule.',
+            );
+        }
+
+        showCreateModal.value = false;
+
+        successMessage.value =
+            result.message ??
+            'Pictorial schedule created successfully.';
+
+        await loadSchedules(1);
+    } catch (error) {
+        createErrors.value = {
+            schedule: [
+                error instanceof Error
+                    ? error.message
+                    : 'Unable to create pictorial schedule.',
+            ],
+        };
+    } finally {
+        isCreating.value = false;
+    }
+};
+
+
 
 const props = defineProps<Props>();
 
 const filters = ref({
+    collegeId: '',
+    type: '',
+    dateFrom: '',
+    dateTo: '',
+    availability: '',
+});
+
+const appliedFilters = ref({
     collegeId: '',
     type: '',
     dateFrom: '',
@@ -73,13 +193,13 @@ const pagination = ref<PaginationMeta>({
 const isLoading = ref(false);
 const loadError = ref<string | null>(null);
 
-const hasFilters = computed(() => {
+const hasAppliedFilters = computed(() => {
     return (
-        filters.value.collegeId !== '' ||
-        filters.value.type !== '' ||
-        filters.value.dateFrom !== '' ||
-        filters.value.dateTo !== '' ||
-        filters.value.availability !== ''
+        appliedFilters.value.collegeId !== '' ||
+        appliedFilters.value.type !== '' ||
+        appliedFilters.value.dateFrom !== '' ||
+        appliedFilters.value.dateTo !== '' ||
+        appliedFilters.value.availability !== ''
     );
 });
 
@@ -111,35 +231,35 @@ const loadSchedules = async (page = 1): Promise<void> => {
     try {
         const params = new URLSearchParams();
 
-        if (filters.value.collegeId !== '') {
+        if (appliedFilters.value.collegeId !== '') {
             params.set(
                 'college_id',
-                filters.value.collegeId,
+                appliedFilters.value.collegeId,
             );
         }
 
-        if (filters.value.type !== '') {
-            params.set('type', filters.value.type);
+        if (appliedFilters.value.type !== '') {
+            params.set('type', appliedFilters.value.type);
         }
 
-        if (filters.value.dateFrom !== '') {
+        if (appliedFilters.value.dateFrom !== '') {
             params.set(
                 'date_from',
-                filters.value.dateFrom,
+                appliedFilters.value.dateFrom,
             );
         }
 
-        if (filters.value.dateTo !== '') {
+        if (appliedFilters.value.dateTo !== '') {
             params.set(
                 'date_to',
-                filters.value.dateTo,
+                appliedFilters.value.dateTo,
             );
         }
 
-        if (filters.value.availability !== '') {
+        if (appliedFilters.value.availability !== '') {
             params.set(
                 'availability',
-                filters.value.availability,
+                appliedFilters.value.availability,
             );
         }
 
@@ -183,6 +303,23 @@ const clearFilters = async (): Promise<void> => {
         dateFrom: '',
         dateTo: '',
         availability: '',
+    };
+
+    appliedFilters.value = {
+        collegeId: '',
+        type: '',
+        dateFrom: '',
+        dateTo: '',
+        availability: '',
+    };
+
+    await loadSchedules(1);
+};
+
+
+const applyFilters = async (): Promise<void> => {
+    appliedFilters.value = {
+        ...filters.value,
     };
 
     await loadSchedules(1);
@@ -233,13 +370,19 @@ onMounted(() => {
                         </div>
                     </div>
 
-                    <span class="cyb-pill cyb-pill-success">
-                        <span
-                            class="cyb-status-dot cyb-status-dot-success"
-                        ></span>
+                    <div class="d-flex align-items-center flex-wrap gap-2">
 
-                        Active
-                    </span>
+
+                        <button
+                            v-if="canManage"
+                            type="button"
+                            class="btn btn-primary"
+                            @click="showCreateModal = true"
+                        >
+                            <i class="bi bi-plus-lg me-2"></i>
+                            Create Schedule
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -261,6 +404,17 @@ onMounted(() => {
             </div>
         </div>
 
+        <div
+        v-if="successMessage"
+            class="cyb-notice cyb-notice-info rounded-3"
+        >
+            <i class="bi bi-check-circle"></i>
+
+            <div>
+                {{ successMessage }}
+            </div>
+        </div>
+
         <template v-if="activeYear">
             <!-- Filters -->
             <div class="cyb-card">
@@ -276,7 +430,7 @@ onMounted(() => {
                     </div>
 
                     <span
-                        v-if="hasFilters"
+                        v-if="hasAppliedFilters"
                         class="cyb-pill cyb-pill-primary"
                     >
                         Filters Applied
@@ -286,7 +440,7 @@ onMounted(() => {
                 <div class="cyb-card-body">
                     <form
                         class="row g-3 align-items-end"
-                        @submit.prevent="loadSchedules(1)"
+                        @submit.prevent="applyFilters"
                     >
                         <div class="col-12 col-md-6 col-xl-3">
                             <label class="cyb-form-label">
@@ -404,7 +558,7 @@ onMounted(() => {
                                 <button
                                     type="button"
                                     class="btn btn-light border"
-                                    :disabled="isLoading || !hasFilters"
+                                    :disabled="isLoading || !hasAppliedFilters"
                                     @click="clearFilters"
                                 >
                                     Clear Filters
@@ -662,6 +816,27 @@ onMounted(() => {
                 </template>
             </div>
         </template>
+
+
+        <CreatePictorialScheduleModal
+            v-if="
+                showCreateModal &&
+                activeYear &&
+                canManage
+            "
+            :colleges="colleges"
+            :active-year="activeYear.year"
+            :saving="isCreating"
+            :errors="createErrors"
+            @close="
+                !isCreating &&
+                (showCreateModal = false)
+            "
+            @save="createSchedule"
+        />
+
+
+
     </div>
 </template>
 

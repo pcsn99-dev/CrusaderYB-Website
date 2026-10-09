@@ -9,6 +9,8 @@ use App\Models\Year;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
+use App\Http\Requests\Settings\StorePictorialScheduleRequest;
+use App\Services\PictorialScheduleService;
 
 class PictorialScheduleController extends Controller
 {
@@ -25,11 +27,16 @@ class PictorialScheduleController extends Controller
                 'college_name',
             ]);
 
+        $canManage = auth()
+            ->user()
+            ?->hasPermission('manage-pictorial-schedules') ?? false;
+
         return view(
             'settings.pictorial-schedules.index',
             compact(
                 'activeYear',
-                'colleges'
+                'colleges',
+                'canManage'
             )
         );
     }
@@ -220,4 +227,38 @@ class PictorialScheduleController extends Controller
             403
         );
     }
+
+    public function store(
+        StorePictorialScheduleRequest $request,
+        PictorialScheduleService $scheduleService
+    ): JsonResponse {
+
+        //dd('STORE REACHED', $request->all());
+
+
+
+        $pictorial = $scheduleService->createSingle(
+            $request->validated()
+        );
+
+        $pictorial->load([
+            'college:id,college_name',
+            'allowedColleges:id,college_name',
+        ]);
+
+        $pictorial->loadCount([
+            'activeReservations as reserved_slots',
+        ]);
+
+        return response()->json([
+            'message' => 'Pictorial schedule created successfully.',
+            'data' => [
+                'id' => $pictorial->id,
+            ],
+        ], 201);
+    }
+
+
+
+
 }

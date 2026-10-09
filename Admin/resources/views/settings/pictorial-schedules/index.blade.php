@@ -26,6 +26,7 @@
             id="pictorial-schedules-app"
             data-active-year='@json($activeYear)'
             data-colleges='@json($colleges)'
+            data-can-manage="{{ $canManage ? 'true' : 'false' }}"
         ></div>
     </div>
 

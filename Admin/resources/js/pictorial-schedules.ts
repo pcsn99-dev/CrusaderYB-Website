@@ -13,8 +13,12 @@ if (element) {
         element.dataset.colleges ?? '[]',
     );
 
+    const canManage =
+        element.dataset.canManage === 'true';
+
     createApp(PictorialSchedules, {
         activeYear,
         colleges,
+        canManage,
     }).mount(element);
 }

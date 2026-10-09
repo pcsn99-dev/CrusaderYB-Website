@@ -24,6 +24,7 @@ class Pictorial extends Model
         'end_time',
         'no_of_slots',
         'is_delayed',
+        'batch_uuid',
     ];
 
     protected $casts = [

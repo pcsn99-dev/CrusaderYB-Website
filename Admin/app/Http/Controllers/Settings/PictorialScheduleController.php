@@ -11,7 +11,9 @@ use Illuminate\Http\Request;
 use Illuminate\View\View;
 use App\Http\Requests\Settings\StorePictorialScheduleRequest;
 use App\Services\PictorialScheduleService;
-
+use App\Http\Requests\Settings\BulkStorePictorialScheduleRequest;
+use Illuminate\Validation\ValidationException;
+use Illuminate\Support\Facades\DB;
 class PictorialScheduleController extends Controller
 {
     public function index(): View
@@ -165,6 +167,7 @@ class PictorialScheduleController extends Controller
                 ->map(function (Pictorial $pictorial) {
                     return [
                         'id' => $pictorial->id,
+                        'batch_uuid' => $pictorial->batch_uuid,
                         'year' => $pictorial->year,
                         'date' => $pictorial->date->format('Y-m-d'),
                         'date_label' => $pictorial->date->format('M d, Y'),
@@ -217,6 +220,55 @@ class PictorialScheduleController extends Controller
         ]);
     }
 
+    public function deleteBatch(string $batchUuid): array
+    {
+        $activeYear = Year::active()->first();
+
+        if (!$activeYear) {
+            throw ValidationException::withMessages([
+                'batch' => 'No active CYB year is configured.',
+            ]);
+        }
+
+        $pictorials = Pictorial::query()
+            ->forYear($activeYear->year)
+            ->where('batch_uuid', $batchUuid)
+            ->withCount([
+                'activeReservations as reserved_slots',
+            ])
+            ->get();
+
+        if ($pictorials->isEmpty()) {
+            throw ValidationException::withMessages([
+                'batch' => 'This pictorial batch could not be found.',
+            ]);
+        }
+
+        $reservationCount = $pictorials->sum('reserved_slots');
+
+        if ($reservationCount > 0) {
+            throw ValidationException::withMessages([
+                'batch' =>
+                    "This batch has {$reservationCount} active reservation(s). Review the affected students before deleting it.",
+            ]);
+        }
+
+        $deletedCount = DB::transaction(function () use ($pictorials) {
+            foreach ($pictorials as $pictorial) {
+                $pictorial->delete();
+            }
+
+            return $pictorials->count();
+        });
+
+        return [
+            'deleted_count' => $deletedCount,
+            'batch_uuid' => $batchUuid,
+        ];
+    }
+
+
+
     private function authorizeAccess(): void
     {
         $user = auth()->user();
@@ -258,7 +310,164 @@ class PictorialScheduleController extends Controller
         ], 201);
     }
 
+    public function previewBulk(
+        BulkStorePictorialScheduleRequest $request,
+        PictorialScheduleService $scheduleService
+    ): JsonResponse {
+        $preview = $scheduleService->previewBulk(
+            $request->validated()
+        );
+
+        return response()->json([
+            'data' => $preview,
+        ]);
+    }
+
+    public function storeBulk(
+        BulkStorePictorialScheduleRequest $request,
+        PictorialScheduleService $scheduleService
+    ): JsonResponse {
+        $result = $scheduleService->createBulk(
+            $request->validated()
+        );
+
+        return response()->json([
+            'message' =>
+                "{$result['created_count']} pictorial schedules created successfully.",
+
+            'data' => $result,
+        ], 201);
+    }
 
 
+    public function batches(): JsonResponse
+    {
+        $this->authorizeAccess();
+
+        $activeYear = Year::active()->first();
+
+        if (!$activeYear) {
+            return response()->json([
+                'data' => [],
+            ]);
+        }
+
+        $batches = Pictorial::query()
+            ->forYear($activeYear->year)
+            ->whereNotNull('batch_uuid')
+            ->select('batch_uuid')
+            ->selectRaw('COUNT(*) as schedule_count')
+            ->selectRaw('MIN(date) as date_from')
+            ->selectRaw('MAX(date) as date_to')
+            ->groupBy('batch_uuid')
+            ->orderByDesc('date_from')
+            ->get()
+            ->map(function ($batch) use ($activeYear) {
+                $reservationCount = Pictorial::query()
+                    ->forYear($activeYear->year)
+                    ->where('batch_uuid', $batch->batch_uuid)
+                    ->withCount([
+                        'activeReservations as reserved_slots',
+                    ])
+                    ->get()
+                    ->sum('reserved_slots');
+
+                return [
+                    'batch_uuid' => $batch->batch_uuid,
+
+                    'schedule_count' =>
+                        (int) $batch->schedule_count,
+
+                    'reservation_count' =>
+                        (int) $reservationCount,
+
+                    'date_from' =>
+                        $batch->date_from,
+
+                    'date_to' =>
+                        $batch->date_to,
+                ];
+            })
+            ->values();
+
+        return response()->json([
+            'data' => $batches,
+        ]);
+    }   
+    
+    public function deleteSelected(
+        Request $request
+    ): JsonResponse {
+        $user = auth()->user();
+
+        abort_unless(
+            $user?->hasPermission('manage-pictorial-schedules'),
+            403
+        );
+
+        $validated = $request->validate([
+            'ids' => [
+                'required',
+                'array',
+                'min:1',
+            ],
+
+            'ids.*' => [
+                'integer',
+                'distinct',
+                'exists:pictorials,id',
+            ],
+        ]);
+
+        $activeYear = Year::active()->first();
+
+        if (!$activeYear) {
+            return response()->json([
+                'message' => 'No active CYB year is configured.',
+            ], 422);
+        }
+
+        $pictorials = Pictorial::query()
+            ->forYear($activeYear->year)
+            ->whereIn('id', $validated['ids'])
+            ->withCount([
+                'activeReservations as reserved_slots',
+            ])
+            ->get();
+
+        if ($pictorials->count() !== count($validated['ids'])) {
+            return response()->json([
+                'message' =>
+                    'One or more selected schedules do not belong to the active CYB year.',
+            ], 422);
+        }
+
+        $reservationCount =
+            $pictorials->sum('reserved_slots');
+
+        if ($reservationCount > 0) {
+            return response()->json([
+                'message' =>
+                    'Some selected schedules have active reservations.',
+
+                'errors' => [
+                    'schedules' => [
+                        "{$reservationCount} active reservation(s) are affected. Review them before deleting these schedules.",
+                    ],
+                ],
+            ], 422);
+        }
+
+        DB::transaction(function () use ($pictorials) {
+            foreach ($pictorials as $pictorial) {
+                $pictorial->delete();
+            }
+        });
+
+        return response()->json([
+            'message' =>
+                "{$pictorials->count()} pictorial schedule(s) deleted successfully.",
+        ]);
+    }
 
 }

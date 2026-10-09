@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
 import CreatePictorialScheduleModal from './CreatePictorialScheduleModal.vue';
+import BulkCreatePictorialScheduleModal from './BulkCreatePictorialScheduleModal.vue';
 
 interface College {
     id: number;
@@ -18,6 +19,7 @@ interface ActiveYear {
 
 interface Pictorial {
     id: number;
+    batch_uuid: string | null;
     year: string;
     date: string;
     date_label: string;
@@ -45,17 +47,249 @@ interface PaginationMeta {
     to: number | null;
 }
 
+
+
 interface Props {
     activeYear: ActiveYear | null;
     colleges: College[];
     canManage: boolean;
 }
 
+interface PictorialBatch {
+    batch_uuid: string;
+    schedule_count: number;
+    reservation_count: number;
+    date_from: string;
+    date_to: string;
+}
+
+const deleteSelectedSchedules =
+    async (): Promise<void> => {
+        if (
+            selectedScheduleIds.value.length === 0
+        ) {
+            return;
+        }
+
+        const count =
+            selectedScheduleIds.value.length;
+
+        if (
+            !confirm(
+                `Delete ${count} selected schedule${count === 1 ? '' : 's'}?`,
+            )
+        ) {
+            return;
+        }
+
+        const csrfToken = document
+            .querySelector<HTMLMetaElement>(
+                'meta[name="csrf-token"]',
+            )
+            ?.getAttribute('content');
+
+        try {
+            const response = await fetch(
+                '/settings/pictorial-schedules/selected',
+                {
+                    method: 'DELETE',
+
+                    headers: {
+                        Accept: 'application/json',
+                        'Content-Type':
+                            'application/json',
+                        'X-CSRF-TOKEN':
+                            csrfToken ?? '',
+                    },
+
+                    credentials: 'same-origin',
+
+                    body: JSON.stringify({
+                        ids:
+                            selectedScheduleIds.value,
+                    }),
+                },
+            );
+
+            const result =
+                await response.json();
+
+            if (response.status === 422) {
+                batchDeleteError.value =
+                    result.errors?.schedules?.[0] ??
+                    result.message;
+
+                return;
+            }
+
+            if (!response.ok) {
+                throw new Error(
+                    result.message ??
+                        'Unable to delete selected schedules.',
+                );
+            }
+
+            showSuccess(
+                result.message ??
+                    `${count} schedule${count === 1 ? '' : 's'} deleted successfully.`,
+            );
+
+            selectedScheduleIds.value = [];
+
+            await Promise.all([
+                loadSchedules(1),
+                loadBatches(),
+            ]);
+        } catch (error) {
+            batchDeleteError.value =
+                error instanceof Error
+                    ? error.message
+                    : 'Unable to delete selected schedules.';
+        }
+    };
+
+const batches = ref<PictorialBatch[]>([]);
+const isLoadingBatches = ref(false);
+
+const loadBatches = async (): Promise<void> => {
+    if (!props.activeYear) {
+        batches.value = [];
+        return;
+    }
+
+    isLoadingBatches.value = true;
+
+    try {
+        const response = await fetch(
+            '/settings/pictorial-schedules/batches',
+            {
+                headers: {
+                    Accept: 'application/json',
+                },
+            },
+        );
+
+        if (!response.ok) {
+            throw new Error(
+                'Unable to load schedule batches.',
+            );
+        }
+
+        const result = await response.json();
+
+        batches.value = result.data;
+    } finally {
+        isLoadingBatches.value = false;
+    }
+};
+
+
+
+const showBulkCreateModal = ref(false);
 const showCreateModal = ref(false);
 const isCreating = ref(false);
 
 const createErrors = ref<Record<string, string[]>>({});
 const successMessage = ref<string | null>(null);
+
+let successTimer: number | null = null;
+
+const showSuccess = (message: string): void => {
+    successMessage.value = message;
+
+    if (successTimer !== null) {
+        window.clearTimeout(successTimer);
+    }
+
+    successTimer = window.setTimeout(() => {
+        successMessage.value = null;
+        successTimer = null;
+    }, 5000);
+};    
+
+
+
+const deletingBatchUuid = ref<string | null>(
+    null,
+);
+
+const batchDeleteError = ref<string | null>(
+    null,
+);
+
+const deleteBatch = async (
+    batchUuid: string,
+): Promise<void> => {
+    if (
+        !confirm(
+            'Delete all schedules in this bulk-created batch?',
+        )
+    ) {
+        return;
+    }
+
+    deletingBatchUuid.value = batchUuid;
+    batchDeleteError.value = null;
+    successMessage.value = null;
+
+    try {
+        const csrfToken = document
+            .querySelector<HTMLMetaElement>(
+                'meta[name="csrf-token"]',
+            )
+            ?.getAttribute('content');
+
+        const response = await fetch(
+            `/settings/pictorial-schedules/bulk/${batchUuid}`,
+            {
+                method: 'DELETE',
+
+                headers: {
+                    Accept: 'application/json',
+                    'X-CSRF-TOKEN':
+                        csrfToken ?? '',
+                },
+
+                credentials: 'same-origin',
+            },
+        );
+
+        const result = await response.json();
+
+        if (response.status === 422) {
+            batchDeleteError.value =
+                result.errors?.batch?.[0] ??
+                'Unable to delete this batch.';
+
+            return;
+        }
+
+        if (!response.ok) {
+            throw new Error(
+                result.message ??
+                    'Unable to delete pictorial batch.',
+            );
+        }
+
+        showSuccess(
+            result.message ??
+                'Pictorial schedule batch deleted successfully.',
+        );
+
+        await Promise.all([
+            loadSchedules(1),
+            loadBatches(),
+        ]);
+    } catch (error) {
+        batchDeleteError.value =
+            error instanceof Error
+                ? error.message
+                : 'Unable to delete pictorial batch.';
+    } finally {
+        deletingBatchUuid.value = null;
+    }
+};
+
 
 interface CreateSchedulePayload {
     date: string;
@@ -66,6 +300,71 @@ interface CreateSchedulePayload {
     college_id: number | null;
     allowed_college_ids: number[];
 }
+
+const handleBulkCreated = async (
+    message: string,
+): Promise<void> => {
+    showBulkCreateModal.value = false;
+
+    showSuccess(message);
+
+    await loadSchedules(1);
+    await loadBatches();
+};
+
+const selectedScheduleIds = ref<number[]>([]);
+
+const isSelected = (id: number): boolean => {
+    return selectedScheduleIds.value.includes(id);
+};
+
+const toggleSchedule = (id: number): void => {
+    if (isSelected(id)) {
+        selectedScheduleIds.value =
+            selectedScheduleIds.value.filter(
+                (selectedId) => selectedId !== id,
+            );
+
+        return;
+    }
+
+    selectedScheduleIds.value.push(id);
+};
+
+const allCurrentPageSelected = computed(() => {
+    return (
+        pictorials.value.length > 0 &&
+        pictorials.value.every(
+            (pictorial) =>
+                selectedScheduleIds.value.includes(
+                    pictorial.id,
+                ),
+        )
+    );
+});
+
+const toggleCurrentPage = (): void => {
+    const currentIds =
+        pictorials.value.map(
+            (pictorial) => pictorial.id,
+        );
+
+    if (allCurrentPageSelected.value) {
+        selectedScheduleIds.value =
+            selectedScheduleIds.value.filter(
+                (id) => !currentIds.includes(id),
+            );
+
+        return;
+    }
+
+    selectedScheduleIds.value = Array.from(
+        new Set([
+            ...selectedScheduleIds.value,
+            ...currentIds,
+        ]),
+    );
+};
 
 const createSchedule = async (
     payload: CreateSchedulePayload,
@@ -141,9 +440,10 @@ const createSchedule = async (
 
         showCreateModal.value = false;
 
-        successMessage.value =
+        showSuccess(
             result.message ??
-            'Pictorial schedule created successfully.';
+                'Pictorial schedule created successfully.',
+        );
 
         await loadSchedules(1);
     } catch (error) {
@@ -337,8 +637,11 @@ const goToPage = async (page: number): Promise<void> => {
     await loadSchedules(page);
 };
 
+
+
 onMounted(() => {
     loadSchedules();
+    loadBatches();
 });
 </script>
 
@@ -373,15 +676,28 @@ onMounted(() => {
                     <div class="d-flex align-items-center flex-wrap gap-2">
 
 
-                        <button
+                        <div
                             v-if="canManage"
-                            type="button"
-                            class="btn btn-primary"
-                            @click="showCreateModal = true"
+                            class="d-flex flex-wrap gap-2"
                         >
-                            <i class="bi bi-plus-lg me-2"></i>
-                            Create Schedule
-                        </button>
+                            <button
+                                type="button"
+                                class="btn btn-light border"
+                                @click="showBulkCreateModal = true"
+                            >
+                                <i class="bi bi-calendar-plus me-2"></i>
+                                Bulk Create
+                            </button>
+
+                            <button
+                                type="button"
+                                class="btn btn-primary"
+                                @click="showCreateModal = true"
+                            >
+                                <i class="bi bi-plus-lg me-2"></i>
+                                Create Schedule
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -405,14 +721,30 @@ onMounted(() => {
         </div>
 
         <div
-        v-if="successMessage"
-            class="cyb-notice cyb-notice-info rounded-3"
+            v-if="successMessage"
+            class="success-toast"
+            role="status"
         >
-            <i class="bi bi-check-circle"></i>
-
-            <div>
-                {{ successMessage }}
+            <div class="success-toast-icon">
+                <i class="bi bi-check-lg"></i>
             </div>
+
+            <div class="flex-grow-1">
+                <div class="fw-semibold">
+                    Success
+                </div>
+
+                <div class="success-toast-message">
+                    {{ successMessage }}
+                </div>
+            </div>
+
+            <button
+                type="button"
+                class="btn-close success-toast-close"
+                aria-label="Dismiss"
+                @click="successMessage = null"
+            ></button>
         </div>
 
         <template v-if="activeYear">
@@ -579,6 +911,94 @@ onMounted(() => {
                 {{ loadError }}
             </div>
 
+
+            <!-- Bulk creation history -->
+            <div
+                v-if="canManage && batches.length > 0"
+                class="cyb-card"
+            >
+                <div class="cyb-card-header">
+                    <div>
+                        <h3 class="cyb-section-title">
+                            Bulk Creation History
+                        </h3>
+
+                        <p class="cyb-section-description">
+                            Review and remove schedule batches created through bulk creation.
+                        </p>
+                    </div>
+
+                    <span class="cyb-pill cyb-pill-neutral">
+                        {{ batches.length }}
+                        batch{{ batches.length === 1 ? '' : 'es' }}
+                    </span>
+                </div>
+
+                <div class="cyb-card-body">
+                    <div
+                        v-if="batchDeleteError"
+                        class="cyb-notice cyb-notice-danger rounded-3 mb-3"
+                    >
+                        <i class="bi bi-exclamation-circle"></i>
+
+                        <div>
+                            {{ batchDeleteError }}
+                        </div>
+                    </div>
+
+                    <div class="d-flex flex-column gap-2">
+                        <div
+                            v-for="batch in batches"
+                            :key="batch.batch_uuid"
+                            class="batch-row"
+                        >
+                            <div>
+                                <div class="fw-semibold">
+                                    {{ batch.date_from }}
+                                    <template v-if="batch.date_from !== batch.date_to">
+                                        – {{ batch.date_to }}
+                                    </template>
+                                </div>
+
+                                <div class="text-muted small mt-1">
+                                    {{ batch.schedule_count }}
+                                    schedule{{ batch.schedule_count === 1 ? '' : 's' }}
+                                    ·
+                                    {{ batch.reservation_count }}
+                                    active reservation{{ batch.reservation_count === 1 ? '' : 's' }}
+                                </div>
+                            </div>
+
+                            <button
+                                type="button"
+                                class="btn btn-sm btn-outline-danger"
+                                :disabled="
+                                    deletingBatchUuid === batch.batch_uuid
+                                "
+                                @click="
+                                    deleteBatch(batch.batch_uuid)
+                                "
+                            >
+                                <span
+                                    v-if="
+                                        deletingBatchUuid === batch.batch_uuid
+                                    "
+                                    class="spinner-border spinner-border-sm me-2"
+                                ></span>
+
+                                <i
+                                    v-else
+                                    class="bi bi-trash me-2"
+                                ></i>
+
+                                Delete Batch
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+
             <!-- Results -->
             <div class="cyb-card">
                 <div class="cyb-card-header">
@@ -635,10 +1055,69 @@ onMounted(() => {
                 </div>
 
                 <template v-else>
+
+
+
+
+                    <div
+                        v-if="
+                            canManage &&
+                            selectedScheduleIds.length > 0
+                        "
+                        class="selection-toolbar"
+                    >
+                        <div>
+                            <strong>
+                                {{ selectedScheduleIds.length }}
+                            </strong>
+
+                            schedule{{
+                                selectedScheduleIds.length === 1
+                                    ? ''
+                                    : 's'
+                            }}
+                            selected
+                        </div>
+
+                        <div class="d-flex gap-2">
+                            <button
+                                type="button"
+                                class="btn btn-sm btn-light border"
+                                @click="
+                                    selectedScheduleIds = []
+                                "
+                            >
+                                Clear Selection
+                            </button>
+
+                            <button
+                                type="button"
+                                class="btn btn-sm btn-danger"
+                                @click="deleteSelectedSchedules"
+                            >
+                                <i class="bi bi-trash me-2"></i>
+
+                                Delete Selected
+                            </button>
+                        </div>
+                    </div>
+
+
+                    <!-- Schedule table -->
                     <div class="table-responsive">
                         <table class="table cyb-table">
                             <thead>
                                 <tr>
+                                    <th class="selection-column">
+                                        <input
+                                            v-if="canManage"
+                                            type="checkbox"
+                                            class="form-check-input"
+                                            :checked="allCurrentPageSelected"
+                                            aria-label="Select all schedules on this page"
+                                            @change="toggleCurrentPage"
+                                        >
+                                    </th>
                                     <th>Date</th>
                                     <th>Time</th>
                                     <th>College</th>
@@ -653,6 +1132,20 @@ onMounted(() => {
                                     v-for="pictorial in pictorials"
                                     :key="pictorial.id"
                                 >
+
+                                    <td class="selection-column">
+                                        <input
+                                            v-if="canManage"
+                                            type="checkbox"
+                                            class="form-check-input"
+                                            :checked="isSelected(pictorial.id)"
+                                            :aria-label="
+                                                `Select schedule ${pictorial.date_label} ${pictorial.time_label}`
+                                            "
+                                            @change="toggleSchedule(pictorial.id)"
+                                        >
+                                    </td>
+
                                     <td>
                                         <div class="cyb-table-primary">
                                             {{ pictorial.date_label }}
@@ -815,6 +1308,7 @@ onMounted(() => {
                     </div>
                 </template>
             </div>
+
         </template>
 
 
@@ -835,6 +1329,20 @@ onMounted(() => {
             @save="createSchedule"
         />
 
+        <BulkCreatePictorialScheduleModal
+            v-if="
+                showBulkCreateModal &&
+                activeYear &&
+                canManage
+            "
+            :colleges="colleges"
+            :active-year="activeYear.year"
+            @close="
+                showBulkCreateModal = false
+            "
+            @created="handleBulkCreated"
+        />
+
 
 
     </div>
@@ -848,4 +1356,96 @@ onMounted(() => {
     font-weight: 650;
     line-height: 1.15;
 }
+
+.selection-column {
+    width: 44px;
+    text-align: center;
+}
+
+.selection-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid #e7eaed;
+    background: #f8f9fa;
+}
+
+.batch-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.85rem 1rem;
+    border: 1px solid #e7eaed;
+    border-radius: 0.65rem;
+    background: #fff;
+}
+
+.success-toast {
+    position: fixed;
+    top: 1.25rem;
+    right: 1.25rem;
+    z-index: 1090;
+
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+
+    width: min(420px, calc(100vw - 2rem));
+    padding: 0.9rem 1rem;
+
+    border: 1px solid #badbcc;
+    border-radius: 0.75rem;
+
+    background: #d1e7dd;
+    color: #0f5132;
+
+    box-shadow:
+        0 0.5rem 1.25rem
+        rgba(0, 0, 0, 0.12);
+}
+
+.success-toast-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 1.75rem;
+    height: 1.75rem;
+    flex: 0 0 1.75rem;
+
+    border-radius: 50%;
+
+    background: #0f5132;
+    color: #fff;
+}
+
+.success-toast-message {
+    margin-top: 0.15rem;
+    font-size: 0.9rem;
+}
+
+.success-toast-close {
+    flex: 0 0 auto;
+    margin-left: 0.25rem;
+}
+
+
+@media (max-width: 575.98px) {
+    .batch-row,
+    .selection-toolbar {
+        align-items: stretch;
+        flex-direction: column;
+    }
+    .success-toast {
+        top: 0.75rem;
+        right: 0.75rem;
+        left: 0.75rem;
+        width: auto;
+    }
+}
+
+
 </style>

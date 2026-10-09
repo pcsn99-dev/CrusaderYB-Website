@@ -600,3 +600,10 @@ textarea.cyb-form-control {
     background: rgba(255, 255, 255, 0.75);
     color: inherit;
 }
+
+
+.cyb-notice-success {
+    border-color: #b8ddc9;
+    background: #edf8f2;
+    color: #197149;
+}

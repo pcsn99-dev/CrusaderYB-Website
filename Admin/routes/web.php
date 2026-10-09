@@ -162,7 +162,33 @@ Route::middleware(['auth', 'force.password.change', 'admin.account'])->group(fun
                     '/',
                     [PictorialScheduleController::class, 'store']
                 )->name('store');
+
+                Route::post(
+                    '/bulk/preview',
+                    [PictorialScheduleController::class, 'previewBulk']
+                )->name('bulk.preview');
+
+                Route::post(
+                    '/bulk',
+                    [PictorialScheduleController::class, 'storeBulk']
+                )->name('bulk.store');
+
+                Route::delete(
+                    '/bulk/{batchUuid}',
+                    [PictorialScheduleController::class, 'deleteBatch']
+                )->name('bulk.destroy');
+                Route::get(
+                    '/batches',
+                    [PictorialScheduleController::class, 'batches']
+                )->name('batches');
+                Route::delete(
+                    '/selected',
+                    [PictorialScheduleController::class, 'deleteSelected']
+                )->name('selected.destroy');
+
+
             });
+
     });    
 
 

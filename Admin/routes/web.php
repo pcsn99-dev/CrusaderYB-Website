@@ -12,6 +12,8 @@ use App\Http\Controllers\RoleController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\StudentAccountController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\Settings\PictorialScheduleController;
+use App\Http\Controllers\Settings\YearController;
 
 
 /*
@@ -121,7 +123,36 @@ Route::middleware(['auth', 'force.password.change', 'admin.account'])->group(fun
         ->name('student-accounts.third-party.update');
 
 
-        
+    
+    //settings
+    Route::prefix('settings')
+    ->name('settings.')
+    ->group(function () {
+    Route::prefix('years')
+        ->name('years.')
+        ->middleware('permission:manage-years')
+        ->group(function () {
+            Route::get('/', [YearController::class, 'index'])
+                ->name('index');
+
+            Route::post('/', [YearController::class, 'store'])
+                ->name('store');
+
+            Route::put('/{year}', [YearController::class, 'update'])
+                ->name('update');
+
+            Route::patch('/{year}/activate', [YearController::class, 'activate'])
+                ->name('activate');
+        });
+
+        Route::get(
+            '/pictorial-schedules',
+            [PictorialScheduleController::class, 'index']
+        )->name('pictorial-schedules.index');
+    });    
+
+
+
 
     Route::resource('roles', RoleController::class)->middleware('permission:manage-roles');
 

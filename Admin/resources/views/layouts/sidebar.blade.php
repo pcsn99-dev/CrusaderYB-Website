@@ -31,6 +31,14 @@
     $canAccessSettings =
         $canManageYears ||
         $canAccessPictorialSchedules;
+
+    $settingsActive = request()->routeIs('settings.*');
+
+    $yearsActive = request()->routeIs('settings.years.*');
+
+    $pictorialSchedulesActive =
+        request()->routeIs('settings.pictorial-schedules.*');    
+
 @endphp
 
 <aside class="app-sidebar shadow" data-bs-theme="dark">
@@ -161,6 +169,53 @@
                         </ul>
                     </li>
                 @endif
+
+
+                @if ($canAccessSettings)
+                    <li class="nav-item {{ $settingsActive ? 'menu-open' : '' }}">
+                        <a
+                            href="#"
+                            class="nav-link {{ $settingsActive ? 'active' : '' }}"
+                        >
+                            <i class="nav-icon bi bi-gear-fill"></i>
+
+                            <p>
+                                Settings
+                                <i class="nav-arrow bi bi-chevron-right"></i>
+                            </p>
+                        </a>
+
+                        <ul class="nav nav-treeview">
+                            @if ($canManageYears)
+                                <li class="nav-item">
+                                    <x-nav-link
+                                        :href="route('settings.years.index')"
+                                        :active="$yearsActive"
+                                        icon="bi bi-calendar3"
+                                        :child="true"
+                                    >
+                                        Years
+                                    </x-nav-link>
+                                </li>
+                            @endif
+
+                            @if ($canAccessPictorialSchedules)
+                                <li class="nav-item">
+                                    <x-nav-link
+                                        :href="route('settings.pictorial-schedules.index')"
+                                        :active="$pictorialSchedulesActive"
+                                        icon="bi bi-calendar-week"
+                                        :child="true"
+                                    >
+                                        Pictorial Schedules
+                                    </x-nav-link>
+                                </li>
+                            @endif
+                        </ul>
+                    </li>
+                @endif
+
+
             </ul>
         </nav>
     </div>

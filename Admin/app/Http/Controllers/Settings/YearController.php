@@ -9,6 +9,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
+use App\Support\AuditLogger;
 
 class YearController extends Controller
 {
@@ -50,7 +51,7 @@ class YearController extends Controller
             ],
         ]);
 
-        DB::transaction(function () use ($validated) {
+        $year = DB::transaction(function () use ($validated) {
             $shouldActivate = (bool) ($validated['activate'] ?? false);
 
             if ($shouldActivate) {
@@ -59,7 +60,7 @@ class YearController extends Controller
                 ]);
             }
 
-            Year::create([
+            return Year::create([
                 'year' => $validated['year'],
                 'theme' => $validated['theme'] ?? null,
                 'subscription_start' => $validated['subscription_start'] ?? null,
@@ -67,6 +68,19 @@ class YearController extends Controller
                 'status' => $shouldActivate,
             ]);
         });
+
+        $adminName = auth()->user()->name ?? 'Unknown admin';
+
+        AuditLogger::record(
+            module: 'settings_years',
+            action: 'year_created',
+            description:
+                "{$adminName} created CYB year {$year->year}".
+                ($year->status ? ' and activated it.' : '.'),
+            model: $year,
+            oldValues: [],
+            newValues: $year->toArray()
+        );
 
         return redirect()
             ->route('settings.years.index')
@@ -100,12 +114,40 @@ class YearController extends Controller
             ],
         ]);
 
+        $oldValues = [
+            'year' => $year->year,
+            'theme' => $year->theme,
+            'subscription_start' => $year->subscription_start,
+            'subscription_end' => $year->subscription_end,
+        ];
+
         $year->update([
             'year' => $validated['year'],
             'theme' => $validated['theme'] ?? null,
             'subscription_start' => $validated['subscription_start'] ?? null,
             'subscription_end' => $validated['subscription_end'] ?? null,
         ]);
+
+        $year->refresh();
+
+        $newValues = [
+            'year' => $year->year,
+            'theme' => $year->theme,
+            'subscription_start' => $year->subscription_start,
+            'subscription_end' => $year->subscription_end,
+        ];
+
+        $adminName = auth()->user()->name ?? 'Unknown admin';
+
+        AuditLogger::record(
+            module: 'settings_years',
+            action: 'year_updated',
+            description:
+                "{$adminName} updated CYB year {$year->year}.",
+            model: $year,
+            oldValues: $oldValues,
+            newValues: $newValues
+        );
 
         return redirect()
             ->route('settings.years.index')
@@ -120,6 +162,8 @@ class YearController extends Controller
                 ->with('info', "{$year->year} is already the active CYB year.");
         }
 
+        $previousActiveYear = Year::active()->first();
+
         DB::transaction(function () use ($year) {
             Year::query()->update([
                 'status' => false,
@@ -129,6 +173,34 @@ class YearController extends Controller
                 'status' => true,
             ]);
         });
+
+        $year->refresh();
+
+        $adminName = auth()->user()->name ?? 'Unknown admin';
+
+        AuditLogger::record(
+            module: 'settings_years',
+            action: 'year_activated',
+            description:
+                "{$adminName} activated CYB year {$year->year}".
+                (
+                    $previousActiveYear &&
+                    $previousActiveYear->id !== $year->id
+                        ? " and replaced CYB {$previousActiveYear->year} as the active year."
+                        : '.'
+                ),
+            model: $year,
+            oldValues: [
+                'previous_active_year_id' =>
+                    $previousActiveYear?->id,
+                'previous_active_year' =>
+                    $previousActiveYear?->year,
+            ],
+            newValues: [
+                'active_year_id' => $year->id,
+                'active_year' => $year->year,
+            ]
+        );
 
         return redirect()
             ->route('settings.years.index')

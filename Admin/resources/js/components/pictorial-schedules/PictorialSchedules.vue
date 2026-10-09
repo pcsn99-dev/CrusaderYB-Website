@@ -103,6 +103,7 @@ const deleteSelectedSchedules =
                     },
 
                     credentials: 'same-origin',
+                    
 
                     body: JSON.stringify({
                         ids:

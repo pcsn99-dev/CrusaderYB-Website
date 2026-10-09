@@ -14,6 +14,9 @@ use App\Services\PictorialScheduleService;
 use App\Http\Requests\Settings\BulkStorePictorialScheduleRequest;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Facades\DB;
+use App\Support\AuditLogger;
+
+
 class PictorialScheduleController extends Controller
 {
     public function index(): View
@@ -233,6 +236,10 @@ class PictorialScheduleController extends Controller
         $pictorials = Pictorial::query()
             ->forYear($activeYear->year)
             ->where('batch_uuid', $batchUuid)
+            ->with([
+                'college:id,college_name',
+                'allowedColleges:id,college_name',
+            ])
             ->withCount([
                 'activeReservations as reserved_slots',
             ])
@@ -253,6 +260,27 @@ class PictorialScheduleController extends Controller
             ]);
         }
 
+        /*
+        * Capture audit information before the schedules
+        * are soft-deleted.
+        */
+        $auditModel = $pictorials->first();
+
+        $deletedScheduleIds = $pictorials
+            ->pluck('id')
+            ->values()
+            ->all();
+
+        $dateFrom = $pictorials
+            ->min(fn (Pictorial $pictorial) =>
+                $pictorial->date->format('Y-m-d')
+            );
+
+        $dateTo = $pictorials
+            ->max(fn (Pictorial $pictorial) =>
+                $pictorial->date->format('Y-m-d')
+            );
+
         $deletedCount = DB::transaction(function () use ($pictorials) {
             foreach ($pictorials as $pictorial) {
                 $pictorial->delete();
@@ -260,6 +288,27 @@ class PictorialScheduleController extends Controller
 
             return $pictorials->count();
         });
+
+        $adminName = auth()->user()->name ?? 'Unknown admin';
+
+        AuditLogger::record(
+            module: 'pictorial_schedules',
+            action: 'batch_deleted',
+            description:
+                "{$adminName} deleted a bulk pictorial schedule batch ".
+                "containing {$deletedCount} schedules for CYB ".
+                "{$activeYear->year}.",
+            model: $auditModel,
+            oldValues: [
+                'batch_uuid' => $batchUuid,
+                'schedule_ids' => $deletedScheduleIds,
+                'schedule_count' => $deletedCount,
+                'year' => $activeYear->year,
+                'date_from' => $dateFrom,
+                'date_to' => $dateTo,
+            ],
+            newValues: []
+        );
 
         return [
             'deleted_count' => $deletedCount,
@@ -284,11 +333,6 @@ class PictorialScheduleController extends Controller
         StorePictorialScheduleRequest $request,
         PictorialScheduleService $scheduleService
     ): JsonResponse {
-
-        //dd('STORE REACHED', $request->all());
-
-
-
         $pictorial = $scheduleService->createSingle(
             $request->validated()
         );
@@ -301,6 +345,43 @@ class PictorialScheduleController extends Controller
         $pictorial->loadCount([
             'activeReservations as reserved_slots',
         ]);
+
+        $adminName = auth()->user()->name ?? 'Unknown admin';
+
+        $collegeDescription = $pictorial->is_delayed
+            ? $pictorial
+                ->allowedColleges
+                ->pluck('college_name')
+                ->join(', ')
+            : ($pictorial->college?->college_name ?? 'Unknown college');
+
+        AuditLogger::record(
+            module: 'pictorial_schedules',
+            action: 'schedule_created',
+            description:
+                "{$adminName} created a ".
+                ($pictorial->is_delayed ? 'delayed' : 'regular').
+                " pictorial schedule for {$collegeDescription} on ".
+                $pictorial->date->format('M d, Y').
+                " from {$pictorial->start_time} to {$pictorial->end_time}.",
+            model: $pictorial,
+            oldValues: [],
+            newValues: [
+                'id' => $pictorial->id,
+                'year' => $pictorial->year,
+                'college_id' => $pictorial->college_id,
+                'allowed_college_ids' => $pictorial
+                    ->allowedColleges
+                    ->pluck('id')
+                    ->values()
+                    ->all(),
+                'date' => $pictorial->date->format('Y-m-d'),
+                'start_time' => $pictorial->start_time,
+                'end_time' => $pictorial->end_time,
+                'no_of_slots' => $pictorial->no_of_slots,
+                'is_delayed' => $pictorial->is_delayed,
+            ]
+        );
 
         return response()->json([
             'message' => 'Pictorial schedule created successfully.',
@@ -327,8 +408,47 @@ class PictorialScheduleController extends Controller
         BulkStorePictorialScheduleRequest $request,
         PictorialScheduleService $scheduleService
     ): JsonResponse {
+        $validated = $request->validated();
+
         $result = $scheduleService->createBulk(
-            $request->validated()
+            $validated
+        );
+
+        $adminName = auth()->user()->name ?? 'Unknown admin';
+
+        $firstPictorial = Pictorial::query()
+            ->where('batch_uuid', $result['batch_uuid'])
+            ->first();
+
+        AuditLogger::record(
+            module: 'pictorial_schedules',
+            action: 'batch_created',
+            description:
+                "{$adminName} bulk-created ".
+                "{$result['created_count']} pictorial schedules ".
+                "for CYB {$firstPictorial?->year}.",
+            model: $firstPictorial,
+            oldValues: [],
+            newValues: [
+                'batch_uuid' => $result['batch_uuid'],
+                'created_count' => $result['created_count'],
+                'year' => $firstPictorial?->year,
+                'is_delayed' => (bool) $validated['is_delayed'],
+                'college_id' => $validated['college_id'] ?? null,
+                'allowed_college_ids' =>
+                    $validated['allowed_college_ids'] ?? [],
+                'date_from' => $validated['date_from'],
+                'date_to' => $validated['date_to'],
+                'daily_start_time' => $validated['daily_start_time'],
+                'daily_end_time' => $validated['daily_end_time'],
+                'slot_duration_minutes' =>
+                    $validated['slot_duration_minutes'],
+                'no_of_slots' => $validated['no_of_slots'],
+                'include_saturday' =>
+                    (bool) $validated['include_saturday'],
+                'include_sunday' =>
+                    (bool) $validated['include_sunday'],
+            ]
         );
 
         return response()->json([
@@ -458,15 +578,60 @@ class PictorialScheduleController extends Controller
             ], 422);
         }
 
+        /*
+        * Capture values before soft deletion.
+        */
+        $auditModel = $pictorials->first();
+
+        $deletedScheduleIds = $pictorials
+            ->pluck('id')
+            ->values()
+            ->all();
+
+        $deletedSchedules = $pictorials
+            ->map(fn (Pictorial $pictorial) => [
+                'id' => $pictorial->id,
+                'date' => $pictorial->date->format('Y-m-d'),
+                'start_time' => $pictorial->start_time,
+                'end_time' => $pictorial->end_time,
+                'college_id' => $pictorial->college_id,
+                'is_delayed' => $pictorial->is_delayed,
+                'batch_uuid' => $pictorial->batch_uuid,
+            ])
+            ->values()
+            ->all();
+
         DB::transaction(function () use ($pictorials) {
             foreach ($pictorials as $pictorial) {
                 $pictorial->delete();
             }
         });
 
+        $deletedCount = $pictorials->count();
+
+        $adminName = auth()->user()->name ?? 'Unknown admin';
+
+        AuditLogger::record(
+            module: 'pictorial_schedules',
+            action: 'selected_schedules_deleted',
+            description:
+                "{$adminName} deleted {$deletedCount} selected ".
+                "pictorial schedule".
+                ($deletedCount === 1 ? '' : 's').
+                " for CYB {$activeYear->year}.",
+            model: $auditModel,
+            oldValues: [
+                'schedule_ids' => $deletedScheduleIds,
+                'schedule_count' => $deletedCount,
+                'year' => $activeYear->year,
+                'schedules' => $deletedSchedules,
+            ],
+            newValues: []
+        );
+
         return response()->json([
             'message' =>
-                "{$pictorials->count()} pictorial schedule(s) deleted successfully.",
+                "{$deletedCount} pictorial schedule(s) deleted successfully.",
         ]);
     }
 

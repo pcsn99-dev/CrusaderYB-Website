@@ -635,4 +635,74 @@ class PictorialScheduleController extends Controller
         ]);
     }
 
+    public function reservations(Pictorial $pictorial): JsonResponse
+    {
+        $this->authorizeAccess();
+
+        $activeYear = Year::active()->first();
+
+        if (!$activeYear) {
+            return response()->json([
+                'message' => 'No active CYB year is configured.',
+            ], 422);
+        }
+
+        if ($pictorial->year !== $activeYear->year) {
+            abort(404);
+        }
+
+        $reservations = $pictorial
+            ->activeReservations()
+            ->with([
+                'studentInfo:id,user_id,university_id,slmis_id,first_name,middle_name,last_name,suffix,college_id,program_id,major_id,contact_number',
+                'studentInfo.college:id,college_name',
+                'studentInfo.program:id,program_name',
+                'studentInfo.major:id,major_name',
+                'studentInfo.user:id,email',
+            ])
+            ->orderBy('created_at')
+            ->get()
+            ->map(function ($reservation) {
+                $student = $reservation->studentInfo;
+
+                return [
+                    'id' => $reservation->id,
+
+                    'student' => [
+                        'id' => $student?->id,
+                        'name' => $student?->formatted_full_name,
+                        'university_id' => $student?->university_id,
+                        'slmis_id' => $student?->slmis_id,
+                        'email' => $student?->user?->email,
+                        'contact_number' => $student?->contact_number,
+
+                        'college' => $student?->college?->college_name,
+                        'program' => $student?->program?->program_name,
+                        'major' => $student?->major?->major_name,
+                    ],
+
+                    'created_at' => $reservation->created_at?->format(
+                        'M d, Y h:i A'
+                    ),
+                ];
+            })
+            ->values();
+
+        return response()->json([
+            'data' => [
+                'pictorial' => [
+                    'id' => $pictorial->id,
+                    'date' => $pictorial->date->format('Y-m-d'),
+                    'date_label' => $pictorial->date->format('M d, Y'),
+                    'time_label' => $pictorial->getPictorialTime(),
+                ],
+
+                'reservations' => $reservations,
+                'reservation_count' => $reservations->count(),
+            ],
+        ]);
+    }
+
+
+
 }

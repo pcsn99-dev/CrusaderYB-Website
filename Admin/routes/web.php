@@ -158,6 +158,11 @@ Route::middleware(['auth', 'force.password.change', 'admin.account'])->group(fun
                     [PictorialScheduleController::class, 'search']
                 )->name('search');
 
+                Route::get(
+                    '/{pictorial}/reservations',
+                    [PictorialScheduleController::class, 'reservations']
+                )->name('reservations');
+
                 Route::post(
                     '/',
                     [PictorialScheduleController::class, 'store']
@@ -185,6 +190,8 @@ Route::middleware(['auth', 'force.password.change', 'admin.account'])->group(fun
                     '/selected',
                     [PictorialScheduleController::class, 'deleteSelected']
                 )->name('selected.destroy');
+
+
 
 
             });

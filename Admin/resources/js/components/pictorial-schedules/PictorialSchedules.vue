@@ -8,6 +8,39 @@ interface College {
     college_name: string;
 }
 
+
+interface ReservationStudent {
+    id: number | null;
+    name: string | null;
+    university_id: string | null;
+    slmis_id: number | null;
+    email: string | null;
+    contact_number: string | null;
+    college: string | null;
+    program: string | null;
+    major: string | null;
+}
+
+interface ScheduleReservation {
+    id: number;
+    student: ReservationStudent;
+    created_at: string | null;
+}
+
+interface ReservationViewerData {
+    pictorial: {
+        id: number;
+        date: string;
+        date_label: string;
+        time_label: string;
+    };
+
+    reservations: ScheduleReservation[];
+    reservation_count: number;
+}
+
+
+
 interface ActiveYear {
     id: number;
     year: string;
@@ -185,6 +218,11 @@ const loadBatches = async (): Promise<void> => {
 };
 
 
+const showReservationsModal = ref(false);
+const reservationsLoading = ref(false);
+const reservationsError = ref<string | null>(null);
+const reservationViewer = ref<ReservationViewerData | null>(null);
+
 
 const showBulkCreateModal = ref(false);
 const showCreateModal = ref(false);
@@ -194,6 +232,45 @@ const createErrors = ref<Record<string, string[]>>({});
 const successMessage = ref<string | null>(null);
 
 let successTimer: number | null = null;
+
+const viewReservations = async (
+    pictorialId: number,
+): Promise<void> => {
+    showReservationsModal.value = true;
+    reservationsLoading.value = true;
+    reservationsError.value = null;
+    reservationViewer.value = null;
+
+    try {
+        const response = await fetch(
+            `/settings/pictorial-schedules/${pictorialId}/reservations`,
+            {
+                headers: {
+                    Accept: 'application/json',
+                },
+            },
+        );
+
+        const result = await response.json();
+
+        if (!response.ok) {
+            throw new Error(
+                result.message ??
+                    'Unable to load reservations.',
+            );
+        }
+
+        reservationViewer.value = result.data;
+    } catch (error) {
+        reservationsError.value =
+            error instanceof Error
+                ? error.message
+                : 'Unable to load reservations.';
+    } finally {
+        reservationsLoading.value = false;
+    }
+};
+
 
 const showSuccess = (message: string): void => {
     successMessage.value = message;
@@ -1125,6 +1202,7 @@ onMounted(() => {
                                     <th>Type</th>
                                     <th>Reservations</th>
                                     <th>Availability</th>
+                                    <th>Actions</th>
                                 </tr>
                             </thead>
 
@@ -1222,6 +1300,19 @@ onMounted(() => {
                                             remaining
                                         </span>
                                     </td>
+
+
+                                    <td>
+                                        <button
+                                            type="button"
+                                            class="btn btn-sm btn-light border"
+                                            @click="viewReservations(pictorial.id)"
+                                        >
+                                            <i class="bi bi-people me-1"></i>
+                                            Reservations
+                                        </button>
+                                    </td>
+
                                 </tr>
                             </tbody>
                         </table>
@@ -1311,6 +1402,158 @@ onMounted(() => {
             </div>
 
         </template>
+
+
+        <div
+            v-if="showReservationsModal"
+            class="modal fade show d-block"
+            tabindex="-1"
+            role="dialog"
+            aria-modal="true"
+        >
+            <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <div>
+                            <h5 class="modal-title">
+                                Schedule Reservations
+                            </h5>
+
+                            <div
+                                v-if="reservationViewer"
+                                class="text-muted small mt-1"
+                            >
+                                {{ reservationViewer.pictorial.date_label }}
+                                ·
+                                {{ reservationViewer.pictorial.time_label }}
+                            </div>
+                        </div>
+
+                        <button
+                            type="button"
+                            class="btn-close"
+                            aria-label="Close"
+                            @click="showReservationsModal = false"
+                        ></button>
+                    </div>
+
+                    <div class="modal-body">
+                        <div
+                            v-if="reservationsLoading"
+                            class="text-center py-5"
+                        >
+                            <div class="spinner-border"></div>
+
+                            <div class="text-muted mt-3">
+                                Loading reservations...
+                            </div>
+                        </div>
+
+                        <div
+                            v-else-if="reservationsError"
+                            class="cyb-notice cyb-notice-danger rounded-3"
+                        >
+                            <i class="bi bi-exclamation-circle"></i>
+
+                            <div>
+                                {{ reservationsError }}
+                            </div>
+                        </div>
+
+                        <div
+                            v-else-if="
+                                reservationViewer &&
+                                reservationViewer.reservations.length === 0
+                            "
+                            class="cyb-empty-state"
+                        >
+                            <div class="cyb-empty-state-icon">
+                                <i class="bi bi-people"></i>
+                            </div>
+
+                            <h3 class="cyb-empty-state-title">
+                                No reservations
+                            </h3>
+
+                            <p class="cyb-empty-state-text">
+                                No students currently have an active reservation
+                                for this pictorial schedule.
+                            </p>
+                        </div>
+
+                        <div
+                            v-else-if="reservationViewer"
+                            class="table-responsive"
+                        >
+                            <table class="table cyb-table align-middle">
+                                <thead>
+                                    <tr>
+                                        <th>Student</th>
+                                        <th>University ID</th>
+                                        <th>College / Program</th>
+                                        <th>Contact</th>
+                                    </tr>
+                                </thead>
+
+                                <tbody>
+                                    <tr
+                                        v-for="reservation in reservationViewer.reservations"
+                                        :key="reservation.id"
+                                    >
+                                        <td>
+                                            <div class="cyb-table-primary">
+                                                {{ reservation.student.name ?? 'Unknown student' }}
+                                            </div>
+
+                                            <div class="cyb-table-secondary">
+                                                {{ reservation.student.email ?? 'No email' }}
+                                            </div>
+                                        </td>
+
+                                        <td>
+                                            {{ reservation.student.university_id ?? '—' }}
+                                        </td>
+
+                                        <td>
+                                            <div>
+                                                {{ reservation.student.college ?? '—' }}
+                                            </div>
+
+                                            <div class="text-muted small">
+                                                {{ reservation.student.program ?? '—' }}
+
+                                                <template v-if="reservation.student.major">
+                                                    · {{ reservation.student.major }}
+                                                </template>
+                                            </div>
+                                        </td>
+
+                                        <td>
+                                            {{ reservation.student.contact_number ?? '—' }}
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="modal-footer">
+                        <button
+                            type="button"
+                            class="btn btn-light border"
+                            @click="showReservationsModal = false"
+                        >
+                            Close
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div
+            v-if="showReservationsModal"
+            class="modal-backdrop fade show"
+        ></div>
 
 
         <CreatePictorialScheduleModal

@@ -12,6 +12,7 @@ export default defineConfig({
                 'resources/js/student-accounts.ts',
                 'resources/js/student-account-show.ts',
                 'resources/js/pictorial-schedules.ts',
+                'resources/js/pictorial-attendance.ts',
             ],
             refresh: true,
         }),

@@ -122,6 +122,29 @@
                     </li>
                 @endif
 
+
+                @if (
+                    auth()->user()?->hasPermission('view-pictorial-attendance') ||
+                    auth()->user()?->hasPermission('manage-pictorial-attendance')
+                )
+                    <li class="nav-item">
+                        <a
+                            href="{{ route('pictorial-attendance.index') }}"
+                            class="nav-link {{ request()->routeIs('pictorial-attendance.*') ? 'active' : '' }}"
+                        >
+                            <i class="nav-icon bi bi-calendar-check"></i>
+
+                            <p>
+                                Pictorial Attendance
+                            </p>
+                        </a>
+                    </li>
+                @endif
+
+
+
+
+
                 @if ($canViewWriteups)
                     <li class="nav-item {{ $writeupsActive ? 'menu-open' : '' }}">
                         <a href="#" class="nav-link {{ $writeupsActive ? 'active' : '' }}">

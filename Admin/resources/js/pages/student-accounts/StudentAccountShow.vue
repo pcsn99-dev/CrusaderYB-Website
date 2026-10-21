@@ -23,23 +23,32 @@ const actionMessage = ref<string | null>(null);
 const actionError = ref<string | null>(null);
 
 const formatDate = (
-    value: string | null,
+    value: string | null | undefined,
 ): string => {
     if (!value) {
         return '—';
     }
 
-    const date = new Date(`${value}T00:00:00`);
+    const normalizedValue =
+        value.includes('T')
+            ? value
+            : `${value}T00:00:00`;
+
+    const date =
+        new Date(normalizedValue);
 
     if (Number.isNaN(date.getTime())) {
         return value;
     }
 
-    return new Intl.DateTimeFormat('en-PH', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-    }).format(date);
+    return new Intl.DateTimeFormat(
+        'en-PH',
+        {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+        },
+    ).format(date);
 };
 
 const formatTime = (
@@ -70,6 +79,20 @@ const formatTime = (
         minute: '2-digit',
     }).format(date);
 };
+
+
+const formatAmount = (
+    amount: number,
+): string => {
+    return new Intl.NumberFormat(
+        'en-PH',
+        {
+            style: 'currency',
+            currency: 'PHP',
+        },
+    ).format(amount);
+};
+
 
 const attendanceLabel = (
     status: AttendanceStatus,
@@ -106,6 +129,16 @@ const attendanceClass = (
             return 'status-neutral';
     }
 };
+
+const penaltySourceClass = (
+    source: 'attendance' | 'manual',
+): string => {
+    return source === 'attendance'
+        ? 'status-primary'
+        : 'status-neutral';
+};
+
+
 
 const getCsrfToken = (): string => {
     const element = document.querySelector<HTMLMetaElement>(
@@ -965,6 +998,152 @@ const updateThirdParty = async (
                     </div>
                 </div>
             </div>
+
+            <div class="col-12">
+                <div class="card module-card">
+                    <div
+                        class="section-header d-flex
+                            justify-content-between
+                            align-items-center"
+                    >
+                        <div>
+                            <h2 class="section-title">
+                                Penalty History
+                            </h2>
+
+                            <p class="section-description">
+                                Penalties recorded for this student
+                            </p>
+                        </div>
+
+                        <div class="record-count">
+                            {{ studentData.penalties.length }}
+                            record{{
+                                studentData.penalties.length === 1
+                                    ? ''
+                                    : 's'
+                            }}
+                        </div>
+                    </div>
+
+                    <div
+                        v-if="studentData.penalties.length === 0"
+                        class="empty-state"
+                    >
+                        <div class="empty-state-icon">
+                            <i class="bi bi-check-circle"></i>
+                        </div>
+
+                        <h3 class="empty-state-title">
+                            No penalties
+                        </h3>
+
+                        <p class="empty-state-text">
+                            This student does not have any recorded penalties.
+                        </p>
+                    </div>
+
+                    <div
+                        v-else
+                        class="table-responsive"
+                    >
+                        <table
+                            class="table penalty-table align-middle mb-0"
+                        >
+                            <thead>
+                                <tr>
+                                    <th>Penalty</th>
+                                    <th>Source</th>
+                                    <th>Related Pictorial</th>
+                                    <th class="text-end">
+                                        Amount
+                                    </th>
+                                </tr>
+                            </thead>
+
+                            <tbody>
+                                <tr
+                                    v-for="penalty in studentData.penalties"
+                                    :key="penalty.id"
+                                >
+                                    <td>
+                                        <div class="penalty-name">
+                                            {{
+                                                penalty.penalty_type_label
+                                            }}
+                                        </div>
+                                    </td>
+
+                                    <td>
+                                        <span
+                                            class="status-pill"
+                                            :class="
+                                                penaltySourceClass(
+                                                    penalty.source,
+                                                )
+                                            "
+                                        >
+                                            {{
+                                                penalty.source_label
+                                            }}
+                                        </span>
+                                    </td>
+
+                                    <td>
+                                        <template
+                                            v-if="penalty.reservation"
+                                        >
+                                            <div class="schedule-date">
+                                                {{
+                                                    formatDate(
+                                                        penalty.reservation
+                                                            .date,
+                                                    )
+                                                }}
+                                            </div>
+
+                                            <div class="schedule-time">
+                                                {{
+                                                    formatTime(
+                                                        penalty.reservation
+                                                            .start_time,
+                                                    )
+                                                }}
+                                                –
+                                                {{
+                                                    formatTime(
+                                                        penalty.reservation
+                                                            .end_time,
+                                                    )
+                                                }}
+                                            </div>
+                                        </template>
+
+                                        <span
+                                            v-else
+                                            class="table-value text-muted"
+                                        >
+                                            Not linked
+                                        </span>
+                                    </td>
+
+                                    <td class="text-end">
+                                        <strong class="penalty-amount">
+                                            {{
+                                                formatAmount(
+                                                    penalty.amount,
+                                                )
+                                            }}
+                                        </strong>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+
         </div>
     </div>
 </template>
@@ -975,28 +1154,55 @@ const updateThirdParty = async (
 }
 
 .detail-header {
-    padding-bottom: 0.25rem;
+    padding: 1.25rem 1.35rem;
+
+    border: 1px solid #e7eaed;
+    border-radius: 0.85rem;
+
+    background:
+        linear-gradient(
+            135deg,
+            #ffffff 0%,
+            #f8f9fa 100%
+        );
+
+    box-shadow:
+        0 0.125rem 0.45rem
+        rgba(0, 0, 0, 0.035);
 }
 
 .back-link {
     display: inline-flex;
     align-items: center;
     gap: 0.4rem;
+
     color: #6c757d;
-    font-size: 0.86rem;
-    font-weight: 500;
+
+    font-size: 0.84rem;
+    font-weight: 550;
+
     text-decoration: none;
+
+    transition:
+        color 0.15s ease,
+        transform 0.15s ease;
 }
 
 .back-link:hover {
     color: #0d6efd;
+
+    transform:
+        translateX(-2px);
 }
 
 .student-title {
     margin: 0;
+
     color: #212529;
-    font-size: 1.7rem;
-    font-weight: 650;
+
+    font-size: 1.65rem;
+    font-weight: 700;
+
     letter-spacing: -0.025em;
 }
 
@@ -1004,9 +1210,13 @@ const updateThirdParty = async (
     display: flex;
     flex-wrap: wrap;
     gap: 0.35rem;
-    margin-top: 0.45rem;
+
+    margin-top: 0.5rem;
+
     color: #6c757d;
-    font-size: 0.87rem;
+
+    font-size: 0.86rem;
+    line-height: 1.5;
 }
 
 .meta-divider {
@@ -1194,6 +1404,43 @@ const updateThirdParty = async (
     white-space: nowrap;
 }
 
+
+.penalty-table thead th {
+    padding: 0.85rem 1rem;
+
+    background: #f8f9fa;
+
+    color: #6c757d;
+
+    font-size: 0.75rem;
+    font-weight: 650;
+
+    letter-spacing: 0.025em;
+
+    text-transform: uppercase;
+
+    white-space: nowrap;
+}
+
+.penalty-table tbody td {
+    padding: 1rem;
+
+    border-color: #edf0f2;
+}
+
+.penalty-name {
+    color: #292d32;
+
+    font-weight: 600;
+}
+
+.penalty-amount {
+    color: #b02a37;
+
+    white-space: nowrap;
+}
+
+
 .reservation-table tbody td {
     padding: 1rem;
     border-color: #edf0f2;
@@ -1255,5 +1502,15 @@ const updateThirdParty = async (
     .reservation-table {
         min-width: 680px;
     }
+
+    .detail-header {
+        padding: 1rem;
+    }
+
+    .penalty-table {
+        min-width: 620px;
+    }
+
+
 }
 </style>

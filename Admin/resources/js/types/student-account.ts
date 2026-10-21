@@ -58,6 +58,33 @@ export interface StudentReservation {
     pictorial: StudentPictorial | null;
 }
 
+
+export interface StudentPenaltyReservation {
+    id: number;
+    date: string | null;
+    start_time: string | null;
+    end_time: string | null;
+}
+
+export interface StudentPenalty {
+    id: number;
+    penalty_type: string;
+    penalty_type_label: string;
+    amount: number;
+
+    source:
+        | 'attendance'
+        | 'manual';
+
+    source_label: string;
+
+    reservation:
+        | StudentPenaltyReservation
+        | null;
+}
+
+
+
 export interface StudentAccountDetail {
     id: number;
 
@@ -93,6 +120,8 @@ export interface StudentAccountDetail {
     claim_pic_date: string | null;
 
     reservations: StudentReservation[];
+
+    penalties: StudentPenalty[];
 
     permissions: StudentAccountPermissions;
 }

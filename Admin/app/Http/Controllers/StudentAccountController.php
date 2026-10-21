@@ -10,6 +10,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
 use Illuminate\Support\Facades\DB;
+use App\Models\Penalty;
+use App\Services\PictorialAttendanceService;
 use Throwable;
 
 class StudentAccountController extends Controller
@@ -130,88 +132,317 @@ class StudentAccountController extends Controller
             'college:id,college_name',
             'program:id,program_name',
             'major:id,major_name',
+
             'reservations.pictorial',
         ]);
 
+        /*
+        |--------------------------------------------------------------------------
+        | Reservations
+        |--------------------------------------------------------------------------
+        */
+
         $reservations = $student->reservations
             ->sortByDesc(function ($reservation) {
-                return $reservation->pictorial?->date ?? '';
+                return $reservation
+                    ->pictorial
+                    ?->date
+                    ?->format('Y-m-d') ?? '';
             })
             ->values()
             ->map(function ($reservation) {
-                $attendanceStatus = match ($reservation->is_present) {
-                    1 => 'present',
-                    0 => 'absent',
-                    2 => 'late',
-                    default => 'not-recorded',
-                };
-
                 return [
-                    'id' => $reservation->id,
-                    'is_rescheduled' => (bool) $reservation->is_reschedule,
-                    'reschedule_date' => $reservation->reschedule_date,
-                    'is_present_date' => $reservation->is_present_date,
-                    'attendance_status' => $attendanceStatus,
-                    'created_at' => $reservation->created_at,
-                    'pictorial' => $reservation->pictorial
-                        ? [
-                            'id' => $reservation->pictorial->id,
-                            'date' => $reservation->pictorial->date,
-                            'start_time' => $reservation->pictorial->start_time,
-                            'end_time' => $reservation->pictorial->end_time,
-                        ]
-                        : null,
+                    'id' =>
+                        $reservation->id,
+
+                    'is_rescheduled' =>
+                        (bool)
+                        $reservation->is_reschedule,
+
+                    'reschedule_date' =>
+                        $reservation->reschedule_date
+                            ?->format('Y-m-d'),
+
+                    'is_present_date' =>
+                        $reservation->is_present_date
+                            ?->format('Y-m-d'),
+
+                    'attendance_status' =>
+                        $reservation
+                            ->getAttendanceStatus(),
+
+                    'checked_in_at' =>
+                        $reservation->checked_in_at
+                            ?->format('Y-m-d H:i:s'),
+
+                    'minutes_late' =>
+                        $reservation
+                            ->getMinutesLate(),
+
+                    'created_at' =>
+                        $reservation->created_at
+                            ?->format('Y-m-d H:i:s'),
+
+                    'pictorial' =>
+                        $reservation->pictorial
+                            ? [
+                                'id' =>
+                                    $reservation
+                                        ->pictorial
+                                        ->id,
+
+                                'date' =>
+                                    $reservation
+                                        ->pictorial
+                                        ->date
+                                        ?->format('Y-m-d'),
+
+                                'start_time' =>
+                                    $reservation
+                                        ->pictorial
+                                        ->start_time,
+
+                                'end_time' =>
+                                    $reservation
+                                        ->pictorial
+                                        ->end_time,
+                            ]
+                            : null,
                 ];
             });
 
+        /*
+        |--------------------------------------------------------------------------
+        | Penalties
+        |--------------------------------------------------------------------------
+        */
+
+        $attendancePenaltyTypes = [
+            PictorialAttendanceService::PENALTY_TYPE_LATE,
+            PictorialAttendanceService::PENALTY_TYPE_ABSENT,
+        ];
+
+        $penalties = Penalty::query()
+            ->with([
+                'reservation.pictorial',
+            ])
+            ->where(
+                'student_info_id',
+                $student->id
+            )
+            ->orderByDesc('id')
+            ->get()
+            ->map(function ($penalty) use (
+                $attendancePenaltyTypes
+            ) {
+                $reservation =
+                    $penalty->reservation;
+
+                $pictorial =
+                    $reservation
+                        ?->pictorial;
+
+                $isAttendancePenalty =
+                    $penalty->reservation_id !== null &&
+                    in_array(
+                        $penalty->penalty_type,
+                        $attendancePenaltyTypes,
+                        true
+                    );
+
+                return [
+                    'id' =>
+                        $penalty->id,
+
+                    'penalty_type' =>
+                        $penalty->penalty_type,
+
+                    'penalty_type_label' =>
+                        str(
+                            $penalty->penalty_type
+                        )
+                            ->replace(
+                                '_',
+                                ' '
+                            )
+                            ->title()
+                            ->toString(),
+
+                    'amount' =>
+                        (float)
+                        $penalty->amount,
+
+                    'source' =>
+                        $isAttendancePenalty
+                            ? 'attendance'
+                            : 'manual',
+
+                    'source_label' =>
+                        $isAttendancePenalty
+                            ? 'Attendance'
+                            : 'Manual',
+
+                    'reservation' =>
+                        $reservation
+                            ? [
+                                'id' =>
+                                    $reservation->id,
+
+                                'date' =>
+                                    $pictorial
+                                        ?->date
+                                        ?->format(
+                                            'Y-m-d'
+                                        ),
+
+                                'start_time' =>
+                                    $pictorial
+                                        ?->start_time,
+
+                                'end_time' =>
+                                    $pictorial
+                                        ?->end_time,
+                            ]
+                            : null,
+                ];
+            })
+            ->values();
+
+        /*
+        |--------------------------------------------------------------------------
+        | Student Data
+        |--------------------------------------------------------------------------
+        */
+
         $studentData = [
-            'id' => $student->id,
-            'university_id' => $student->university_id,
-            'slmis_id' => $student->slmis_id,
-            'first_name' => $student->first_name,
-            'middle_name' => $student->middle_name,
-            'last_name' => $student->last_name,
-            'suffix' => $student->suffix,
-            'full_name' => $student->formatted_full_name,
+            'id' =>
+                $student->id,
 
-            'email' => $student->user?->email,
-            'contact_number' => $student->contact_number,
-            'current_address' => $student->current_address,
-            'permanent_address' => $student->permanent_address,
+            'university_id' =>
+                $student->university_id,
 
-            'graduation_year' => $student->year,
-            'expected_graduation_date' => $student->expected_graduation_date,
+            'slmis_id' =>
+                $student->slmis_id,
 
-            'college' => $student->college?->college_name,
-            'program' => $student->program?->program_name,
-            'major' => $student->major?->major_name,
+            'first_name' =>
+                $student->first_name,
 
-            'is_agree_contract' => (bool) $student->is_agree_contract,
-            'is_subscribe' => (bool) $student->is_subscribe,
-            'is_third_party' => (bool) $student->is_third_party,
+            'middle_name' =>
+                $student->middle_name,
 
-            'subscribe_date' => $student->subscribe_date?->format('Y-m-d'),
-            'unsubscribe_date' => $student->unsubscribe_date?->format('Y-m-d'),
+            'last_name' =>
+                $student->last_name,
 
-            'claim_pic' => (bool) $student->claim_pic,
-            'claim_pic_date' => $student->claim_pic_date?->format('Y-m-d'),
+            'suffix' =>
+                $student->suffix,
 
-            'reservations' => $reservations,
+            'full_name' =>
+                $student
+                    ->formatted_full_name,
+
+            'email' =>
+                $student
+                    ->user
+                    ?->email,
+
+            'contact_number' =>
+                $student
+                    ->contact_number,
+
+            'current_address' =>
+                $student
+                    ->current_address,
+
+            'permanent_address' =>
+                $student
+                    ->permanent_address,
+
+            'graduation_year' =>
+                $student->year,
+
+            'expected_graduation_date' =>
+                $student
+                    ->expected_graduation_date
+                    ?->format('Y-m-d'),
+
+            'college' =>
+                $student
+                    ->college
+                    ?->college_name,
+
+            'program' =>
+                $student
+                    ->program
+                    ?->program_name,
+
+            'major' =>
+                $student
+                    ->major
+                    ?->major_name,
+
+            'is_agree_contract' =>
+                (bool)
+                $student
+                    ->is_agree_contract,
+
+            'is_subscribe' =>
+                (bool)
+                $student
+                    ->is_subscribe,
+
+            'is_third_party' =>
+                (bool)
+                $student
+                    ->is_third_party,
+
+            'subscribe_date' =>
+                $student
+                    ->subscribe_date
+                    ?->format('Y-m-d'),
+
+            'unsubscribe_date' =>
+                $student
+                    ->unsubscribe_date
+                    ?->format('Y-m-d'),
+
+            'claim_pic' =>
+                (bool)
+                $student
+                    ->claim_pic,
+
+            'claim_pic_date' =>
+                $student
+                    ->claim_pic_date
+                    ?->format('Y-m-d'),
+
+            'reservations' =>
+                $reservations,
+
+            'penalties' =>
+                $penalties,
 
             'permissions' => [
-                'manage_subscription' => Auth::user()?->hasPermission(
-                    'manage-student-subscription'
-                ) ?? false,
+                'manage_subscription' =>
+                    Auth::user()
+                        ?->hasPermission(
+                            'manage-student-subscription'
+                        ) ?? false,
 
-                'manage_third_party' => Auth::user()?->hasPermission(
-                    'manage-third-party-status'
-                ) ?? false,
+                'manage_third_party' =>
+                    Auth::user()
+                        ?->hasPermission(
+                            'manage-third-party-status'
+                        ) ?? false,
             ],
         ];
 
-        return view('student-accounts.show', [
-            'student' => $studentData,
-        ]);
+        return view(
+            'student-accounts.show',
+            [
+                'student' =>
+                    $studentData,
+            ]
+        );
     }
 
     public function updateSubscription(

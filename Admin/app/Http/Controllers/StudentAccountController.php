@@ -141,11 +141,6 @@ class StudentAccountController extends Controller
             'reservations.pictorial',
         ]);
 
-        /*
-        |--------------------------------------------------------------------------
-        | Reservations
-        |--------------------------------------------------------------------------
-        */
 
         $reservations = $student->reservations
             ->sortByDesc(function ($reservation) {
@@ -159,6 +154,11 @@ class StudentAccountController extends Controller
                 return [
                     'id' =>
                         $reservation->id,
+
+                    'year' =>
+                        $reservation
+                            ->pictorial
+                            ?->year,
 
                     'is_rescheduled' =>
                         (bool)
@@ -188,6 +188,15 @@ class StudentAccountController extends Controller
                         $reservation->created_at
                             ?->format('Y-m-d H:i:s'),
 
+                    'cancelled_at' =>
+                        $reservation
+                            ->cancelled_at
+                            ?->toDateTimeString(),
+
+                    'cancellation_reason' =>
+                        $reservation
+                            ->cancellation_reason,
+
                     'pictorial' =>
                         $reservation->pictorial
                             ? [
@@ -216,12 +225,7 @@ class StudentAccountController extends Controller
                 ];
             });
 
-        /*
-        |--------------------------------------------------------------------------
-        | Penalties
-        |--------------------------------------------------------------------------
-        */
-
+  
         $attendancePenaltyTypes = [
             PictorialAttendanceService::PENALTY_TYPE_LATE,
             PictorialAttendanceService::PENALTY_TYPE_ABSENT,
@@ -287,6 +291,9 @@ class StudentAccountController extends Controller
                             ? 'Attendance'
                             : 'Manual',
 
+                    'year' =>
+                        $penalty->year,
+
                     'reservation' =>
                         $reservation
                             ? [
@@ -313,11 +320,7 @@ class StudentAccountController extends Controller
             })
             ->values();
 
-        /*
-        |--------------------------------------------------------------------------
-        | Student Data
-        |--------------------------------------------------------------------------
-        */
+
 
         $studentData = [
             'id' =>
@@ -466,11 +469,6 @@ class StudentAccountController extends Controller
             ], 422);
         }
 
-        /*
-        |--------------------------------------------------------------------------
-        | Current Reservation
-        |--------------------------------------------------------------------------
-        */
 
         $currentReservation =
             Reservation::query()
@@ -481,6 +479,15 @@ class StudentAccountController extends Controller
                 )
                 ->whereNull(
                     'cancelled_at'
+                )
+                ->whereHas(
+                    'pictorial',
+                    function ($query) use ($student) {
+                        $query->where(
+                            'year',
+                            $student->year
+                        );
+                    }
                 )
                 ->where(
                     'is_reschedule',
@@ -740,22 +747,31 @@ class StudentAccountController extends Controller
             ], 422);
         }
 
-        $currentReservation =
-            Reservation::query()
-                ->with('pictorial')
-                ->where(
-                    'student_info_id',
-                    $student->id
-                )
-                ->whereNull(
-                    'cancelled_at'
-                )
-                ->where(
-                    'is_reschedule',
-                    false
-                )
-                ->latest('id')
-                ->first();
+    $currentReservation =
+        Reservation::query()
+            ->with('pictorial')
+            ->where(
+                'student_info_id',
+                $student->id
+            )
+            ->whereNull(
+                'cancelled_at'
+            )
+            ->whereHas(
+                'pictorial',
+                function ($query) use ($pictorial) {
+                    $query->where(
+                        'year',
+                        $pictorial->year
+                    );
+                }
+            )
+            ->where(
+                'is_reschedule',
+                false
+            )
+            ->latest('id')
+            ->first();
 
         if (
             $currentReservation &&
@@ -874,6 +890,9 @@ class StudentAccountController extends Controller
                             'student_info_id' =>
                                 $student->id,
 
+                            'year' =>
+                                $pictorial->year,
+
                             'penalty_type' =>
                                 $reschedulePenalty[
                                     'penalty_type'
@@ -950,6 +969,10 @@ class StudentAccountController extends Controller
                                 $delayedPenaltyRule[
                                     'amount'
                                 ],
+
+                            'year' =>
+                                $pictorial->year,
+
                         ]);
                 }
 
@@ -1199,6 +1222,192 @@ class StudentAccountController extends Controller
 
             return response()->json([
                 'message' => 'Unable to update the subscription status.',
+            ], 500);
+        }
+    }
+
+    public function cancelReservation(
+        Request $request,
+        StudentInfo $student,
+        Reservation $reservation
+    ): JsonResponse {
+        abort_unless(
+            Auth::user()?->hasPermission(
+                'manage-student-reservations'
+            ),
+            403
+        );
+
+        $validated = $request->validate([
+            'cancellation_reason' => [
+                'required',
+                'string',
+                'max:1000',
+            ],
+
+            'remove_linked_penalties' => [
+                'required',
+                'boolean',
+            ],
+        ]);
+
+        if (
+            (int) $reservation->student_info_id !==
+            (int) $student->id
+        ) {
+            return response()->json([
+                'message' =>
+                    'This reservation does not belong to the selected student.',
+            ], 404);
+        }
+
+        if ($reservation->cancelled_at !== null) {
+            return response()->json([
+                'message' =>
+                    'This reservation has already been cancelled.',
+            ], 422);
+        }
+
+        if ($reservation->is_reschedule) {
+            return response()->json([
+                'message' =>
+                    'A previously rescheduled reservation cannot be cancelled.',
+            ], 422);
+        }
+
+        $removeLinkedPenalties = (bool)
+            $validated['remove_linked_penalties'];
+
+        try {
+            $deletedPenaltyCount = DB::transaction(
+                function () use (
+                    $student,
+                    $reservation,
+                    $validated,
+                    $removeLinkedPenalties
+                ) {
+                    $lockedReservation = Reservation::query()
+                        ->whereKey($reservation->id)
+                        ->lockForUpdate()
+                        ->firstOrFail();
+
+                    if (
+                        (int) $lockedReservation->student_info_id !==
+                        (int) $student->id
+                    ) {
+                        abort(404);
+                    }
+
+                    if (
+                        $lockedReservation->cancelled_at !== null ||
+                        $lockedReservation->is_reschedule
+                    ) {
+                        abort(422, 'This reservation is no longer active.');
+                    }
+
+                    $oldValues = [
+                        'cancelled_at' => null,
+                        'cancellation_reason' =>
+                            $lockedReservation->cancellation_reason,
+                        'is_reschedule' =>
+                            (bool) $lockedReservation->is_reschedule,
+                    ];
+
+                    $linkedPenalties = Penalty::query()
+                        ->where(
+                            'reservation_id',
+                            $lockedReservation->id
+                        )
+                        ->get();
+
+                    $penaltySnapshot = $linkedPenalties
+                        ->map(fn ($penalty) => [
+                            'id' => $penalty->id,
+                            'year' => $penalty->year,
+                            'penalty_type' =>
+                                $penalty->penalty_type,
+                            'amount' =>
+                                (float) $penalty->amount,
+                        ])
+                        ->all();
+
+                    $lockedReservation->update([
+                        'cancelled_at' => now(),
+                        'cancellation_reason' =>
+                            $validated['cancellation_reason'],
+                    ]);
+
+                    $deletedCount = 0;
+
+                    if ($removeLinkedPenalties) {
+                        $deletedCount = Penalty::query()
+                            ->where(
+                                'reservation_id',
+                                $lockedReservation->id
+                            )
+                            ->delete();
+                    }
+
+                    $adminName =
+                        Auth::user()?->name ?? 'Unknown admin';
+
+                    AuditLogger::record(
+                        module: 'student_reservations',
+                        action: 'reservation_cancelled',
+                        description:
+                            "{$adminName} cancelled pictorial reservation ".
+                            "#{$lockedReservation->id} for ".
+                            "{$student->formatted_full_name} ".
+                            "({$student->university_id}).",
+                        model: $lockedReservation,
+                        oldValues: [
+                            ...$oldValues,
+                            'linked_penalties' => $penaltySnapshot,
+                        ],
+                        newValues: [
+                            'cancelled_at' =>
+                                $lockedReservation
+                                    ->cancelled_at
+                                    ?->toDateTimeString(),
+                            'cancellation_reason' =>
+                                $lockedReservation
+                                    ->cancellation_reason,
+                            'remove_linked_penalties' =>
+                                $removeLinkedPenalties,
+                            'deleted_penalty_count' =>
+                                $deletedCount,
+                        ]
+                    );
+
+                    return $deletedCount;
+                }
+            );
+
+            return response()->json([
+                'message' =>
+                    'Reservation cancelled successfully.',
+
+                'data' => [
+                    'reservation_id' => $reservation->id,
+                    'removed_linked_penalties' =>
+                        $removeLinkedPenalties,
+                    'deleted_penalty_count' =>
+                        $deletedPenaltyCount,
+                ],
+            ]);
+        } catch (Throwable $exception) {
+            if (
+                $exception instanceof
+                \Symfony\Component\HttpKernel\Exception\HttpExceptionInterface
+            ) {
+                throw $exception;
+            }
+
+            report($exception);
+
+            return response()->json([
+                'message' =>
+                    'Unable to cancel the reservation.',
             ], 500);
         }
     }

@@ -69,6 +69,7 @@ interface Summary {
 interface Props {
     activeYear: ActiveYear | null;
     canManage: boolean;
+    canCancelReservations: boolean;
 }
 
 interface AttendanceScheduleGroup {
@@ -113,7 +114,21 @@ const arrivalModalOpen = ref(false);
 const selectedReservation =
     ref<AttendanceReservation | null>(null);
 
+
+
 const arrivalTime = ref('');
+
+
+const cancelModalOpen = ref(false);
+
+const cancellationReservation =
+    ref<AttendanceReservation | null>(null);
+
+const cancellationReason = ref('');
+const removeLinkedPenalties = ref(false);
+
+const cancellingReservation = ref(false);
+const cancellationError = ref<string | null>(null);
 
 const currentPage = ref(1);
 const groupsPerPage = 4;
@@ -549,6 +564,128 @@ const revertAttendance = async (
         reservation,
         'revert',
     );
+};
+
+const openCancelModal = (
+    reservation: AttendanceReservation,
+): void => {
+    cancellationReservation.value = reservation;
+    cancellationReason.value = '';
+    removeLinkedPenalties.value = false;
+    cancellationError.value = null;
+
+    cancelModalOpen.value = true;
+};
+
+const closeCancelModal = (): void => {
+    if (cancellingReservation.value) {
+        return;
+    }
+
+    cancelModalOpen.value = false;
+    cancellationReservation.value = null;
+    cancellationReason.value = '';
+    removeLinkedPenalties.value = false;
+    cancellationError.value = null;
+};
+
+const confirmCancellation = async (): Promise<void> => {
+    if (
+        !cancellationReservation.value ||
+        !cancellationReservation.value.student.id
+    ) {
+        cancellationError.value =
+            'Unable to identify the selected reservation.';
+        return;
+    }
+
+    const reason = cancellationReason.value.trim();
+
+    if (!reason) {
+        cancellationError.value =
+            'Please provide a reason for cancellation.';
+        return;
+    }
+
+    const reservation = cancellationReservation.value;
+
+    if (removeLinkedPenalties.value) {
+        const confirmed = window.confirm(
+            'This will permanently delete penalties linked to this reservation. Continue?',
+        );
+
+        if (!confirmed) {
+            return;
+        }
+    }
+
+    cancellingReservation.value = true;
+    cancellationError.value = null;
+
+    try {
+        const csrfToken = document
+            .querySelector<HTMLMetaElement>(
+                'meta[name="csrf-token"]',
+            )
+            ?.getAttribute('content');
+
+        const response = await fetch(
+            `/student-accounts/${reservation.student.id}/reservations/${reservation.id}/cancel`,
+            {
+                method: 'PATCH',
+
+                headers: {
+                    Accept: 'application/json',
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': csrfToken ?? '',
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+
+                credentials: 'same-origin',
+
+                body: JSON.stringify({
+                    cancellation_reason: reason,
+                    remove_linked_penalties:
+                        removeLinkedPenalties.value,
+                }),
+            },
+        );
+
+        const contentType =
+            response.headers.get('content-type');
+
+        if (!contentType?.includes('application/json')) {
+            throw new Error(
+                `Server returned an unexpected response (${response.status}).`,
+            );
+        }
+
+        const result = await response.json();
+
+        if (!response.ok) {
+            throw new Error(
+                result.message ??
+                    'Unable to cancel the reservation.',
+            );
+        }
+
+        cancellingReservation.value = false;
+        closeCancelModal();
+
+        showSuccess(
+            result.message ??
+                'Reservation cancelled successfully.',
+        );
+
+        await loadReservations(false);
+    } catch (error) {
+        cancellationError.value =
+            error instanceof Error
+                ? error.message
+                : 'Unable to cancel the reservation.';
+    } finally {
+        cancellingReservation.value = false;
+    }
 };
 
 const statusLabel = (
@@ -1100,11 +1237,12 @@ watch(
                             </div>
 
                             <div
-                                v-if="canManage"
+                                v-if="canManage || canCancelReservations"
                                 class="attendance-actions"
                             >
                                 <template
                                     v-if="
+                                        canManage &&
                                         reservation.attendance.status ===
                                         'pending'
                                     "
@@ -1138,7 +1276,7 @@ watch(
                                     </button>
                                 </template>
 
-                                <template v-else>
+                                <template v-else-if="canManage">
                                     <button
                                         type="button"
                                         class="btn btn-light border attendance-action-button"
@@ -1167,6 +1305,17 @@ watch(
                                         Revert
                                     </button>
                                 </template>
+
+                                <button
+                                    v-if="canCancelReservations"
+                                    type="button"
+                                    class="btn btn-outline-danger attendance-action-button"
+                                    :disabled="submitting"
+                                    @click="openCancelModal(reservation)"
+                                >
+                                    <i class="bi bi-calendar-x me-1"></i>
+                                    Cancel Reservation
+                                </button>
                             </div>
                         </article>
                     </div>
@@ -1331,6 +1480,149 @@ watch(
             v-if="arrivalModalOpen"
             class="modal-backdrop fade show"
         ></div>
+
+        <!-- Cancel Reservation Modal -->
+        <div
+            v-if="cancelModalOpen"
+            class="modal fade show d-block"
+            tabindex="-1"
+            role="dialog"
+            aria-modal="true"
+        >
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <div>
+                            <h5 class="modal-title">
+                                Cancel Reservation
+                            </h5>
+
+                            <div
+                                v-if="cancellationReservation"
+                                class="text-muted small mt-1"
+                            >
+                                {{
+                                    cancellationReservation.student.name
+                                }}
+                                ·
+                                {{
+                                    cancellationReservation.schedule.time_label
+                                }}
+                            </div>
+                        </div>
+
+                        <button
+                            type="button"
+                            class="btn-close"
+                            :disabled="cancellingReservation"
+                            @click="closeCancelModal"
+                        ></button>
+                    </div>
+
+                    <div class="modal-body">
+                        <div
+                            v-if="cancellationError"
+                            class="cyb-notice cyb-notice-danger rounded-3 mb-3"
+                        >
+                            <i class="bi bi-exclamation-circle"></i>
+                            <div>
+                                {{ cancellationError }}
+                            </div>
+                        </div>
+
+                        <p class="text-muted small">
+                            This reservation will be cancelled and
+                            removed from active attendance lists.
+                            Its historical record will be preserved.
+                        </p>
+
+                        <label
+                            for="cancellation-reason"
+                            class="cyb-form-label"
+                        >
+                            Cancellation Reason
+                            <span class="text-danger">*</span>
+                        </label>
+
+                        <textarea
+                            id="cancellation-reason"
+                            v-model="cancellationReason"
+                            class="form-control cyb-form-control"
+                            rows="3"
+                            maxlength="1000"
+                            placeholder="Enter the reason for cancelling this reservation..."
+                            :disabled="cancellingReservation"
+                        ></textarea>
+
+                        <div class="border rounded-3 p-3 mt-3">
+                            <div class="form-check">
+                                <input
+                                    id="remove-linked-penalties"
+                                    v-model="removeLinkedPenalties"
+                                    type="checkbox"
+                                    class="form-check-input"
+                                    :disabled="cancellingReservation"
+                                >
+
+                                <label
+                                    for="remove-linked-penalties"
+                                    class="form-check-label fw-semibold"
+                                >
+                                    Also remove linked penalties
+                                </label>
+                            </div>
+
+                            <p class="text-muted small mb-0 mt-2">
+                                When selected, penalties linked
+                                specifically to this reservation
+                                will be permanently deleted.
+                                Other student penalties will not
+                                be affected.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="modal-footer">
+                        <button
+                            type="button"
+                            class="btn btn-light border"
+                            :disabled="cancellingReservation"
+                            @click="closeCancelModal"
+                        >
+                            Keep Reservation
+                        </button>
+
+                        <button
+                            type="button"
+                            class="btn btn-danger"
+                            :disabled="
+                                cancellingReservation ||
+                                !cancellationReason.trim()
+                            "
+                            @click="confirmCancellation"
+                        >
+                            <span
+                                v-if="cancellingReservation"
+                                class="spinner-border spinner-border-sm me-2"
+                            ></span>
+
+                            {{
+                                cancellingReservation
+                                    ? 'Cancelling...'
+                                    : 'Confirm Cancellation'
+                            }}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div
+            v-if="cancelModalOpen"
+            class="modal-backdrop fade show"
+        ></div>
+
+
     </div>
 </template>
 

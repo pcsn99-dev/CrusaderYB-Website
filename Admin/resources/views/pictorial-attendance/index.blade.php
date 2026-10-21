@@ -22,6 +22,7 @@
             id="pictorial-attendance-app"
             data-active-year='@json($activeYear)'
             data-can-manage="{{ $canManage ? 'true' : 'false' }}"
+            data-can-cancel-reservations="{{ $canCancelReservations ? 'true' : 'false' }}"
         ></div>
 
         @push('scripts')

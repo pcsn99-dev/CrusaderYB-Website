@@ -1485,23 +1485,25 @@ onMounted(() => {
                                                 Delayed Pictorial
                                             </div>
 
-                                            <div class="cyb-table-secondary">
-                                                {{
+                                            <div
+                                                class="cyb-table-secondary"
+                                                :title="
                                                     pictorial.allowed_colleges
-                                                        .map(
-                                                            (college) =>
-                                                                college.college_name,
-                                                        )
-                                                        .join(', ') ||
-                                                    'No colleges selected'
+                                                        .map(college => college.college_name)
+                                                        .join(', ')
+                                                "
+                                            >
+                                                {{
+                                                    pictorial.allowed_colleges.length === colleges.length
+                                                        ? 'All Colleges'
+                                                        : `${pictorial.allowed_colleges.length} selected colleges`
                                                 }}
                                             </div>
                                         </template>
 
                                         <template v-else>
                                             {{
-                                                pictorial.college
-                                                    ?.college_name ?? '—'
+                                                pictorial.college?.college_name ?? '—'
                                             }}
                                         </template>
                                     </td>

@@ -105,19 +105,23 @@ class PictorialAttendanceService
     public function syncAttendancePenalty(
         Reservation $reservation
     ): ?Penalty {
-        /*
-         * Remove any existing automatic attendance penalty first.
-         *
-         * This prevents duplicates and also lets corrections such as
-         * Absent -> Present automatically replace the old penalty.
-         */
+
+        $reservation->loadMissing(
+            'pictorial'
+        );
+
+        if (!$reservation->pictorial) {
+            throw new \RuntimeException(
+                'Reservation does not have a pictorial schedule.'
+            );
+        }
+
+
         $this->removeAttendancePenalty(
             $reservation
         );
 
-        /*
-         * Pending attendance should never have an attendance penalty.
-         */
+ 
         if ($reservation->isPendingAttendance()) {
             return null;
         }
@@ -138,6 +142,12 @@ class PictorialAttendanceService
 
                 'amount' =>
                     $this->calculateAbsentPenalty(),
+
+                'year' =>
+                    $reservation
+                        ->pictorial
+                        ->year,
+
             ]);
         }
 
@@ -177,6 +187,11 @@ class PictorialAttendanceService
                 self::PENALTY_TYPE_LATE,
 
             'amount' => $amount,
+
+            'year' =>
+                $reservation
+                    ->pictorial
+                    ->year,
         ]);
     }
 

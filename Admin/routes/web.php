@@ -139,6 +139,14 @@ Route::middleware(['auth', 'force.password.change', 'admin.account'])->group(fun
         ->name('student-accounts.reservation.store');
 
     Route::patch(
+        '/student-accounts/{student}/reservations/{reservation}/cancel',
+        [StudentAccountController::class, 'cancelReservation']
+    )
+        ->middleware('permission:manage-student-reservations')
+        ->name('student-accounts.reservations.cancel');
+
+
+    Route::patch(
         '/student-accounts/{student}/subscription',
         [StudentAccountController::class, 'updateSubscription']
     )

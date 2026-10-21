@@ -50,12 +50,15 @@ export interface StudentPictorial {
 
 export interface StudentReservation {
     id: number;
+    year: string | null;
     is_rescheduled: boolean;
     reschedule_date: string | null;
     is_present_date: string | null;
     attendance_status: AttendanceStatus;
     created_at: string | null;
     pictorial: StudentPictorial | null;
+    cancelled_at: string | null;
+    cancellation_reason: string | null;
 }
 
 export interface AvailablePictorialSchedule {
@@ -156,6 +159,7 @@ export interface StudentPenaltyReservation {
 
 export interface StudentPenalty {
     id: number;
+    year: string | null;
     penalty_type: string;
     penalty_type_label: string;
     amount: number;

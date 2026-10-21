@@ -14,11 +14,7 @@ use Illuminate\View\View;
 
 class PenaltyController extends Controller
 {
-    /*
-    |--------------------------------------------------------------------------
-    | Penalty Management Page
-    |--------------------------------------------------------------------------
-    */
+
 
     public function index(): View
     {
@@ -39,11 +35,7 @@ class PenaltyController extends Controller
         ]);
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | Search / List Penalties
-    |--------------------------------------------------------------------------
-    */
+ 
 
     public function search(
         Request $request
@@ -80,11 +72,7 @@ class PenaltyController extends Controller
             ],
         ]);
 
-        /*
-        |--------------------------------------------------------------------------
-        | Base Query
-        |--------------------------------------------------------------------------
-        */
+ 
 
         $query = Penalty::query()
             ->with([
@@ -98,21 +86,12 @@ class PenaltyController extends Controller
 
                 'reservation.pictorial:id,year,date,start_time,end_time',
             ])
-            ->whereHas(
-                'studentInfo',
-                function ($studentQuery) use ($validated) {
-                    $studentQuery->where(
-                        'year',
-                        $validated['year']
-                    );
-                }
+            ->where(
+                'year',
+                $validated['year']
             );
 
-        /*
-        |--------------------------------------------------------------------------
-        | Student Search
-        |--------------------------------------------------------------------------
-        */
+
 
         $search = trim(
             $validated['q'] ?? ''
@@ -161,11 +140,7 @@ class PenaltyController extends Controller
             );
         }
 
-        /*
-        |--------------------------------------------------------------------------
-        | Penalty Type Filter
-        |--------------------------------------------------------------------------
-        */
+ 
 
         if (
             !empty(
@@ -178,20 +153,7 @@ class PenaltyController extends Controller
             );
         }
 
-        /*
-        |--------------------------------------------------------------------------
-        | Source Filter
-        |--------------------------------------------------------------------------
-        |
-        | Attendance-generated penalties have:
-        |
-        | - pictorial_late / pictorial_absent
-        | - AND a linked reservation
-        |
-        | A manually-created Late or Absent penalty has no reservation link,
-        | so it is treated as Manual / Other.
-        |
-        */
+
 
         $attendanceTypes =
             $this->attendancePenaltyTypes();
@@ -230,11 +192,7 @@ class PenaltyController extends Controller
             );
         }
 
-        /*
-        |--------------------------------------------------------------------------
-        | Totals
-        |--------------------------------------------------------------------------
-        */
+ 
 
         $totalRecords = (
             clone $query
@@ -244,11 +202,7 @@ class PenaltyController extends Controller
             clone $query
         )->sum('amount');
 
-        /*
-        |--------------------------------------------------------------------------
-        | Pagination
-        |--------------------------------------------------------------------------
-        */
+
 
         $perPage =
             $validated['per_page'] ?? 25;
@@ -257,11 +211,7 @@ class PenaltyController extends Controller
             ->orderByDesc('id')
             ->paginate($perPage);
 
-        /*
-        |--------------------------------------------------------------------------
-        | Format Response
-        |--------------------------------------------------------------------------
-        */
+
 
         $data = collect(
             $penalties->items()
@@ -290,6 +240,8 @@ class PenaltyController extends Controller
                     return [
                         'id' =>
                             $penalty->id,
+
+                        'year' => $penalty->year,
 
                         'penalty_type' =>
                             $penalty->penalty_type,
@@ -384,21 +336,12 @@ class PenaltyController extends Controller
             )
             ->values();
 
-        /*
-        |--------------------------------------------------------------------------
-        | Available Penalty Types
-        |--------------------------------------------------------------------------
-        */
+
 
         $penaltyTypes = Penalty::query()
-            ->whereHas(
-                'studentInfo',
-                function ($studentQuery) use ($validated) {
-                    $studentQuery->where(
-                        'year',
-                        $validated['year']
-                    );
-                }
+            ->where(
+                'year',
+                $validated['year']
             )
             ->whereNotNull(
                 'penalty_type'
@@ -476,16 +419,7 @@ class PenaltyController extends Controller
         ]);
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | Student Search
-    |--------------------------------------------------------------------------
-    |
-    | Used by the Add Penalty modal.
-    |
-    | Only students belonging to the selected CYB year are returned.
-    |
-    */
+
 
     public function students(
         Request $request
@@ -605,33 +539,7 @@ class PenaltyController extends Controller
         ]);
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | Create Penalty
-    |--------------------------------------------------------------------------
-    |
-    | Manual penalty creation currently supports:
-    |
-    | pictorial_late_minor
-    |     -> pictorial_late
-    |     -> PHP 150
-    |
-    | pictorial_late_severe
-    |     -> pictorial_late
-    |     -> PHP 500
-    |
-    | pictorial_absent
-    |     -> pictorial_absent
-    |     -> PHP 500
-    |
-    | pictorial_unauthorized_photo
-    |     -> pictorial_unauthorized_photo
-    |     -> PHP 500
-    |
-    | The frontend does NOT determine the final amount. The backend maps
-    | the selected option to its official amount to prevent tampering.
-    |
-    */
+
 
     public function store(
         Request $request
@@ -668,12 +576,7 @@ class PenaltyController extends Controller
             ],
         ]);
 
-        /*
-        |--------------------------------------------------------------------------
-        | Verify Student Belongs To Selected Year
-        |--------------------------------------------------------------------------
-        */
-
+   
         $student = StudentInfo::query()
             ->with([
                 'college:id,college_name',
@@ -696,31 +599,12 @@ class PenaltyController extends Controller
             ], 422);
         }
 
-        /*
-        |--------------------------------------------------------------------------
-        | Resolve Official Penalty Rule
-        |--------------------------------------------------------------------------
-        */
 
         $option =
             $penaltyOptions[
                 $validated['penalty_code']
             ];
 
-        /*
-        |--------------------------------------------------------------------------
-        | Create Penalty
-        |--------------------------------------------------------------------------
-        |
-        | Manual penalties intentionally have no reservation_id.
-        |
-        | We also intentionally do not touch:
-        |
-        | - is_paid
-        | - status
-        | - receipt_id
-        |
-        */
 
         $penalty = Penalty::create([
             'student_info_id' =>
@@ -734,13 +618,11 @@ class PenaltyController extends Controller
 
             'amount' =>
                 $option['amount'],
+
+            'year' => $validated['year'],
         ]);
 
-        /*
-        |--------------------------------------------------------------------------
-        | Audit
-        |--------------------------------------------------------------------------
-        */
+    
 
         AuditLogger::record(
             'penalties',
@@ -853,11 +735,6 @@ class PenaltyController extends Controller
     }
 
 
-    /*
-    |--------------------------------------------------------------------------
-    | Delete Penalty
-    |--------------------------------------------------------------------------
-    */
 
     public function destroy(
         Penalty $penalty
@@ -947,11 +824,7 @@ class PenaltyController extends Controller
     }
 
 
-    /*
-    |--------------------------------------------------------------------------
-    | Helpers
-    |--------------------------------------------------------------------------
-    */
+
 
     private function attendancePenaltyTypes(): array
     {
@@ -962,13 +835,7 @@ class PenaltyController extends Controller
         ];
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | Manual Penalty Catalog
-    |--------------------------------------------------------------------------
-    |
-    |
-    */
+
 
     private function manualPenaltyOptions(): array
     {

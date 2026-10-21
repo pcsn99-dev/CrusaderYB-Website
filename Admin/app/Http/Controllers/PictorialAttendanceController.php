@@ -20,11 +20,20 @@ class PictorialAttendanceController extends Controller
     {
         $activeYear = Year::active()->first();
 
+        $user = auth()->user();
+
         return view('pictorial-attendance.index', [
             'activeYear' => $activeYear,
-            'canManage' => auth()
-                ->user()
-                ?->hasPermission('manage-pictorial-attendance') ?? false,
+
+            'canManage' =>
+                $user?->hasPermission(
+                    'manage-pictorial-attendance'
+                ) ?? false,
+
+            'canCancelReservations' =>
+                $user?->hasPermission(
+                    'manage-student-reservations'
+                ) ?? false,
         ]);
     }
 
@@ -340,11 +349,7 @@ class PictorialAttendanceController extends Controller
             403
         );
 
-        /*
-        |--------------------------------------------------------------------------
-        | Make sure this reservation is still applicable
-        |--------------------------------------------------------------------------
-        */
+
 
         if (
             $reservation->cancelled_at !== null ||
@@ -660,4 +665,6 @@ class PictorialAttendanceController extends Controller
             ],
         ]);
     }
+
+    
 }

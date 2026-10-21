@@ -16,8 +16,8 @@ class Penalty extends Model
         'penalty_type',
         'reservation_id',
         'amount',
+        'year',
 
-        // Legacy fields kept for backward compatibility.
         'is_paid',
         'status',
         'receipt_id',

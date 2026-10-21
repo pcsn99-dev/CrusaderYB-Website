@@ -13,8 +13,12 @@ if (element) {
     const canManage =
         element.dataset.canManage === 'true';
 
+    const canCancelReservations =
+    element.dataset.canCancelReservations === 'true';
+
     createApp(PictorialAttendance, {
         activeYear,
         canManage,
+        canCancelReservations,
     }).mount(element);
 }

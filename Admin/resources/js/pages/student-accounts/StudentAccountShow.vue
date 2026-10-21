@@ -25,6 +25,16 @@ const studentData = ref<StudentAccountDetail>({
     ...props.student,
 });
 
+const hasCurrentReservation = computed(() => {
+    return studentData.value.reservations.some(
+        (reservation) =>
+            !reservation.cancelled_at &&
+            !reservation.is_rescheduled &&
+            reservation.year ===
+                studentData.value.graduation_year,
+    );
+});
+
 const isUpdatingSubscription = ref(false);
 const isUpdatingThirdParty = ref(false);
 
@@ -1157,7 +1167,7 @@ const saveReservation =
                                 <i class="bi bi-calendar-plus me-1"></i>
 
                                 {{
-                                    studentData.reservations.length > 0
+                                    hasCurrentReservation
                                         ? 'Manage Reservation'
                                         : 'Book Schedule'
                                 }}
@@ -1195,6 +1205,7 @@ const saveReservation =
                         >
                             <thead>
                                 <tr>
+                                    <th>CYB Year</th>
                                     <th>Schedule</th>
                                     <th>Reservation</th>
                                     <th>Attendance</th>
@@ -1208,6 +1219,16 @@ const saveReservation =
                                         in studentData.reservations"
                                     :key="reservation.id"
                                 >
+                                    <td>
+                                        <span class="status-pill status-info">
+                                            {{
+                                                reservation.year
+                                                    ? `CYB ${reservation.year}`
+                                                    : 'Unknown Year'
+                                            }}
+                                        </span>
+                                    </td>
+
                                     <td>
                                         <div class="schedule-date">
                                             {{
@@ -1249,19 +1270,40 @@ const saveReservation =
                                         <span
                                             class="status-pill"
                                             :class="
-                                                reservation
-                                                    .is_rescheduled
-                                                    ? 'status-neutral'
-                                                    : 'status-primary'
+                                                reservation.cancelled_at
+                                                    ? 'status-danger'
+                                                    : reservation.is_rescheduled
+                                                        ? 'status-neutral'
+                                                        : 'status-primary'
                                             "
                                         >
                                             {{
-                                                reservation
-                                                    .is_rescheduled
-                                                    ? 'Rescheduled'
-                                                    : 'Current'
+                                                reservation.cancelled_at
+                                                    ? 'Cancelled'
+                                                    : reservation.is_rescheduled
+                                                        ? 'Rescheduled'
+                                                        : 'Current'
                                             }}
                                         </span>
+
+                                        <div
+                                            v-if="reservation.cancelled_at"
+                                            class="small text-muted mt-1"
+                                        >
+                                            Cancelled:
+                                            {{ formatDate(reservation.cancelled_at) }}
+                                        </div>
+
+                                        <div
+                                            v-if="
+                                                reservation.cancelled_at &&
+                                                reservation.cancellation_reason
+                                            "
+                                            class="small text-muted mt-1"
+                                        >
+                                            Reason:
+                                            {{ reservation.cancellation_reason }}
+                                        </div>
                                     </td>
 
                                     <td>
@@ -1353,6 +1395,7 @@ const saveReservation =
                         >
                             <thead>
                                 <tr>
+                                    <th>CYB Year</th>
                                     <th>Penalty</th>
                                     <th>Source</th>
                                     <th>Related Pictorial</th>
@@ -1367,6 +1410,17 @@ const saveReservation =
                                     v-for="penalty in studentData.penalties"
                                     :key="penalty.id"
                                 >
+
+                                    <td>
+                                        <span class="status-pill status-info">
+                                            {{
+                                                penalty.year
+                                                    ? `CYB ${penalty.year}`
+                                                    : 'Unknown Year'
+                                            }}
+                                        </span>
+                                    </td>
+                        
                                     <td>
                                         <div class="penalty-name">
                                             {{

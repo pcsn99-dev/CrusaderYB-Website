@@ -124,6 +124,20 @@ Route::middleware(['auth', 'force.password.change', 'admin.account'])->group(fun
         ->middleware('permission:view-student-accounts')
         ->name('student-accounts.show');
 
+    Route::get(
+        '/student-accounts/{student}/available-pictorials',
+        [StudentAccountController::class, 'availablePictorials']
+    )
+        ->middleware('permission:manage-student-reservations')
+        ->name('student-accounts.available-pictorials');
+
+    Route::post(
+        '/student-accounts/{student}/reservation',
+        [StudentAccountController::class, 'storeReservation']
+    )
+        ->middleware('permission:manage-student-reservations')
+        ->name('student-accounts.reservation.store');
+
     Route::patch(
         '/student-accounts/{student}/subscription',
         [StudentAccountController::class, 'updateSubscription']

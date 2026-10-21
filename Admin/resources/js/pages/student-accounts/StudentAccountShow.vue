@@ -1,8 +1,17 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+
+import {
+    computed,
+    ref,
+} from 'vue';
 
 import type {
     AttendanceStatus,
+    AvailablePictorialSchedule,
+    CurrentStudentReservation,
+    ReservationAvailabilityResponse,
+    ReschedulePenaltyPreview,
+    StoreStudentReservationResponse,
     StudentAccountDetail,
 } from '@/types/student-account';
 
@@ -19,8 +28,40 @@ const studentData = ref<StudentAccountDetail>({
 const isUpdatingSubscription = ref(false);
 const isUpdatingThirdParty = ref(false);
 
+const reservationModalOpen = ref(false);
+
+const isLoadingSchedules = ref(false);
+const isSavingReservation = ref(false);
+
+const availableSchedules =
+    ref<AvailablePictorialSchedule[]>([]);
+
+const currentReservation =
+    ref<CurrentStudentReservation | null>(null);
+
+const reschedulePenalty =
+    ref<ReschedulePenaltyPreview | null>(null);
+
+const selectedPictorialId =
+    ref<number | null>(null);
+
+const waivePenalty = ref(false);
+
+const reservationError =
+    ref<string | null>(null);
+
 const actionMessage = ref<string | null>(null);
 const actionError = ref<string | null>(null);
+
+const selectedSchedule = computed(() => {
+    return (
+        availableSchedules.value.find(
+            (schedule) =>
+                schedule.id ===
+                selectedPictorialId.value,
+        ) ?? null
+    );
+});
 
 const formatDate = (
     value: string | null | undefined,
@@ -91,6 +132,45 @@ const formatAmount = (
             currency: 'PHP',
         },
     ).format(amount);
+};
+
+let actionMessageTimer: number | null = null;
+let actionErrorTimer: number | null = null;
+
+const showActionMessage = (
+    message: string,
+): void => {
+    actionMessage.value = message;
+
+    if (actionMessageTimer !== null) {
+        window.clearTimeout(
+            actionMessageTimer,
+        );
+    }
+
+    actionMessageTimer =
+        window.setTimeout(() => {
+            actionMessage.value = null;
+            actionMessageTimer = null;
+        }, 4000);
+};
+
+const showActionError = (
+    message: string,
+): void => {
+    actionError.value = message;
+
+    if (actionErrorTimer !== null) {
+        window.clearTimeout(
+            actionErrorTimer,
+        );
+    }
+
+    actionErrorTimer =
+        window.setTimeout(() => {
+            actionError.value = null;
+            actionErrorTimer = null;
+        }, 5000);
 };
 
 
@@ -305,10 +385,225 @@ const updateThirdParty = async (
         isUpdatingThirdParty.value = false;
     }
 };
+
+
+const resetReservationModal = (): void => {
+    availableSchedules.value = [];
+    currentReservation.value = null;
+    reschedulePenalty.value = null;
+
+    selectedPictorialId.value = null;
+    waivePenalty.value = false;
+
+    reservationError.value = null;
+};
+
+const openReservationModal =
+    async (): Promise<void> => {
+        resetReservationModal();
+
+        reservationModalOpen.value = true;
+        isLoadingSchedules.value = true;
+
+        try {
+            const response = await fetch(
+                `/student-accounts/${studentData.value.id}/available-pictorials`,
+                {
+                    headers: {
+                        Accept: 'application/json',
+                        'X-Requested-With':
+                            'XMLHttpRequest',
+                    },
+                },
+            );
+
+            const result =
+                await readJsonResponse(
+                    response,
+                ) as ReservationAvailabilityResponse;
+
+            if (!response.ok) {
+                throw new Error(
+                    (result as any).message ??
+                        'Unable to load pictorial schedules.',
+                );
+            }
+
+            availableSchedules.value =
+                result.data.schedules ?? [];
+
+            currentReservation.value =
+                result.data.current_reservation;
+
+            reschedulePenalty.value =
+                result.data.reschedule_penalty;
+        } catch (error) {
+            reservationError.value =
+                error instanceof Error
+                    ? error.message
+                    : 'Unable to load pictorial schedules.';
+        } finally {
+            isLoadingSchedules.value =
+                false;
+        }
+    };
+
+const closeReservationModal =
+    (): void => {
+        if (isSavingReservation.value) {
+            return;
+        }
+
+        reservationModalOpen.value = false;
+
+        resetReservationModal();
+    };
+
+const saveReservation =
+    async (): Promise<void> => {
+        if (!selectedPictorialId.value) {
+            reservationError.value =
+                'Select a pictorial schedule.';
+            return;
+        }
+
+        reservationError.value = null;
+        isSavingReservation.value = true;
+
+        try {
+            const response = await fetch(
+                `/student-accounts/${studentData.value.id}/reservation`,
+                {
+                    method: 'POST',
+
+                    headers: {
+                        Accept: 'application/json',
+                        'Content-Type':
+                            'application/json',
+                        'X-CSRF-TOKEN':
+                            getCsrfToken(),
+                        'X-Requested-With':
+                            'XMLHttpRequest',
+                    },
+
+                    body: JSON.stringify({
+                        pictorial_id:
+                            selectedPictorialId.value,
+
+                        waive_penalty:
+                            waivePenalty.value,
+                    }),
+                },
+            );
+
+            const result =
+                await readJsonResponse(
+                    response,
+                ) as StoreStudentReservationResponse;
+
+            if (!response.ok) {
+                throw new Error(
+                    (result as any).message ??
+                        'Unable to save reservation.',
+                );
+            }
+
+            actionError.value = null;
+
+            showActionMessage(
+                result.message ??
+                    'Reservation saved successfully.',
+            );
+
+            reservationModalOpen.value =
+                false;
+
+            resetReservationModal();
+
+            //reload the page after a short delay to reflect the updated reservation
+            window.setTimeout(() => {
+                window.location.reload();
+            }, 700);
+        } catch (error) {
+            const message =
+                error instanceof Error
+                    ? error.message
+                    : 'Unable to save reservation.';
+
+            reservationError.value = message;
+
+            showActionError(message);
+        } finally {
+            isSavingReservation.value =
+                false;
+        }
+    };
+
+
+
+
+
 </script>
 
 <template>
     <div class="student-module container-fluid px-0">
+
+        <div
+            v-if="actionMessage"
+            class="student-toast student-toast-success"
+            role="status"
+        >
+            <div class="student-toast-icon">
+                <i class="bi bi-check-lg"></i>
+            </div>
+
+            <div class="flex-grow-1">
+                <div class="fw-semibold">
+                    Success
+                </div>
+
+                <div class="student-toast-message">
+                    {{ actionMessage }}
+                </div>
+            </div>
+
+            <button
+                type="button"
+                class="btn-close"
+                aria-label="Dismiss"
+                @click="actionMessage = null"
+            ></button>
+        </div>
+
+        <div
+            v-if="actionError"
+            class="student-toast student-toast-error"
+            role="alert"
+        >
+            <div class="student-toast-icon">
+                <i class="bi bi-exclamation-lg"></i>
+            </div>
+
+            <div class="flex-grow-1">
+                <div class="fw-semibold">
+                    Error
+                </div>
+
+                <div class="student-toast-message">
+                    {{ actionError }}
+                </div>
+            </div>
+
+            <button
+                type="button"
+                class="btn-close"
+                aria-label="Dismiss"
+                @click="actionError = null"
+            ></button>
+        </div>
+
+
+
         <div class="detail-header mb-4">
             <a
                 href="/student-accounts"
@@ -390,21 +685,7 @@ const updateThirdParty = async (
             </div>
         </div>
 
-        <div
-            v-if="actionMessage"
-            class="alert alert-success"
-        >
-            <i class="bi bi-check-circle me-2"></i>
-            {{ actionMessage }}
-        </div>
 
-        <div
-            v-if="actionError"
-            class="alert alert-danger"
-        >
-            <i class="bi bi-exclamation-circle me-2"></i>
-            {{ actionError }}
-        </div>
 
         <div class="row g-4">
             <div class="col-12 col-xl-7">
@@ -854,13 +1135,33 @@ const updateThirdParty = async (
                             </p>
                         </div>
 
-                        <div class="record-count">
-                            {{ studentData.reservations.length }}
-                            record{{
-                                studentData.reservations.length === 1
-                                    ? ''
-                                    : 's'
-                            }}
+                        <div class="reservation-header-actions">
+                            <div class="record-count">
+                                {{ studentData.reservations.length }}
+                                record{{
+                                    studentData.reservations.length === 1
+                                        ? ''
+                                        : 's'
+                                }}
+                            </div>
+
+                            <button
+                                v-if="
+                                    studentData.permissions
+                                        .manage_reservations
+                                "
+                                type="button"
+                                class="btn btn-primary btn-sm"
+                                @click="openReservationModal"
+                            >
+                                <i class="bi bi-calendar-plus me-1"></i>
+
+                                {{
+                                    studentData.reservations.length > 0
+                                        ? 'Manage Reservation'
+                                        : 'Book Schedule'
+                                }}
+                            </button>
                         </div>
                     </div>
 
@@ -1145,6 +1446,523 @@ const updateThirdParty = async (
 
 
         </div>
+
+        <!-- Reservation Modal -->
+        <div
+            v-if="reservationModalOpen"
+            class="modal fade show d-block"
+            tabindex="-1"
+            role="dialog"
+            aria-modal="true"
+        >
+            <div
+                class="modal-dialog
+                    modal-dialog-centered
+                    modal-lg
+                    modal-dialog-scrollable"
+            >
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <div>
+                            <h5 class="modal-title">
+                                {{
+                                    currentReservation
+                                        ? 'Reschedule Pictorial'
+                                        : 'Book Pictorial Schedule'
+                                }}
+                            </h5>
+
+                            <div class="text-muted small mt-1">
+                                {{ studentData.full_name }}
+                                · CYB
+                                {{ studentData.graduation_year }}
+                            </div>
+                        </div>
+
+                        <button
+                            type="button"
+                            class="btn-close"
+                            :disabled="isSavingReservation"
+                            @click="closeReservationModal"
+                        ></button>
+                    </div>
+
+                    <div class="modal-body">
+                        <div
+                            v-if="reservationError"
+                            class="cyb-notice
+                                cyb-notice-danger
+                                rounded-3
+                                mb-3"
+                        >
+                            <i class="bi bi-exclamation-circle"></i>
+
+                            <div>
+                                {{ reservationError }}
+                            </div>
+                        </div>
+
+                        <!-- Loading -->
+                        <div
+                            v-if="isLoadingSchedules"
+                            class="reservation-loading"
+                        >
+                            <div
+                                class="spinner-border"
+                                role="status"
+                            ></div>
+
+                            <div class="mt-3 text-muted">
+                                Loading available schedules...
+                            </div>
+                        </div>
+
+                        <template v-else>
+                            <!-- Existing Reservation -->
+                            <div
+                                v-if="currentReservation"
+                                class="current-reservation-panel"
+                            >
+                                <div class="current-reservation-icon">
+                                    <i class="bi bi-calendar-check"></i>
+                                </div>
+
+                                <div>
+                                    <div class="reservation-panel-label">
+                                        Current Reservation
+                                    </div>
+
+                                    <strong>
+                                        {{
+                                            currentReservation.date_label
+                                            ?? '—'
+                                        }}
+                                    </strong>
+
+                                    <div class="text-muted small mt-1">
+                                        {{
+                                            currentReservation.time_label
+                                            ?? '—'
+                                        }}
+                                    </div>
+                                </div>
+                            </div>
+
+                          
+                            <!-- Penalty Preview -->
+                            <div
+                                v-if="
+                                    (currentReservation && reschedulePenalty) ||
+                                    (selectedSchedule?.is_delayed &&
+                                    selectedSchedule.delayed_penalty)
+                                "
+                                class="penalty-preview-section"
+                            >
+                                <div class="penalty-preview-heading">
+                                    <div>
+                                        <div class="penalty-preview-title">
+                                            Penalties
+                                        </div>
+
+                                        <div class="penalty-preview-subtitle">
+                                            Review the charges that will be applied to this reservation.
+                                        </div>
+                                    </div>
+
+                                    <i class="bi bi-exclamation-triangle"></i>
+                                </div>
+
+                                <div class="penalty-preview-list">
+                                    <!-- Rescheduling Penalty -->
+                                    <div
+                                        v-if="
+                                            currentReservation &&
+                                            reschedulePenalty
+                                        "
+                                        class="penalty-preview-item"
+                                    >
+                                        <div class="penalty-preview-content">
+                                            <div class="penalty-preview-label">
+                                                Rescheduling Penalty
+                                            </div>
+
+                                            <strong class="penalty-preview-name">
+                                                {{
+                                                    reschedulePenalty.label
+                                                }}
+                                            </strong>
+
+                                            <div class="penalty-preview-description">
+                                                Based on
+                                                {{
+                                                    reschedulePenalty.days_before
+                                                }}
+                                                day{{
+                                                    reschedulePenalty.days_before === 1
+                                                        ? ''
+                                                        : 's'
+                                                }}
+                                                before the current pictorial schedule.
+                                            </div>
+                                        </div>
+
+                                        <div class="penalty-preview-amount">
+                                            <strong
+                                                :class="{
+                                                    'text-decoration-line-through text-muted':
+                                                        waivePenalty,
+                                                }"
+                                            >
+                                                {{
+                                                    formatAmount(
+                                                        reschedulePenalty.amount,
+                                                    )
+                                                }}
+                                            </strong>
+
+                                            <span
+                                                v-if="waivePenalty"
+                                                class="penalty-waived-label"
+                                            >
+                                                Waived
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    <!-- Delayed Schedule Penalty -->
+                                    <div
+                                        v-if="
+                                            selectedSchedule?.is_delayed &&
+                                            selectedSchedule.delayed_penalty
+                                        "
+                                        class="penalty-preview-item penalty-preview-delayed"
+                                    >
+                                        <div class="penalty-preview-content">
+                                            <div class="penalty-preview-label">
+                                                Delayed Schedule Penalty
+                                            </div>
+
+                                            <strong class="penalty-preview-name">
+                                                {{
+                                                    selectedSchedule
+                                                        .delayed_penalty
+                                                        .label
+                                                }}
+                                            </strong>
+
+                                            <div class="penalty-preview-description">
+                                                This selected schedule is marked as delayed and carries an additional fixed penalty.
+                                            </div>
+                                        </div>
+
+                                        <div class="penalty-preview-amount">
+                                            <strong>
+                                                {{
+                                                    formatAmount(
+                                                        selectedSchedule
+                                                            .delayed_penalty
+                                                            .amount,
+                                                    )
+                                                }}
+                                            </strong>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div
+                                v-if="
+                                    currentReservation &&
+                                    reschedulePenalty
+                                "
+                                class="waive-penalty-panel"
+                            >
+                                <div class="form-check">
+                                    <input
+                                        id="waive-reschedule-penalty"
+                                        v-model="waivePenalty"
+                                        class="form-check-input"
+                                        type="checkbox"
+                                    >
+
+                                    <label
+                                        class="form-check-label"
+                                        for="waive-reschedule-penalty"
+                                    >
+                                        Waive rescheduling penalty
+                                    </label>
+                                </div>
+
+                                <div class="cyb-form-help mt-1">
+                                    The reservation will still be rescheduled, but no rescheduling penalty will be created.
+                                </div>
+                            </div>
+
+                            <!-- Schedule Selection -->
+                            <div class="mt-4">
+                                <div class="reservation-section-heading">
+                                    <div>
+                                        <div class="cyb-form-label mb-1">
+                                            Select Schedule
+                                        </div>
+
+                                        <div class="cyb-form-help">
+                                            Admin booking can use any available schedule for this CYB year regardless of college assignment.
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div
+                                    v-if="
+                                        availableSchedules.length === 0
+                                    "
+                                    class="reservation-empty"
+                                >
+                                    <i class="bi bi-calendar-x"></i>
+
+                                    <strong>
+                                        No available schedules
+                                    </strong>
+
+                                    <span>
+                                        There are currently no schedules with available slots.
+                                    </span>
+                                </div>
+
+                                <div
+                                    v-else
+                                    class="schedule-selection-list"
+                                >
+                                    <button
+                                        v-for="schedule in availableSchedules"
+                                        :key="schedule.id"
+                                        type="button"
+                                        class="schedule-option"
+                                        :class="{
+                                            selected:
+                                                selectedPictorialId ===
+                                                schedule.id,
+
+                                            current:
+                                                schedule
+                                                    .is_current_reservation,
+                                        }"
+                                        :disabled="
+                                            schedule
+                                                .is_current_reservation
+                                        "
+                                        @click="
+                                            selectedPictorialId =
+                                                schedule.id
+                                        "
+                                    >
+                                        <div class="schedule-option-main">
+                                            <div class="schedule-option-date">
+                                                {{
+                                                    schedule.date_label
+                                                    ?? formatDate(
+                                                        schedule.date,
+                                                    )
+                                                }}
+                                            </div>
+
+                                            <div class="schedule-option-time">
+                                                {{
+                                                    schedule.time_label
+                                                    ?? `${formatTime(
+                                                        schedule.start_time,
+                                                    )} – ${formatTime(
+                                                        schedule.end_time,
+                                                    )}`
+                                                }}
+                                            </div>
+                                        </div>
+
+                                        <div class="schedule-option-side">
+                                            <span
+                                                v-if="
+                                                    schedule
+                                                        .is_current_reservation
+                                                "
+                                                class="status-pill status-primary"
+                                            >
+                                                Current
+                                            </span>
+
+                                            <template v-else>
+                                                <span class="schedule-slots">
+                                                    {{
+                                                        schedule.available_slots
+                                                    }}
+                                                    slot{{
+                                                        schedule.available_slots === 1
+                                                            ? ''
+                                                            : 's'
+                                                    }}
+                                                    left
+                                                </span>
+
+                                                <span
+                                                    v-if="schedule.is_delayed"
+                                                    class="delayed-schedule-badge"
+                                                >
+                                                    <i class="bi bi-exclamation-triangle me-1"></i>
+                                                    Delayed · +{{
+                                                        formatAmount(
+                                                            schedule.delayed_penalty?.amount
+                                                            ?? 300,
+                                                        )
+                                                    }}
+                                                </span>
+                                            </template>
+
+                                            <i
+                                                v-if="
+                                                    selectedPictorialId ===
+                                                    schedule.id
+                                                "
+                                                class="bi bi-check-circle-fill schedule-selected-icon"
+                                            ></i>
+                                        </div>
+
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Selection Summary -->
+                            <div
+                                v-if="selectedSchedule"
+                                class="selected-schedule-summary"
+                            >
+                                <div>
+                                    <span>
+                                        New Schedule
+                                    </span>
+
+                                    <strong>
+                                        {{
+                                            selectedSchedule.date_label
+                                        }}
+                                    </strong>
+
+                                    <div>
+                                        {{
+                                            selectedSchedule.time_label
+                                        }}
+                                    </div>
+                                </div>
+
+                                <div
+                                    v-if="
+                                        selectedSchedule.is_delayed &&
+                                        selectedSchedule.delayed_penalty
+                                    "
+                                >
+                                    <span>
+                                        Delayed Schedule Penalty
+                                    </span>
+
+                                    <strong class="text-danger">
+                                        {{
+                                            formatAmount(
+                                                selectedSchedule
+                                                    .delayed_penalty
+                                                    .amount,
+                                            )
+                                        }}
+                                    </strong>
+
+                                    <div class="text-muted">
+                                        This penalty is applied automatically.
+                                    </div>
+                                </div>
+
+
+                                <div
+                                    v-if="
+                                        currentReservation &&
+                                        reschedulePenalty
+                                    "
+                                >
+                                    <span>
+                                        Rescheduling Penalty
+                                    </span>
+
+                                    <strong
+                                        :class="{
+                                            'text-decoration-line-through':
+                                                waivePenalty,
+                                        }"
+                                    >
+                                        {{
+                                            formatAmount(
+                                                reschedulePenalty.amount,
+                                            )
+                                        }}
+                                    </strong>
+
+                                    <div
+                                        v-if="waivePenalty"
+                                        class="text-success"
+                                    >
+                                        Waived
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+
+                    <div class="modal-footer">
+                        <button
+                            type="button"
+                            class="btn btn-light border"
+                            :disabled="isSavingReservation"
+                            @click="closeReservationModal"
+                        >
+                            Cancel
+                        </button>
+
+                        <button
+                            type="button"
+                            class="btn btn-primary"
+                            :disabled="
+                                isLoadingSchedules ||
+                                isSavingReservation ||
+                                !selectedPictorialId
+                            "
+                            @click="saveReservation"
+                        >
+                            <span
+                                v-if="isSavingReservation"
+                                class="spinner-border
+                                    spinner-border-sm
+                                    me-2"
+                            ></span>
+
+                            <i
+                                v-else
+                                class="bi bi-calendar-check me-2"
+                            ></i>
+
+                            {{
+                                isSavingReservation
+                                    ? 'Saving...'
+                                    : currentReservation
+                                        ? 'Confirm Reschedule'
+                                        : 'Book Schedule'
+                            }}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div
+            v-if="reservationModalOpen"
+            class="modal-backdrop fade show"
+        ></div>
+
+
     </div>
 </template>
 
@@ -1494,6 +2312,451 @@ const updateThirdParty = async (
     font-size: 0.86rem;
 }
 
+.reservation-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.reservation-loading {
+    padding: 3rem 1rem;
+    text-align: center;
+}
+
+
+
+.current-reservation-panel {
+    justify-content: flex-start;
+}
+
+.current-reservation-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 40px;
+    height: 40px;
+
+    flex: 0 0 40px;
+
+    border-radius: 0.6rem;
+
+    background: #e8f0fe;
+    color: #315ca8;
+
+    font-size: 1.1rem;
+}
+
+.reservation-panel-label {
+    margin-bottom: 0.15rem;
+
+    color: #6c757d;
+
+    font-size: 0.74rem;
+    font-weight: 600;
+
+    text-transform: uppercase;
+}
+
+.reschedule-penalty-panel {
+    margin-top: 0.75rem;
+
+    border-color: #ffe69c;
+
+    background: #fff9e6;
+}
+
+.penalty-preview-section {
+    margin-top: 0.85rem;
+
+    overflow: hidden;
+
+    border: 1px solid #e5e7eb;
+    border-radius: 0.75rem;
+
+    background: #fff;
+}
+
+.penalty-preview-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 1rem;
+
+    padding: 0.85rem 1rem;
+
+    border-bottom: 1px solid #edf0f2;
+
+    background: #f8f9fa;
+}
+
+.penalty-preview-title {
+    color: #292d32;
+
+    font-size: 0.9rem;
+    font-weight: 650;
+}
+
+.penalty-preview-subtitle {
+    margin-top: 0.15rem;
+
+    color: #6c757d;
+
+    font-size: 0.76rem;
+}
+
+.penalty-preview-heading > i {
+    color: #d39e00;
+
+    font-size: 1.1rem;
+}
+
+.penalty-preview-list {
+    display: flex;
+    flex-direction: column;
+}
+
+.penalty-preview-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 1.5rem;
+
+    padding: 0.95rem 1rem;
+
+    border-bottom: 1px solid #edf0f2;
+}
+
+.penalty-preview-item:last-child {
+    border-bottom: 0;
+}
+
+.penalty-preview-delayed {
+    background: #fff9f9;
+}
+
+.penalty-preview-content {
+    flex: 1 1 auto;
+}
+
+.penalty-preview-label {
+    margin-bottom: 0.15rem;
+
+    color: #6c757d;
+
+    font-size: 0.7rem;
+    font-weight: 650;
+
+    letter-spacing: 0.035em;
+
+    text-transform: uppercase;
+}
+
+.penalty-preview-name {
+    display: block;
+
+    color: #292d32;
+
+    font-size: 0.9rem;
+}
+
+.penalty-preview-description {
+    margin-top: 0.2rem;
+
+    color: #6c757d;
+
+    font-size: 0.78rem;
+    line-height: 1.45;
+}
+
+.penalty-preview-amount {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+
+    flex: 0 0 auto;
+
+    gap: 0.15rem;
+}
+
+.penalty-preview-amount strong {
+    color: #b02a37;
+
+    font-size: 1.05rem;
+
+    white-space: nowrap;
+}
+
+.penalty-waived-label {
+    color: #198754;
+
+    font-size: 0.72rem;
+    font-weight: 650;
+}
+
+
+.delayed-schedule-badge {
+    display: inline-flex;
+    align-items: center;
+
+    padding: 0.25rem 0.5rem;
+
+    border-radius: 999px;
+
+    background: #fff3cd;
+    color: #856404;
+
+    font-size: 0.72rem;
+    font-weight: 650;
+
+    white-space: nowrap;
+}
+
+
+
+.waive-penalty-panel {
+    margin-top: 0.75rem;
+
+    padding: 0.85rem 1rem;
+
+    border: 1px dashed #ced4da;
+    border-radius: 0.65rem;
+
+    background: #fff;
+}
+
+.reservation-section-heading {
+    display: flex;
+    justify-content: space-between;
+
+    margin-bottom: 0.75rem;
+}
+
+.schedule-selection-list {
+    display: flex;
+    flex-direction: column;
+
+    overflow-y: auto;
+
+    max-height: 360px;
+
+    border: 1px solid #e1e5e9;
+    border-radius: 0.7rem;
+}
+
+.schedule-option {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 1rem;
+
+    width: 100%;
+
+    padding: 0.85rem 1rem;
+
+    border: 0;
+    border-bottom: 1px solid #edf0f2;
+
+    background: #fff;
+
+    text-align: left;
+
+    transition:
+        background-color 0.15s ease,
+        box-shadow 0.15s ease;
+}
+
+.schedule-option:last-child {
+    border-bottom: 0;
+}
+
+.schedule-option:hover:not(:disabled) {
+    background: #f8f9fa;
+}
+
+.schedule-option.selected {
+    background: #eef5ff;
+
+    box-shadow:
+        inset 3px 0 0 #0d6efd;
+}
+
+.schedule-option.current {
+    cursor: default;
+
+    background: #f8f9fa;
+
+    opacity: 0.8;
+}
+
+.schedule-option-date {
+    color: #292d32;
+
+    font-weight: 650;
+}
+
+.schedule-option-time {
+    margin-top: 0.15rem;
+
+    color: #6c757d;
+
+    font-size: 0.8rem;
+}
+
+.schedule-option-side {
+    display: flex;
+    align-items: center;
+
+    gap: 0.65rem;
+
+    flex: 0 0 auto;
+}
+
+.schedule-slots {
+    color: #6c757d;
+
+    font-size: 0.78rem;
+
+    white-space: nowrap;
+}
+
+.schedule-selected-icon {
+    color: #0d6efd;
+
+    font-size: 1.05rem;
+}
+
+.reservation-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+
+    gap: 0.4rem;
+
+    padding: 2.5rem 1rem;
+
+    border: 1px dashed #dee2e6;
+    border-radius: 0.7rem;
+
+    color: #6c757d;
+
+    text-align: center;
+}
+
+.reservation-empty > i {
+    margin-bottom: 0.25rem;
+
+    font-size: 1.5rem;
+}
+
+.reservation-empty strong {
+    color: #343a40;
+}
+
+.reservation-empty span {
+    font-size: 0.82rem;
+}
+
+.selected-schedule-summary {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+
+    margin-top: 1rem;
+
+    padding: 0.9rem 1rem;
+
+    border: 1px solid #b6d4fe;
+    border-radius: 0.65rem;
+
+    background: #f3f8ff;
+}
+
+.selected-schedule-summary > div {
+    display: flex;
+    flex-direction: column;
+
+    gap: 0.15rem;
+}
+
+.selected-schedule-summary span {
+    color: #6c757d;
+
+    font-size: 0.72rem;
+}
+
+.selected-schedule-summary strong {
+    color: #212529;
+}
+
+.student-toast {
+    position: fixed;
+
+    top: 1.25rem;
+    right: 1.25rem;
+
+    z-index: 1090;
+
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+
+    width: min(
+        420px,
+        calc(100vw - 2rem)
+    );
+
+    padding: 0.9rem 1rem;
+
+    border-radius: 0.75rem;
+
+    box-shadow:
+        0 0.5rem 1.25rem
+        rgba(0, 0, 0, 0.12);
+}
+
+.student-toast-success {
+    border: 1px solid #badbcc;
+
+    background: #d1e7dd;
+    color: #0f5132;
+}
+
+.student-toast-error {
+    border: 1px solid #f5c2c7;
+
+    background: #f8d7da;
+    color: #842029;
+}
+
+.student-toast-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 1.75rem;
+    height: 1.75rem;
+
+    flex: 0 0 1.75rem;
+
+    border-radius: 50%;
+
+    background: currentColor;
+}
+
+.student-toast-icon i {
+    color: #fff;
+}
+
+.student-toast-message {
+    margin-top: 0.15rem;
+
+    font-size: 0.86rem;
+}
+
 @media (max-width: 767.98px) {
     .student-title {
         font-size: 1.45rem;
@@ -1511,6 +2774,58 @@ const updateThirdParty = async (
         min-width: 620px;
     }
 
+    .reservation-header-actions {
+        align-items: flex-end;
+        flex-direction: column;
+    }
+
+    .current-reservation-panel,
+    .reschedule-penalty-panel,
+    .selected-schedule-summary {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .schedule-option {
+        align-items: flex-start;
+    }
+
+    .schedule-option-side {
+        align-items: flex-end;
+        flex-direction: column;
+    }
+
+    .reschedule-penalty-amount {
+        font-size: 1rem;
+    }    
+
+    .delayed-penalty-panel {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .delayed-penalty-amount {
+        font-size: 1rem;
+    }
+
+    .penalty-preview-item {
+        align-items: flex-start;
+        flex-direction: column;
+
+        gap: 0.6rem;
+    }
+
+    .penalty-preview-amount {
+        align-items: flex-start;
+    }
+
+    .student-toast {
+        top: 0.75rem;
+        right: 0.75rem;
+        left: 0.75rem;
+
+        width: auto;
+    }    
 
 }
 </style>

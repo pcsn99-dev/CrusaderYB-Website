@@ -5,13 +5,18 @@ namespace App\Http\Controllers;
 use App\Models\College;
 use App\Models\StudentInfo;
 use App\Support\AuditLogger;
+use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
 use Illuminate\Support\Facades\DB;
 use App\Models\Penalty;
+use App\Models\Pictorial;
 use App\Services\PictorialAttendanceService;
+use App\Models\Reservation;
+use Illuminate\Validation\Rule;
+
 use Throwable;
 
 class StudentAccountController extends Controller
@@ -433,6 +438,11 @@ class StudentAccountController extends Controller
                         ?->hasPermission(
                             'manage-third-party-status'
                         ) ?? false,
+                'manage_reservations' =>
+                    Auth::user()
+                        ?->hasPermission(
+                            'manage-student-reservations'
+                        ) ?? false,
             ],
         ];
 
@@ -443,6 +453,663 @@ class StudentAccountController extends Controller
                     $studentData,
             ]
         );
+    }
+
+
+    public function availablePictorials(
+        StudentInfo $student
+    ): JsonResponse {
+        if (!$student->year) {
+            return response()->json([
+                'message' =>
+                    'This student does not have a CYB year assigned.',
+            ], 422);
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Current Reservation
+        |--------------------------------------------------------------------------
+        */
+
+        $currentReservation =
+            Reservation::query()
+                ->with('pictorial')
+                ->where(
+                    'student_info_id',
+                    $student->id
+                )
+                ->whereNull(
+                    'cancelled_at'
+                )
+                ->where(
+                    'is_reschedule',
+                    false
+                )
+                ->latest('id')
+                ->first();
+
+
+        $pictorials = Pictorial::query()
+            ->where(
+                'year',
+                $student->year
+            )
+            ->whereDate(
+                'date',
+                '>=',
+                now()->toDateString()
+            )
+            ->orderBy('date')
+            ->orderBy('start_time')
+            ->get()
+            ->map(function (
+                Pictorial $pictorial
+            ) use ($currentReservation) {
+                $reservedSlots =
+                    Reservation::query()
+                        ->where(
+                            'pictorial_id',
+                            $pictorial->id
+                        )
+                        ->whereNull(
+                            'cancelled_at'
+                        )
+                        ->where(
+                            'is_reschedule',
+                            false
+                        )
+                        ->count();
+
+                $availableSlots =
+                    max(
+                        0,
+                        $pictorial->no_of_slots -
+                        $reservedSlots
+                    );
+
+                return [
+                    'id' =>
+                        $pictorial->id,
+
+                    'date' =>
+                        $pictorial
+                            ->date
+                            ?->format('Y-m-d'),
+
+                    'date_label' =>
+                        $pictorial
+                            ->date
+                            ?->format('M d, Y'),
+
+                    'start_time' =>
+                        $pictorial
+                            ->start_time,
+
+                    'end_time' =>
+                        $pictorial
+                            ->end_time,
+
+                    'time_label' =>
+                        $pictorial
+                            ->getPictorialTime(),
+
+                    'no_of_slots' =>
+                        (int)
+                        $pictorial
+                            ->no_of_slots,
+
+                    'reserved_slots' =>
+                        $reservedSlots,
+
+                    'available_slots' =>
+                        $availableSlots,
+
+                    'is_available' =>
+                        $availableSlots > 0,
+
+                    'is_delayed' =>
+                        (bool)
+                        $pictorial
+                            ->is_delayed,
+
+                    'delayed_penalty' =>
+                        $pictorial->is_delayed
+                            ? $this->delayedPictorialPenalty()
+                            : null,                            
+
+                    'is_current_reservation' =>
+                        $currentReservation
+                            ?->pictorial_id ===
+                        $pictorial->id,
+                ];
+            })
+            ->filter(
+                fn (array $schedule) =>
+                    $schedule['is_available'] ||
+                    $schedule[
+                        'is_current_reservation'
+                    ]
+            )
+            ->values();
+
+        /*
+        |--------------------------------------------------------------------------
+        | Rescheduling Penalty Preview
+        |--------------------------------------------------------------------------
+        */
+
+        $reschedulePenalty = null;
+
+        if (
+            $currentReservation &&
+            $currentReservation->pictorial
+        ) {
+            $originalDate = Carbon::parse(
+                $currentReservation
+                    ->pictorial
+                    ->date
+                    ->format('Y-m-d')
+            )->startOfDay();
+
+            $today =
+                now()->startOfDay();
+
+            $daysBefore =
+                $today->lt($originalDate)
+                    ? (int) $today->diffInDays(
+                        $originalDate
+                    )
+                    : 0;
+
+            $reschedulePenalty =
+                $this->resolveReschedulePenalty(
+                    $daysBefore
+                );
+        }
+
+        return response()->json([
+            'data' => [
+                'student' => [
+                    'id' =>
+                        $student->id,
+
+                    'name' =>
+                        $student
+                            ->formatted_full_name,
+
+                    'year' =>
+                        $student->year,
+                ],
+
+                'current_reservation' =>
+                    $currentReservation
+                        ? [
+                            'id' =>
+                                $currentReservation
+                                    ->id,
+
+                            'pictorial_id' =>
+                                $currentReservation
+                                    ->pictorial_id,
+
+                            'date' =>
+                                $currentReservation
+                                    ->pictorial
+                                    ?->date
+                                    ?->format(
+                                        'Y-m-d'
+                                    ),
+
+                            'date_label' =>
+                                $currentReservation
+                                    ->pictorial
+                                    ?->date
+                                    ?->format(
+                                        'M d, Y'
+                                    ),
+
+                            'time_label' =>
+                                $currentReservation
+                                    ->pictorial
+                                    ?->getPictorialTime(),
+                        ]
+                        : null,
+
+                'reschedule_penalty' =>
+                    $reschedulePenalty,
+
+                'schedules' =>
+                    $pictorials,
+            ],
+        ]);
+    }
+
+
+    public function storeReservation(
+        Request $request,
+        StudentInfo $student
+    ): JsonResponse {
+        $validated = $request->validate([
+            'pictorial_id' => [
+                'required',
+                'integer',
+
+                Rule::exists(
+                    'pictorials',
+                    'id'
+                ),
+            ],
+
+            'waive_penalty' => [
+                'nullable',
+                'boolean',
+            ],
+        ]);
+
+        $pictorial =
+            Pictorial::query()
+                ->where(
+                    'id',
+                    $validated[
+                        'pictorial_id'
+                    ]
+                )
+                ->where(
+                    'year',
+                    $student->year
+                )
+                ->first();
+
+        if (!$pictorial) {
+            return response()->json([
+                'message' =>
+                    'The selected pictorial schedule is not valid for this student\'s CYB year.',
+            ], 422);
+        }
+
+        if (
+            $pictorial->date &&
+            $pictorial->date->lt(
+                now()->startOfDay()
+            )
+        ) {
+            return response()->json([
+                'message' =>
+                    'Past pictorial schedules cannot be booked.',
+            ], 422);
+        }
+
+        $currentReservation =
+            Reservation::query()
+                ->with('pictorial')
+                ->where(
+                    'student_info_id',
+                    $student->id
+                )
+                ->whereNull(
+                    'cancelled_at'
+                )
+                ->where(
+                    'is_reschedule',
+                    false
+                )
+                ->latest('id')
+                ->first();
+
+        if (
+            $currentReservation &&
+            $currentReservation
+                ->pictorial_id ===
+            $pictorial->id
+        ) {
+            return response()->json([
+                'message' =>
+                    'The student is already booked for this pictorial schedule.',
+            ], 422);
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Check Capacity
+        |--------------------------------------------------------------------------
+        */
+
+        $reservedSlots =
+            Reservation::query()
+                ->where(
+                    'pictorial_id',
+                    $pictorial->id
+                )
+                ->whereNull(
+                    'cancelled_at'
+                )
+                ->where(
+                    'is_reschedule',
+                    false
+                )
+                ->count();
+
+        if (
+            $reservedSlots >=
+            $pictorial->no_of_slots
+        ) {
+            return response()->json([
+                'message' =>
+                    'The selected pictorial schedule is already full.',
+            ], 422);
+        }
+
+        $waivePenalty =
+            (bool)
+            ($validated[
+                'waive_penalty'
+            ] ?? false);
+
+        $result = DB::transaction(
+            function () use (
+                $student,
+                $pictorial,
+                $currentReservation,
+                $waivePenalty
+            ) {
+                $reschedulePenalty = null;
+
+                /*
+                |--------------------------------------------------------------------------
+                | Existing Reservation -> Reschedule
+                |--------------------------------------------------------------------------
+                */
+
+                if (
+                    $currentReservation &&
+                    $currentReservation
+                        ->pictorial
+                ) {
+                    $originalDate =
+                        Carbon::parse(
+                            $currentReservation
+                                ->pictorial
+                                ->date
+                                ->format(
+                                    'Y-m-d'
+                                )
+                        )
+                            ->startOfDay();
+
+                    $today =
+                        now()
+                            ->startOfDay();
+
+                    $daysBefore =
+                        $today->lt(
+                            $originalDate
+                        )
+                            ? (int) $today
+                                ->diffInDays(
+                                    $originalDate
+                                )
+                            : 0;
+
+                    $reschedulePenalty =
+                        $this
+                            ->resolveReschedulePenalty(
+                                $daysBefore
+                            );
+
+                    $currentReservation->update([
+                        'is_reschedule' =>
+                            true,
+
+                        'reschedule_date' =>
+                            now()
+                                ->toDateString(),
+                    ]);
+
+                    if (
+                        !$waivePenalty &&
+                        $reschedulePenalty
+                    ) {
+                        Penalty::create([
+                            'student_info_id' =>
+                                $student->id,
+
+                            'penalty_type' =>
+                                $reschedulePenalty[
+                                    'penalty_type'
+                                ],
+
+                            'reservation_id' =>
+                                $currentReservation
+                                    ->id,
+
+                            'amount' =>
+                                $reschedulePenalty[
+                                    'amount'
+                                ],
+                        ]);
+                    }
+                }
+
+                /*
+                |--------------------------------------------------------------------------
+                | Create New Current Reservation
+                |--------------------------------------------------------------------------
+                */
+
+                $reservation =
+                    Reservation::create([
+                        'student_info_id' =>
+                            $student->id,
+
+                        'pictorial_id' =>
+                            $pictorial->id,
+
+                        'is_present' =>
+                            null,
+
+                        'checked_in_at' =>
+                            null,
+
+                        'is_reschedule' =>
+                            false,
+
+                        'is_present_date' =>
+                            null,
+
+                        'reschedule_date' =>
+                            null,
+
+                        'cancelled_at' =>
+                            null,
+
+                        'cancellation_reason' =>
+                            null,
+                    ]);
+                    
+                $delayedPenalty = null;
+
+                if ($pictorial->is_delayed) {
+                    $delayedPenaltyRule =
+                        $this->delayedPictorialPenalty();
+
+                    $delayedPenalty =
+                        Penalty::create([
+                            'student_info_id' =>
+                                $student->id,
+
+                            'penalty_type' =>
+                                $delayedPenaltyRule[
+                                    'penalty_type'
+                                ],
+
+                            'reservation_id' =>
+                                $reservation->id,
+
+                            'amount' =>
+                                $delayedPenaltyRule[
+                                    'amount'
+                                ],
+                        ]);
+                }
+
+                AuditLogger::record(
+                    'student_reservations',
+                    $currentReservation
+                        ? 'reservation_rescheduled'
+                        : 'reservation_created',
+
+                    $currentReservation
+                        ? sprintf(
+                            'Rescheduled pictorial reservation for %s.',
+                            $student
+                                ->formatted_full_name
+                        )
+                        : sprintf(
+                            'Created pictorial reservation for %s.',
+                            $student
+                                ->formatted_full_name
+                        ),
+
+                    $reservation,
+
+                    $currentReservation
+                        ? [
+                            'reservation_id' =>
+                                $currentReservation
+                                    ->id,
+
+                            'pictorial_id' =>
+                                $currentReservation
+                                    ->pictorial_id,
+                        ]
+                        : null,
+
+                    [
+                        'reservation_id' =>
+                            $reservation->id,
+
+                        'pictorial_id' =>
+                            $pictorial->id,
+
+                        'waived_penalty' =>
+                            $currentReservation
+                                ? $waivePenalty
+                                : false,
+
+                        'reschedule_penalty' =>
+                            $currentReservation
+                                ? $reschedulePenalty
+                                : null,
+
+                        'delayed_schedule_penalty' =>
+                            $delayedPenalty
+                                ? [
+                                    'penalty_id' =>
+                                        $delayedPenalty->id,
+
+                                    'penalty_type' =>
+                                        $delayedPenalty
+                                            ->penalty_type,
+
+                                    'amount' =>
+                                        (float)
+                                        $delayedPenalty
+                                            ->amount,
+                                ]
+                                : null,
+
+                    ]
+                );
+
+                return [
+                    'reservation' =>
+                        $reservation,
+
+                    'was_rescheduled' =>
+                        $currentReservation !== null,
+
+                    'penalty' =>
+                        $reschedulePenalty,
+
+                    'penalty_waived' =>
+                        $currentReservation
+                            ? $waivePenalty
+                            : false,
+
+                    'delayed_penalty' =>
+                        $delayedPenalty
+                            ? [
+                                'id' =>
+                                    $delayedPenalty->id,
+
+                                'penalty_type' =>
+                                    $delayedPenalty
+                                        ->penalty_type,
+
+                                'label' =>
+                                    $this
+                                        ->delayedPictorialPenalty()[
+                                            'label'
+                                        ],
+
+                                'amount' =>
+                                    (float)
+                                    $delayedPenalty
+                                        ->amount,
+                            ]
+                            : null,
+                ];
+            }
+        );
+
+        return response()->json([
+            'message' =>
+                $result['was_rescheduled']
+                    ? (
+                        $result[
+                            'penalty_waived'
+                        ]
+                            ? 'Reservation rescheduled successfully. The rescheduling penalty was waived.'
+                            : 'Reservation rescheduled successfully.'
+                    )
+                    : 'Reservation created successfully.',
+
+            'data' => [
+                'reservation_id' =>
+                    $result[
+                        'reservation'
+                    ]->id,
+
+                'was_rescheduled' =>
+                    $result[
+                        'was_rescheduled'
+                    ],
+
+                'penalty' =>
+                    $result[
+                        'was_rescheduled'
+                    ] &&
+                    !$result[
+                        'penalty_waived'
+                    ]
+                        ? $result[
+                            'penalty'
+                        ]
+                        : null,
+
+                'penalty_waived' =>
+                    $result[
+                        'penalty_waived'
+                    ],
+
+                'delayed_penalty' =>
+                    $result[
+                        'delayed_penalty'
+                    ],               
+                    
+            ],
+        ], 201);
     }
 
     public function updateSubscription(
@@ -611,5 +1278,70 @@ class StudentAccountController extends Controller
             ], 500);
         }
     }
+
+
+    private function resolveReschedulePenalty(
+        int $daysBefore
+    ): array {
+        if ($daysBefore >= 4) {
+            return [
+                'penalty_type' =>
+                    'pictorial_reschedule_4_plus_days',
+
+                'label' =>
+                    'Pictorial Rescheduling — 4+ Days Before',
+
+                'amount' =>
+                    150.00,
+
+                'days_before' =>
+                    $daysBefore,
+            ];
+        }
+
+        if ($daysBefore >= 1) {
+            return [
+                'penalty_type' =>
+                    'pictorial_reschedule_1_to_3_days',
+
+                'label' =>
+                    'Pictorial Rescheduling — 1 to 3 Days Before',
+
+                'amount' =>
+                    350.00,
+
+                'days_before' =>
+                    $daysBefore,
+            ];
+        }
+
+        return [
+            'penalty_type' =>
+                'pictorial_reschedule_same_day_or_missed',
+
+            'label' =>
+                'Pictorial Rescheduling — Same Day / Missed Schedule',
+
+            'amount' =>
+                500.00,
+
+            'days_before' =>
+                0,
+        ];
+    }
+
+    private function delayedPictorialPenalty(): array
+    {
+        return [
+            'penalty_type' =>
+                'pictorial_delayed_schedule',
+
+            'label' =>
+                'Delayed Pictorial Schedule',
+
+            'amount' =>
+                300.00,
+        ];
+}    
 
 }

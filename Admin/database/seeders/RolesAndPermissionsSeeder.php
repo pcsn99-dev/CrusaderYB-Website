@@ -101,6 +101,12 @@ class RolesAndPermissionsSeeder extends Seeder
                 'guard_name' => 'web',
                 'description' => 'Allows creating, editing, and deleting student penalties.',
             ],
+            [
+                'name' => 'Manage Student Reservations',
+                'slug' => 'manage-student-reservations',
+                'guard_name' => 'web',
+                'description' => 'Allows creating and rescheduling pictorial reservations for students.',
+            ],
 
 
         ];

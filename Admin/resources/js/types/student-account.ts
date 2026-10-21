@@ -58,6 +58,94 @@ export interface StudentReservation {
     pictorial: StudentPictorial | null;
 }
 
+export interface AvailablePictorialSchedule {
+    id: number;
+
+    date: string | null;
+    date_label: string | null;
+
+    start_time: string | null;
+    end_time: string | null;
+    time_label: string | null;
+
+    no_of_slots: number;
+    reserved_slots: number;
+    available_slots: number;
+
+    is_available: boolean;
+    is_delayed: boolean;
+
+    delayed_penalty:
+        | {
+            penalty_type: string;
+            label: string;
+            amount: number;
+        }
+        | null;
+
+    is_current_reservation: boolean;
+}
+
+export interface CurrentStudentReservation {
+    id: number;
+    pictorial_id: number;
+
+    date: string | null;
+    date_label: string | null;
+    time_label: string | null;
+}
+
+export interface ReschedulePenaltyPreview {
+    penalty_type: string;
+    label: string;
+    amount: number;
+    days_before: number;
+}
+
+export interface ReservationAvailabilityResponse {
+    data: {
+        student: {
+            id: number;
+            name: string;
+            year: string | null;
+        };
+
+        current_reservation:
+            | CurrentStudentReservation
+            | null;
+
+        reschedule_penalty:
+            | ReschedulePenaltyPreview
+            | null;
+
+        schedules:
+            AvailablePictorialSchedule[];
+    };
+}
+
+export interface StoreStudentReservationResponse {
+    message: string;
+
+    data: {
+        reservation_id: number;
+        was_rescheduled: boolean;
+
+        penalty:
+            | ReschedulePenaltyPreview
+            | null;
+
+        penalty_waived: boolean;
+
+        delayed_penalty:
+            | {
+                id: number;
+                penalty_type: string;
+                label: string;
+                amount: number;
+            }
+            | null;
+    };
+}
 
 export interface StudentPenaltyReservation {
     id: number;
@@ -129,4 +217,5 @@ export interface StudentAccountDetail {
 export interface StudentAccountPermissions {
     manage_subscription: boolean;
     manage_third_party: boolean;
+    manage_reservations: boolean;
 }

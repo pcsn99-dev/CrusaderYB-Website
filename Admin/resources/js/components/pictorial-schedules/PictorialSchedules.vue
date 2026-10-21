@@ -80,6 +80,40 @@ interface PaginationMeta {
     to: number | null;
 }
 
+interface AffectedReservation {
+    reservation_id: number;
+
+    student: {
+        id: number | null;
+        name: string | null;
+        university_id: string | null;
+        slmis_id: number | null;
+        email: string | null;
+        contact_number: string | null;
+        college: string | null;
+        program: string | null;
+        major: string | null;
+    };
+
+    schedule: {
+        id: number | null;
+        date: string | null;
+        date_label: string | null;
+        time_label: string | null;
+    };
+}
+
+interface DeletionPreview {
+    type: 'selected' | 'batch';
+    batch_uuid: string | null;
+    schedule_ids: number[];
+    schedule_count: number;
+    reservation_count: number;
+    has_reservations: boolean;
+    reservations: AffectedReservation[];
+}
+
+
 
 
 interface Props {
@@ -223,6 +257,24 @@ const reservationsLoading = ref(false);
 const reservationsError = ref<string | null>(null);
 const reservationViewer = ref<ReservationViewerData | null>(null);
 
+const deletionPreview = ref<DeletionPreview | null>(null);
+const deletionPreviewLoading = ref(false);
+const deletionPreviewError = ref<string | null>(null);
+
+const showDeletionPreviewModal = ref(false);
+const deletionSubmitting = ref(false);
+
+type PendingDeletion =
+    | {
+        type: 'selected';
+        schedule_ids: number[];
+    }
+    | {
+        type: 'batch';
+        batch_uuid: string;
+    };
+
+const pendingDeletion = ref<PendingDeletion | null>(null);    
 
 const showBulkCreateModal = ref(false);
 const showCreateModal = ref(false);
@@ -294,6 +346,198 @@ const deletingBatchUuid = ref<string | null>(
 const batchDeleteError = ref<string | null>(
     null,
 );
+
+
+const loadDeletionPreview = async (
+    payload:
+        | {
+            type: 'selected';
+            schedule_ids: number[];
+        }
+        | {
+            type: 'batch';
+            batch_uuid: string;
+        },
+): Promise<DeletionPreview | null> => {
+    deletionPreviewLoading.value = true;
+    deletionPreviewError.value = null;
+    deletionPreview.value = null;
+
+    try {
+        const csrfToken = document
+            .querySelector<HTMLMetaElement>(
+                'meta[name="csrf-token"]',
+            )
+            ?.getAttribute('content');
+
+        const response = await fetch(
+            '/settings/pictorial-schedules/deletion-preview',
+            {
+                method: 'POST',
+
+                headers: {
+                    Accept: 'application/json',
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN':
+                        csrfToken ?? '',
+                },
+
+                credentials: 'same-origin',
+
+                body: JSON.stringify(payload),
+            },
+        );
+
+        const result = await response.json();
+
+        if (!response.ok) {
+            throw new Error(
+                result.message ??
+                    'Unable to check affected reservations.',
+            );
+        }
+
+        deletionPreview.value = result.data;
+
+        return result.data;
+    } catch (error) {
+        deletionPreviewError.value =
+            error instanceof Error
+                ? error.message
+                : 'Unable to check affected reservations.';
+
+        return null;
+    } finally {
+        deletionPreviewLoading.value = false;
+    }
+};
+
+const openSelectedDeletionPreview =
+    async (): Promise<void> => {
+        if (selectedScheduleIds.value.length === 0) {
+            return;
+        }
+
+        const payload: PendingDeletion = {
+            type: 'selected',
+            schedule_ids: [
+                ...selectedScheduleIds.value,
+            ],
+        };
+
+        pendingDeletion.value = payload;
+
+        showDeletionPreviewModal.value = true;
+
+        await loadDeletionPreview(payload);
+    };
+
+
+const openBatchDeletionPreview =
+    async (
+        batchUuid: string,
+    ): Promise<void> => {
+        const payload: PendingDeletion = {
+            type: 'batch',
+            batch_uuid: batchUuid,
+        };
+
+        pendingDeletion.value = payload;
+
+        showDeletionPreviewModal.value = true;
+
+        await loadDeletionPreview(payload);
+    };
+
+const closeDeletionPreviewModal = (): void => {
+    if (
+        deletionPreviewLoading.value ||
+        deletionSubmitting.value
+    ) {
+        return;
+    }
+
+    showDeletionPreviewModal.value = false;
+    deletionPreview.value = null;
+    deletionPreviewError.value = null;
+    pendingDeletion.value = null;
+};
+
+const confirmScheduleDeletion =
+    async (): Promise<void> => {
+        if (
+            !pendingDeletion.value ||
+            !deletionPreview.value
+        ) {
+            return;
+        }
+
+        deletionSubmitting.value = true;
+        deletionPreviewError.value = null;
+
+        try {
+            const csrfToken = document
+                .querySelector<HTMLMetaElement>(
+                    'meta[name="csrf-token"]',
+                )
+                ?.getAttribute('content');
+
+            const response = await fetch(
+                '/settings/pictorial-schedules/deletion-confirm',
+                {
+                    method: 'POST',
+
+                    headers: {
+                        Accept: 'application/json',
+                        'Content-Type':
+                            'application/json',
+                        'X-CSRF-TOKEN':
+                            csrfToken ?? '',
+                    },
+
+                    credentials: 'same-origin',
+
+                    body: JSON.stringify(
+                        pendingDeletion.value,
+                    ),
+                },
+            );
+
+            const result = await response.json();
+
+            if (!response.ok) {
+                throw new Error(
+                    result.message ??
+                        'Unable to delete pictorial schedules.',
+                );
+            }
+
+            showDeletionPreviewModal.value = false;
+
+            deletionPreview.value = null;
+            deletionPreviewError.value = null;
+            pendingDeletion.value = null;
+
+            selectedScheduleIds.value = [];
+
+            showSuccess(
+                result.message ??
+                    'Pictorial schedules deleted successfully.',
+            );
+
+            await Promise.all([
+                loadSchedules(1),
+                loadBatches(),
+            ]);
+        } catch (error) {
+            deletionPreviewError.value =
+                error instanceof Error
+                    ? error.message
+                    : 'Unable to delete pictorial schedules.';
+        } finally {
+            deletionSubmitting.value = false;
+        }
+    };
 
 const deleteBatch = async (
     batchUuid: string,
@@ -1054,7 +1298,7 @@ onMounted(() => {
                                     deletingBatchUuid === batch.batch_uuid
                                 "
                                 @click="
-                                    deleteBatch(batch.batch_uuid)
+                                    openBatchDeletionPreview(batch.batch_uuid)
                                 "
                             >
                                 <span
@@ -1171,7 +1415,7 @@ onMounted(() => {
                             <button
                                 type="button"
                                 class="btn btn-sm btn-danger"
-                                @click="deleteSelectedSchedules"
+                                @click="openSelectedDeletionPreview"
                             >
                                 <i class="bi bi-trash me-2"></i>
 
@@ -1556,6 +1800,347 @@ onMounted(() => {
         ></div>
 
 
+        <!-- Deletion preview modal -->
+        <div
+            v-if="showDeletionPreviewModal"
+            class="modal fade show d-block"
+            tabindex="-1"
+            role="dialog"
+            aria-modal="true"
+        >
+            <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <div>
+                            <h5 class="modal-title">
+                                Review Schedule Deletion
+                            </h5>
+
+                            <div class="text-muted small mt-1">
+                                Review the schedules and students that would be affected.
+                            </div>
+                        </div>
+
+                        <button
+                            type="button"
+                            class="btn-close"
+                            aria-label="Close"
+                            :disabled="
+                                deletionPreviewLoading ||
+                                deletionSubmitting
+                            "
+                            @click="closeDeletionPreviewModal"
+                        ></button>
+                    </div>
+
+                    <div class="modal-body">
+                        <!-- Loading -->
+                        <div
+                            v-if="deletionPreviewLoading"
+                            class="text-center py-5"
+                        >
+                            <div class="spinner-border"></div>
+
+                            <div class="text-muted mt-3">
+                                Checking affected reservations...
+                            </div>
+                        </div>
+
+                        <!-- Error -->
+                        <div
+                            v-else-if="deletionPreviewError"
+                            class="cyb-notice cyb-notice-danger rounded-3"
+                        >
+                            <i class="bi bi-exclamation-circle"></i>
+
+                            <div>
+                                {{ deletionPreviewError }}
+                            </div>
+                        </div>
+
+                        <!-- Preview -->
+                        <template v-else-if="deletionPreview">
+                            <!-- Summary -->
+                            <div class="deletion-summary">
+                                <div class="deletion-summary-item">
+                                    <div class="deletion-summary-value">
+                                        {{ deletionPreview.schedule_count }}
+                                    </div>
+
+                                    <div class="deletion-summary-label">
+                                        Schedule{{
+                                            deletionPreview.schedule_count === 1
+                                                ? ''
+                                                : 's'
+                                        }}
+                                    </div>
+                                </div>
+
+                                <div class="deletion-summary-item">
+                                    <div class="deletion-summary-value">
+                                        {{ deletionPreview.reservation_count }}
+                                    </div>
+
+                                    <div class="deletion-summary-label">
+                                        Active Reservation{{
+                                            deletionPreview.reservation_count === 1
+                                                ? ''
+                                                : 's'
+                                        }}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Has affected reservations -->
+                            <div
+                                v-if="deletionPreview.has_reservations"
+                                class="cyb-notice cyb-notice-warning rounded-3 mb-3"
+                            >
+                                <i class="bi bi-exclamation-triangle"></i>
+
+                                <div>
+                                    <strong>
+                                        Students will be affected.
+                                    </strong>
+
+                                    <div class="mt-1">
+                                        {{
+                                            deletionPreview.reservation_count
+                                        }}
+                                        active reservation{{
+                                            deletionPreview.reservation_count === 1
+                                                ? ''
+                                                : 's'
+                                        }}
+                                        would need to be cancelled before these
+                                        schedules can be removed.
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- No affected reservations -->
+                            <div
+                                v-else
+                                class="cyb-notice cyb-notice-info rounded-3 mb-3"
+                            >
+                                <i class="bi bi-info-circle"></i>
+
+                                <div>
+                                    <strong>
+                                        No active reservations are affected.
+                                    </strong>
+
+                                    <div class="mt-1">
+                                        These schedules can be removed without
+                                        cancelling any student reservations.
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Affected students -->
+                            <div
+                                v-if="
+                                    deletionPreview.reservations.length > 0
+                                "
+                            >
+                                <div class="mb-3">
+                                    <h6 class="mb-1">
+                                        Affected Students
+                                    </h6>
+
+                                    <div class="text-muted small">
+                                        These reservations belong to schedules
+                                        selected for deletion.
+                                    </div>
+                                </div>
+
+                                <div class="table-responsive">
+                                    <table class="table cyb-table align-middle">
+                                        <thead>
+                                            <tr>
+                                                <th>Student</th>
+                                                <th>University ID</th>
+                                                <th>Schedule</th>
+                                                <th>College / Program</th>
+                                            </tr>
+                                        </thead>
+
+                                        <tbody>
+                                            <tr
+                                                v-for="reservation in deletionPreview.reservations"
+                                                :key="reservation.reservation_id"
+                                            >
+                                                <td>
+                                                    <div class="cyb-table-primary">
+                                                        {{
+                                                            reservation.student.name
+                                                            ?? 'Unknown student'
+                                                        }}
+                                                    </div>
+
+                                                    <div class="cyb-table-secondary">
+                                                        {{
+                                                            reservation.student.email
+                                                            ?? 'No email'
+                                                        }}
+                                                    </div>
+                                                </td>
+
+                                                <td>
+                                                    {{
+                                                        reservation.student.university_id
+                                                        ?? '—'
+                                                    }}
+                                                </td>
+
+                                                <td>
+                                                    <div class="cyb-table-primary">
+                                                        {{
+                                                            reservation.schedule.date_label
+                                                            ?? '—'
+                                                        }}
+                                                    </div>
+
+                                                    <div class="cyb-table-secondary">
+                                                        {{
+                                                            reservation.schedule.time_label
+                                                            ?? '—'
+                                                        }}
+                                                    </div>
+                                                </td>
+
+                                                <td>
+                                                    <div>
+                                                        {{
+                                                            reservation.student.college
+                                                            ?? '—'
+                                                        }}
+                                                    </div>
+
+                                                    <div class="text-muted small">
+                                                        {{
+                                                            reservation.student.program
+                                                            ?? '—'
+                                                        }}
+
+                                                        <template
+                                                            v-if="
+                                                                reservation.student.major
+                                                            "
+                                                        >
+                                                            ·
+                                                            {{
+                                                                reservation.student.major
+                                                            }}
+                                                        </template>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                            <!-- No students -->
+                            <div
+                                v-else
+                                class="cyb-empty-state deletion-empty-state"
+                            >
+                                <div class="cyb-empty-state-icon">
+                                    <i class="bi bi-person-check"></i>
+                                </div>
+
+                                <h3 class="cyb-empty-state-title">
+                                    No students affected
+                                </h3>
+
+                                <p class="cyb-empty-state-text">
+                                    None of these schedules currently have
+                                    active reservations.
+                                </p>
+                            </div>
+                        </template>
+                    </div>
+
+                    <div class="modal-footer">
+                        <button
+                            type="button"
+                            class="btn btn-light border"
+                            :disabled="
+                                deletionPreviewLoading ||
+                                deletionSubmitting
+                            "
+                            @click="closeDeletionPreviewModal"
+                        >
+                            Close
+                        </button>
+
+                        <button
+                            v-if="
+                                deletionPreview &&
+                                !deletionPreview.has_reservations
+                            "
+                            type="button"
+                            class="btn btn-danger"
+                            :disabled="deletionSubmitting"
+                            @click="confirmScheduleDeletion"
+                        >
+                            <span
+                                v-if="deletionSubmitting"
+                                class="spinner-border spinner-border-sm me-2"
+                            ></span>
+
+                            <i
+                                v-else
+                                class="bi bi-trash me-2"
+                            ></i>
+
+                            {{
+                                deletionSubmitting
+                                    ? 'Deleting...'
+                                    : 'Delete Schedules'
+                            }}
+                        </button>
+
+                        <button
+                            v-else-if="
+                                deletionPreview &&
+                                deletionPreview.has_reservations
+                            "
+                            type="button"
+                            class="btn btn-danger"
+                            :disabled="deletionSubmitting"
+                            @click="confirmScheduleDeletion"
+                        >
+                            <span
+                                v-if="deletionSubmitting"
+                                class="spinner-border spinner-border-sm me-2"
+                            ></span>
+
+                            <i
+                                v-else
+                                class="bi bi-exclamation-triangle me-2"
+                            ></i>
+
+                            {{
+                                deletionSubmitting
+                                    ? 'Cancelling & Deleting...'
+                                    : 'Cancel Reservations & Delete'
+                            }}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div
+            v-if="showDeletionPreviewModal"
+            class="modal-backdrop fade show"
+        ></div>
+
+
+
+
         <CreatePictorialScheduleModal
             v-if="
                 showCreateModal &&
@@ -1689,6 +2274,43 @@ onMounted(() => {
         left: 0.75rem;
         width: auto;
     }
+    .deletion-summary {
+        grid-template-columns: 1fr;
+    }
+
+
+}
+
+.deletion-summary {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+}
+
+.deletion-summary-item {
+    padding: 1rem;
+    border: 1px solid #e7eaed;
+    border-radius: 0.65rem;
+    background: #f8f9fa;
+}
+
+.deletion-summary-value {
+    font-size: 1.4rem;
+    font-weight: 650;
+    line-height: 1.1;
+    color: #212529;
+}
+
+.deletion-summary-label {
+    margin-top: 0.3rem;
+    color: #6c757d;
+    font-size: 0.85rem;
+}
+
+.deletion-empty-state {
+    padding-top: 1.5rem;
+    padding-bottom: 1.5rem;
 }
 
 

@@ -15,6 +15,7 @@ use App\Http\Requests\Settings\BulkStorePictorialScheduleRequest;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Facades\DB;
 use App\Support\AuditLogger;
+use App\Models\Reservation;
 
 
 class PictorialScheduleController extends Controller
@@ -699,6 +700,413 @@ class PictorialScheduleController extends Controller
 
                 'reservations' => $reservations,
                 'reservation_count' => $reservations->count(),
+            ],
+        ]);
+    }
+
+    public function deletionPreview(Request $request): JsonResponse
+    {
+        $user = auth()->user();
+
+        abort_unless(
+            $user?->hasPermission('manage-pictorial-schedules'),
+            403
+        );
+
+        $validated = $request->validate([
+            'type' => [
+                'required',
+                'in:selected,batch',
+            ],
+
+            'schedule_ids' => [
+                'nullable',
+                'array',
+                'min:1',
+            ],
+
+            'schedule_ids.*' => [
+                'integer',
+                'distinct',
+                'exists:pictorials,id',
+            ],
+
+            'batch_uuid' => [
+                'nullable',
+                'string',
+            ],
+        ]);
+
+        $activeYear = Year::active()->first();
+
+        if (!$activeYear) {
+            return response()->json([
+                'message' => 'No active CYB year is configured.',
+            ], 422);
+        }
+
+        $type = $validated['type'];
+
+        if ($type === 'selected') {
+            $scheduleIds = $validated['schedule_ids'] ?? [];
+
+            if (empty($scheduleIds)) {
+                return response()->json([
+                    'message' =>
+                        'Select at least one pictorial schedule.',
+                ], 422);
+            }
+
+            $pictorials = Pictorial::query()
+                ->forYear($activeYear->year)
+                ->whereIn('id', $scheduleIds)
+                ->get();
+
+            if ($pictorials->count() !== count($scheduleIds)) {
+                return response()->json([
+                    'message' =>
+                        'One or more selected schedules do not belong to the active CYB year.',
+                ], 422);
+            }
+        } else {
+            $batchUuid = $validated['batch_uuid'] ?? null;
+
+            if (!$batchUuid) {
+                return response()->json([
+                    'message' =>
+                        'A pictorial batch is required.',
+                ], 422);
+            }
+
+            $pictorials = Pictorial::query()
+                ->forYear($activeYear->year)
+                ->where('batch_uuid', $batchUuid)
+                ->get();
+
+            if ($pictorials->isEmpty()) {
+                return response()->json([
+                    'message' =>
+                        'This pictorial batch could not be found.',
+                ], 422);
+            }
+        }
+
+        $pictorialIds = $pictorials
+            ->pluck('id')
+            ->values()
+            ->all();
+
+        $reservations = Reservation::query()
+            ->active()
+            ->whereIn('pictorial_id', $pictorialIds)
+            ->with([
+                'pictorial:id,date,start_time,end_time',
+                'studentInfo:id,user_id,university_id,slmis_id,first_name,middle_name,last_name,suffix,college_id,program_id,major_id,contact_number',
+                'studentInfo.user:id,email',
+                'studentInfo.college:id,college_name',
+                'studentInfo.program:id,program_name',
+                'studentInfo.major:id,major_name',
+            ])
+            ->orderBy('pictorial_id')
+            ->orderBy('created_at')
+            ->get()
+            ->map(function (Reservation $reservation) {
+                $student = $reservation->studentInfo;
+                $pictorial = $reservation->pictorial;
+
+                return [
+                    'reservation_id' => $reservation->id,
+
+                    'student' => [
+                        'id' => $student?->id,
+                        'name' => $student?->formatted_full_name,
+                        'university_id' => $student?->university_id,
+                        'slmis_id' => $student?->slmis_id,
+                        'email' => $student?->user?->email,
+                        'contact_number' => $student?->contact_number,
+                        'college' => $student?->college?->college_name,
+                        'program' => $student?->program?->program_name,
+                        'major' => $student?->major?->major_name,
+                    ],
+
+                    'schedule' => [
+                        'id' => $pictorial?->id,
+
+                        'date' =>
+                            $pictorial?->date?->format('Y-m-d'),
+
+                        'date_label' =>
+                            $pictorial?->date?->format('M d, Y'),
+
+                        'time_label' =>
+                            $pictorial
+                                ? $pictorial->getPictorialTime()
+                                : null,
+                    ],
+                ];
+            })
+            ->values();
+
+        return response()->json([
+            'data' => [
+                'type' => $type,
+
+                'batch_uuid' =>
+                    $type === 'batch'
+                        ? ($validated['batch_uuid'] ?? null)
+                        : null,
+
+                'schedule_ids' => $pictorialIds,
+
+                'schedule_count' => count($pictorialIds),
+
+                'reservation_count' =>
+                    $reservations->count(),
+
+                'has_reservations' =>
+                    $reservations->isNotEmpty(),
+
+                'reservations' => $reservations,
+            ],
+        ]);
+    }
+
+    public function confirmDeletion(Request $request): JsonResponse
+    {
+        $user = auth()->user();
+
+        abort_unless(
+            $user?->hasPermission('manage-pictorial-schedules'),
+            403
+        );
+
+        $validated = $request->validate([
+            'type' => [
+                'required',
+                'in:selected,batch',
+            ],
+
+            'schedule_ids' => [
+                'nullable',
+                'array',
+                'min:1',
+            ],
+
+            'schedule_ids.*' => [
+                'integer',
+                'distinct',
+                'exists:pictorials,id',
+            ],
+
+            'batch_uuid' => [
+                'nullable',
+                'string',
+            ],
+        ]);
+
+        $activeYear = Year::active()->first();
+
+        if (!$activeYear) {
+            return response()->json([
+                'message' => 'No active CYB year is configured.',
+            ], 422);
+        }
+
+        $type = $validated['type'];
+
+        /*
+        |--------------------------------------------------------------------------
+        | Resolve schedules being deleted
+        |--------------------------------------------------------------------------
+        */
+
+        if ($type === 'selected') {
+            $scheduleIds = $validated['schedule_ids'] ?? [];
+
+            if (empty($scheduleIds)) {
+                return response()->json([
+                    'message' =>
+                        'Select at least one pictorial schedule.',
+                ], 422);
+            }
+
+            $pictorials = Pictorial::query()
+                ->forYear($activeYear->year)
+                ->whereIn('id', $scheduleIds)
+                ->get();
+
+            if ($pictorials->count() !== count($scheduleIds)) {
+                return response()->json([
+                    'message' =>
+                        'One or more selected schedules do not belong to the active CYB year.',
+                ], 422);
+            }
+        } else {
+            $batchUuid = $validated['batch_uuid'] ?? null;
+
+            if (!$batchUuid) {
+                return response()->json([
+                    'message' =>
+                        'A pictorial batch is required.',
+                ], 422);
+            }
+
+            $pictorials = Pictorial::query()
+                ->forYear($activeYear->year)
+                ->where('batch_uuid', $batchUuid)
+                ->get();
+
+            if ($pictorials->isEmpty()) {
+                return response()->json([
+                    'message' =>
+                        'This pictorial batch could not be found.',
+                ], 422);
+            }
+        }
+
+        $scheduleIds = $pictorials
+            ->pluck('id')
+            ->values()
+            ->all();
+
+        /*
+        |--------------------------------------------------------------------------
+        | Get active reservations before changing anything
+        |--------------------------------------------------------------------------
+        */
+
+        $reservations = Reservation::query()
+            ->active()
+            ->whereIn('pictorial_id', $scheduleIds)
+            ->with([
+                'studentInfo:id,user_id,university_id,first_name,middle_name,last_name,suffix',
+                'studentInfo.user:id,email',
+            ])
+            ->get();
+
+        /*
+        |--------------------------------------------------------------------------
+        | Capture audit information before deletion
+        |--------------------------------------------------------------------------
+        */
+
+        $auditModel = $pictorials->first();
+
+        $reservationIds = $reservations
+            ->pluck('id')
+            ->values()
+            ->all();
+
+        $affectedStudents = $reservations
+            ->map(function (Reservation $reservation) {
+                $student = $reservation->studentInfo;
+
+                return [
+                    'reservation_id' => $reservation->id,
+                    'student_info_id' => $student?->id,
+                    'university_id' => $student?->university_id,
+                    'name' => $student?->formatted_full_name,
+                    'email' => $student?->user?->email,
+                    'pictorial_id' => $reservation->pictorial_id,
+                ];
+            })
+            ->values()
+            ->all();
+
+        $scheduleSnapshot = $pictorials
+            ->map(fn (Pictorial $pictorial) => [
+                'id' => $pictorial->id,
+                'batch_uuid' => $pictorial->batch_uuid,
+                'year' => $pictorial->year,
+                'college_id' => $pictorial->college_id,
+                'date' => $pictorial->date->format('Y-m-d'),
+                'start_time' => $pictorial->start_time,
+                'end_time' => $pictorial->end_time,
+                'is_delayed' => $pictorial->is_delayed,
+                'no_of_slots' => $pictorial->no_of_slots,
+            ])
+            ->values()
+            ->all();
+
+        /*
+        |--------------------------------------------------------------------------
+        | Cancel reservations + soft-delete schedules
+        |--------------------------------------------------------------------------
+        */
+
+        DB::transaction(function () use (
+            $reservations,
+            $pictorials
+        ) {
+            foreach ($reservations as $reservation) {
+                $reservation->cancel(
+                    'Pictorial schedule deleted by admin'
+                );
+            }
+
+            foreach ($pictorials as $pictorial) {
+                $pictorial->delete();
+            }
+        });
+
+        /*
+        |--------------------------------------------------------------------------
+        | Audit
+        |--------------------------------------------------------------------------
+        */
+
+        $adminName =
+            auth()->user()->name ?? 'Unknown admin';
+
+        $scheduleCount = $pictorials->count();
+        $reservationCount = $reservations->count();
+
+        $action = $type === 'batch'
+            ? 'batch_deleted'
+            : 'selected_schedules_deleted';
+
+        $description = $type === 'batch'
+            ? "{$adminName} deleted a pictorial schedule batch containing ".
+                "{$scheduleCount} schedules and cancelled ".
+                "{$reservationCount} active reservation(s)."
+            : "{$adminName} deleted {$scheduleCount} selected pictorial ".
+                "schedule(s) and cancelled {$reservationCount} ".
+                "active reservation(s).";
+
+        AuditLogger::record(
+            module: 'pictorial_schedules',
+            action: $action,
+            description: $description,
+            model: $auditModel,
+            oldValues: [
+                'type' => $type,
+                'batch_uuid' =>
+                    $validated['batch_uuid'] ?? null,
+                'schedule_ids' => $scheduleIds,
+                'reservation_ids' => $reservationIds,
+                'schedule_count' => $scheduleCount,
+                'reservation_count' => $reservationCount,
+                'schedules' => $scheduleSnapshot,
+                'affected_students' => $affectedStudents,
+            ],
+            newValues: [
+                'schedules_deleted' => true,
+                'reservations_cancelled' =>
+                    $reservationCount,
+                'cancellation_reason' =>
+                    'Pictorial schedule deleted by admin',
+            ]
+        );
+
+        return response()->json([
+            'message' =>
+                $reservationCount > 0
+                    ? "{$scheduleCount} schedule(s) deleted and {$reservationCount} reservation(s) cancelled successfully."
+                    : "{$scheduleCount} schedule(s) deleted successfully.",
+
+            'data' => [
+                'schedule_count' => $scheduleCount,
+                'reservation_count' => $reservationCount,
             ],
         ]);
     }

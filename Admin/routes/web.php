@@ -158,6 +158,16 @@ Route::middleware(['auth', 'force.password.change', 'admin.account'])->group(fun
                     [PictorialScheduleController::class, 'search']
                 )->name('search');
 
+                
+                Route::post(
+                    '/deletion-preview',
+                    [PictorialScheduleController::class, 'deletionPreview']
+                )->name('deletion-preview');
+                Route::post(
+                    '/deletion-confirm',
+                    [PictorialScheduleController::class, 'confirmDeletion']
+                )->name('deletion-confirm');
+
                 Route::get(
                     '/{pictorial}/reservations',
                     [PictorialScheduleController::class, 'reservations']

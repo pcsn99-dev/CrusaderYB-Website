@@ -852,6 +852,101 @@ class PenaltyController extends Controller
         ], 201);
     }
 
+
+    /*
+    |--------------------------------------------------------------------------
+    | Delete Penalty
+    |--------------------------------------------------------------------------
+    */
+
+    public function destroy(
+        Penalty $penalty
+    ): JsonResponse {
+        $penalty->loadMissing([
+            'studentInfo',
+            'reservation',
+        ]);
+
+        $student =
+            $penalty->studentInfo;
+
+        $attendanceTypes =
+            $this->attendancePenaltyTypes();
+
+        $isAttendancePenalty =
+            $penalty->reservation_id !== null &&
+            in_array(
+                $penalty->penalty_type,
+                $attendanceTypes,
+                true
+            );
+
+        $oldValues = [
+            'id' =>
+                $penalty->id,
+
+            'student_info_id' =>
+                $penalty->student_info_id,
+
+            'student_name' =>
+                $student
+                    ?->formatted_full_name,
+
+            'penalty_type' =>
+                $penalty->penalty_type,
+
+            'amount' =>
+                (float) $penalty->amount,
+
+            'reservation_id' =>
+                $penalty->reservation_id,
+
+            'source' =>
+                $isAttendancePenalty
+                    ? 'attendance'
+                    : 'manual',
+        ];
+
+        $penaltyId =
+            $penalty->id;
+
+        $studentName =
+            $student
+                ?->formatted_full_name
+            ?? 'Unknown student';
+
+        $penalty->delete();
+
+        AuditLogger::record(
+            'penalties',
+            'penalty_deleted',
+            sprintf(
+                'Deleted %s penalty for %s.',
+                $this->formatPenaltyType(
+                    $oldValues['penalty_type']
+                ),
+                $studentName
+            ),
+            null,
+            $oldValues,
+            null
+        );
+
+        return response()->json([
+            'message' =>
+                'Penalty deleted successfully.',
+
+            'data' => [
+                'id' =>
+                    $penaltyId,
+
+                'was_attendance_penalty' =>
+                    $isAttendancePenalty,
+            ],
+        ]);
+    }
+
+
     /*
     |--------------------------------------------------------------------------
     | Helpers
@@ -872,11 +967,6 @@ class PenaltyController extends Controller
     | Manual Penalty Catalog
     |--------------------------------------------------------------------------
     |
-    | Keep the official manual penalty values here so the frontend cannot
-    | submit arbitrary amounts.
-    |
-    | Rescheduling penalties are intentionally NOT included yet. Those will
-    | be handled later through the student reservation management workflow.
     |
     */
 

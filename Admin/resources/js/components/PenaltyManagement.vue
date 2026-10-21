@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import {
     computed,
+    onMounted,
     ref,
 } from 'vue';
 
@@ -114,7 +115,13 @@ const manualPenaltyOptions: ManualPenaltyOption[] = [
     },
 ];    
 
-const selectedYear = ref('');
+const selectedYear = ref(
+    String(
+        props.years.find(
+            (year) => Boolean(year.status),
+        )?.year ?? '',
+    ),
+);
 
 const searchQuery = ref('');
 const penaltyType = ref('');
@@ -133,6 +140,9 @@ const errorMessage =
 
 const createModalOpen = ref(false);
 const creatingPenalty = ref(false);
+
+const deletingPenaltyId =
+    ref<number | null>(null);
 
 const studentSearchQuery = ref('');
 const studentSearchResults =
@@ -670,6 +680,96 @@ const createPenalty =
                 false;
         }
     };
+
+const deletePenalty =
+    async (
+        penalty: PenaltyRecord,
+    ): Promise<void> => {
+        const isAttendancePenalty =
+            penalty.source === 'attendance';
+
+        const warning = isAttendancePenalty
+            ? `Delete this ${penalty.penalty_type_label} penalty for ${penalty.student.name ?? 'this student'}?\n\nThis penalty was generated from pictorial attendance. Deleting it will NOT change the student's attendance status.`
+            : `Delete this ${penalty.penalty_type_label} penalty for ${penalty.student.name ?? 'this student'}?`;
+
+        if (!window.confirm(warning)) {
+            return;
+        }
+
+        deletingPenaltyId.value =
+            penalty.id;
+
+        errorMessage.value = null;
+
+        try {
+            const csrfToken =
+                document
+                    .querySelector<HTMLMetaElement>(
+                        'meta[name="csrf-token"]',
+                    )
+                    ?.getAttribute(
+                        'content',
+                    );
+
+            const response = await fetch(
+                `/penalties/${penalty.id}`,
+                {
+                    method: 'DELETE',
+
+                    headers: {
+                        Accept:
+                            'application/json',
+
+                        'X-CSRF-TOKEN':
+                            csrfToken ?? '',
+                    },
+
+                    credentials:
+                        'same-origin',
+                },
+            );
+
+            const result =
+                await response.json();
+
+            if (!response.ok) {
+                throw new Error(
+                    result.message ??
+                        'Unable to delete penalty.',
+                );
+            }
+
+            showSuccess(
+                result.message ??
+                    'Penalty deleted successfully.',
+            );
+
+            const pageToLoad =
+                penalties.value.length === 1 &&
+                pagination.value.current_page > 1
+                    ? pagination.value.current_page - 1
+                    : pagination.value.current_page;
+
+            await loadPenalties(
+                pageToLoad,
+            );
+        } catch (error) {
+            errorMessage.value =
+                error instanceof Error
+                    ? error.message
+                    : 'Unable to delete penalty.';
+        } finally {
+            deletingPenaltyId.value =
+                null;
+        }
+    };
+
+
+onMounted(async () => {
+    if (selectedYear.value) {
+        await loadPenalties(1);
+    }
+});
 
 
 </script>
@@ -1241,9 +1341,28 @@ const createPenalty =
                                                 type="button"
                                                 class="btn btn-sm btn-outline-danger"
                                                 title="Delete penalty"
-                                                disabled
+                                                :disabled="
+                                                    deletingPenaltyId ===
+                                                    penalty.id
+                                                "
+                                                @click="
+                                                    deletePenalty(
+                                                        penalty,
+                                                    )
+                                                "
                                             >
-                                                <i class="bi bi-trash"></i>
+                                                <span
+                                                    v-if="
+                                                        deletingPenaltyId ===
+                                                        penalty.id
+                                                    "
+                                                    class="spinner-border spinner-border-sm"
+                                                ></span>
+
+                                                <i
+                                                    v-else
+                                                    class="bi bi-trash"
+                                                ></i>
                                             </button>
                                         </div>
                                     </td>
@@ -1389,11 +1508,35 @@ const createPenalty =
                                 <button
                                     type="button"
                                     class="btn btn-outline-danger"
-                                    disabled
+                                    :disabled="
+                                        deletingPenaltyId ===
+                                        penalty.id
+                                    "
+                                    @click="
+                                        deletePenalty(
+                                            penalty,
+                                        )
+                                    "
                                 >
-                                    <i class="bi bi-trash me-1"></i>
+                                    <span
+                                        v-if="
+                                            deletingPenaltyId ===
+                                            penalty.id
+                                        "
+                                        class="spinner-border spinner-border-sm me-2"
+                                    ></span>
 
-                                    Delete Penalty
+                                    <i
+                                        v-else
+                                        class="bi bi-trash me-1"
+                                    ></i>
+
+                                    {{
+                                        deletingPenaltyId ===
+                                        penalty.id
+                                            ? 'Deleting...'
+                                            : 'Delete Penalty'
+                                    }}
                                 </button>
                             </div>
                         </article>

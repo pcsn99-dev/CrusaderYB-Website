@@ -142,7 +142,23 @@
                 @endif
 
 
+                @if (
+                    auth()->user()?->hasPermission('view-penalties') ||
+                    auth()->user()?->hasPermission('manage-penalties')
+                )
+                    <li class="nav-item">
+                        <a
+                            href="{{ route('penalties.index') }}"
+                            class="nav-link {{ request()->routeIs('penalties.*') ? 'active' : '' }}"
+                        >
+                            <i class="nav-icon bi bi-exclamation-diamond"></i>
 
+                            <p>
+                                Penalties
+                            </p>
+                        </a>
+                    </li>
+                @endif
 
 
                 @if ($canViewWriteups)

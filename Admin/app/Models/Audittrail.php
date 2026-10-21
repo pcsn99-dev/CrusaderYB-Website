@@ -55,7 +55,7 @@ class Audittrail extends Model
 
     public function student()
     {
-        return $this->belongsTo('App\Models\Studentinfo', 'student_info_id');
+        return $this->belongsTo('App\Models\StudentInfo', 'student_info_id');
     }
 
     /*

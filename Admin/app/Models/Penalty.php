@@ -3,81 +3,105 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-// use Backpack\CRUD\CrudTrait;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Penalty extends Model
 {
-    // use CrudTrait;
-
-    /*
-    |--------------------------------------------------------------------------
-    | GLOBAL VARIABLES
-    |--------------------------------------------------------------------------
-    */
-
     protected $table = 'penalties';
-    // protected $primaryKey = 'id';
+
     public $timestamps = false;
-    // protected $guarded = ['id'];
-    protected $fillable = ['student_info_id', 'penalty_type', 'reservation_id', 'amount', 'is_paid', 'status', 'receipt_id'];
-    // protected $hidden = [];
-    // protected $dates = [];
+
+    protected $fillable = [
+        'student_info_id',
+        'penalty_type',
+        'reservation_id',
+        'amount',
+
+        // Legacy fields kept for backward compatibility.
+        'is_paid',
+        'status',
+        'receipt_id',
+    ];
+
+    protected $casts = [
+        'amount' => 'decimal:2',
+        'is_paid' => 'boolean',
+    ];
 
     /*
     |--------------------------------------------------------------------------
-    | FUNCTIONS
+    | Relationships
     |--------------------------------------------------------------------------
     */
-    public function getFullname()
+
+    public function studentInfo(): BelongsTo
     {
-        return $this->student_info->first_name.' '.$this->student_info->middle_name.' '.$this->student_info->last_name.' '.$this->student_info->suffix;
+        return $this->belongsTo(
+            StudentInfo::class,
+            'student_info_id'
+        );
     }
 
-    public function getReservationLink()
+    public function reservation(): BelongsTo
     {
-        if(isset($this->reservation->id)){
-            $url = url("reservation/".$this->reservation->id);
-            return '<a class="btn btn-link text-info btn-sm px-3 mb-0" href="'.$url.'" target="_blank" data-bs-toggle="tooltip" data-bs-original-title="Click to view reservation details"><i class="fas fa-eye me-2" aria-hidden="true"></i>View Details</a>';
-        }
-        
-        // return '<a href="'.$url.'" target="_blank">View Details</a>';
+        return $this->belongsTo(
+            Reservation::class,
+            'reservation_id'
+        );
     }
 
     /*
     |--------------------------------------------------------------------------
-    | RELATIONS
+    | Legacy Relationships
     |--------------------------------------------------------------------------
+    |
+    | Keep these while older parts of the system may still reference them.
+    |
     */
-    public function student_info()
-    {
-        return $this->belongsTo('\App\Models\Studentinfo', 'student_info_id');
-    }
 
-    public function reservation()
+    public function student_info(): BelongsTo
     {
-        return $this->belongsTo('\App\Models\Reservation');
+        return $this->studentInfo();
     }
 
     public function receipts()
     {
-        return $this->belongsTo('\App\Models\Receipts', 'receipt_id');
+        return $this->belongsTo(
+            '\App\Models\Receipts',
+            'receipt_id'
+        );
     }
 
     /*
     |--------------------------------------------------------------------------
-    | SCOPES
+    | Helpers
     |--------------------------------------------------------------------------
     */
 
-    /*
-    |--------------------------------------------------------------------------
-    | ACCESORS
-    |--------------------------------------------------------------------------
-    */
+    public function getFullname(): ?string
+    {
+        return $this->studentInfo
+            ? $this->studentInfo->formatted_full_name
+            : null;
+    }
 
-    /*
-    |--------------------------------------------------------------------------
-    | MUTATORS
-    |--------------------------------------------------------------------------
-    */
+    public function getReservationLink(): ?string
+    {
+        if (!$this->reservation) {
+            return null;
+        }
+
+        $url = url(
+            'reservation/'.$this->reservation->id
+        );
+
+        return '<a class="btn btn-link text-info btn-sm px-3 mb-0" '
+            .'href="'.$url.'" '
+            .'target="_blank" '
+            .'data-bs-toggle="tooltip" '
+            .'data-bs-original-title="Click to view reservation details">'
+            .'<i class="bi bi-eye me-2" aria-hidden="true"></i>'
+            .'View Details'
+            .'</a>';
+    }
 }

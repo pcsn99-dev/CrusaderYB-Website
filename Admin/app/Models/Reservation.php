@@ -15,6 +15,7 @@ class Reservation extends Model
         'pictorial_id',
         'student_info_id',
         'is_present',
+        'checked_in_at',
         'is_reschedule',
         'is_present_date',
         'reschedule_date',
@@ -24,6 +25,7 @@ class Reservation extends Model
 
     protected $casts = [
         'is_present' => 'integer',
+        'checked_in_at' => 'datetime',
         'is_reschedule' => 'boolean',
         'is_present_date' => 'date',
         'reschedule_date' => 'date',
@@ -103,6 +105,103 @@ class Reservation extends Model
 
         return $this->studentInfo->formatted_full_name;
     }
+
+
+    public function isPendingAttendance(): bool
+    {
+        return is_null($this->is_present);
+    }
+
+    public function isPresent(): bool
+    {
+        return $this->is_present === 1;
+    }
+
+    public function isAbsent(): bool
+    {
+        return $this->is_present === 0;
+    }
+
+    public function getScheduledAt(): ?Carbon
+    {
+        if (!$this->pictorial) {
+            return null;
+        }
+
+        return Carbon::parse(
+            $this->pictorial->date->format('Y-m-d')
+            .' '
+            .$this->pictorial->start_time
+        );
+    }
+
+    public function getMinutesLate(): ?int
+    {
+        if (
+            !$this->checked_in_at ||
+            !$this->isPresent()
+        ) {
+            return null;
+        }
+
+        $scheduledAt = $this->getScheduledAt();
+
+        if (!$scheduledAt) {
+            return null;
+        }
+
+        if (
+            $this->checked_in_at
+                ->lessThanOrEqualTo($scheduledAt)
+        ) {
+            return 0;
+        }
+
+        return $scheduledAt->diffInMinutes(
+            $this->checked_in_at
+        );
+    }
+
+    public function isLate(): bool
+    {
+        $minutesLate = $this->getMinutesLate();
+
+        return $minutesLate !== null &&
+            $minutesLate > 5;
+    }
+
+    public function getAttendanceStatus(): string
+    {
+        if ($this->isCancelled()) {
+            return 'cancelled';
+        }
+
+        if ($this->isPendingAttendance()) {
+            return 'pending';
+        }
+
+        if ($this->isAbsent()) {
+            return 'absent';
+        }
+
+        if ($this->isLate()) {
+            return 'late';
+        }
+
+        return 'present';
+    }
+
+
+
+
+
+
+
+
+
+
+
+
 
     public function getReservationStatus(): string
     {

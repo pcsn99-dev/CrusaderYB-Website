@@ -77,6 +77,18 @@ class RolesAndPermissionsSeeder extends Seeder
                 'guard_name' => 'web',
                 'description' => 'Allows creating, bulk creating, deleting, and managing pictorial schedules.',
             ],
+            [
+                'name' => 'View Pictorial Attendance',
+                'slug' => 'view-pictorial-attendance',
+                'guard_name' => 'web',
+                'description' => 'Allows viewing pictorial attendance records and reservation status.',
+            ],
+            [
+                'name' => 'Manage Pictorial Attendance',
+                'slug' => 'manage-pictorial-attendance',
+                'guard_name' => 'web',
+                'description' => 'Allows marking students as present, late, absent, reverting attendance, and applying attendance penalties.',
+            ],
 
 
         ];

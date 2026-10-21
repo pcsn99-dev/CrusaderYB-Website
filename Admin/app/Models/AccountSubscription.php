@@ -47,7 +47,7 @@ class AccountSubscription extends Model
     */
     public function student_info()
     {
-        return $this->belongsTo('\App\Models\Studentinfo', 'student_info_id');
+        return $this->belongsTo('\App\Models\StudentInfo', 'student_info_id');
     }
 
     public function receipts()

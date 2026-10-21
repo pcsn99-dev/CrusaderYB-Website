@@ -14,6 +14,7 @@ use App\Http\Controllers\StudentAccountController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\Settings\PictorialScheduleController;
 use App\Http\Controllers\Settings\YearController;
+use App\Http\Controllers\PictorialAttendanceController;
 
 
 /*
@@ -47,7 +48,12 @@ use App\Http\Controllers\Settings\YearController;
 | view-student-accounts
 | - Allows viewing and searching student accounts.
 |
-
+| view-pictorial-attendance
+| - Allows viewing pictorial attendance and active reservations.
+|
+| manage-pictorial-attendance
+| - Allows marking attendance, reverting attendance, and applying
+|   attendance-related penalties.
 |
 | Add new permissions in RolesAndPermissionsSeeder first, then use them
 | in routes through: ->middleware('permission:permission-slug')
@@ -121,6 +127,36 @@ Route::middleware(['auth', 'force.password.change', 'admin.account'])->group(fun
     )
         ->middleware('permission:manage-third-party-status')
         ->name('student-accounts.third-party.update');
+
+
+
+    //Pictorial Attendance
+    Route::prefix('pictorial-attendance')
+        ->name('pictorial-attendance.')
+        ->group(function () {
+
+            Route::get(
+                '/',
+                [PictorialAttendanceController::class, 'index']
+            )
+                ->middleware('permission:view-pictorial-attendance')
+                ->name('index');
+
+            Route::get(
+                '/reservations',
+                [PictorialAttendanceController::class, 'reservations']
+            )
+                ->middleware('permission:view-pictorial-attendance')
+                ->name('reservations');
+
+            Route::patch(
+                '/{reservation}',
+                [PictorialAttendanceController::class, 'updateAttendance']
+            )
+                ->middleware('permission:manage-pictorial-attendance')
+                ->name('update');
+        });
+
 
 
     

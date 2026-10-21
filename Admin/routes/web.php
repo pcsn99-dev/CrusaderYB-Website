@@ -186,6 +186,14 @@ Route::middleware(['auth', 'force.password.change', 'admin.account'])->group(fun
                 ->middleware('permission:view-penalties')
                 ->name('search');
 
+            Route::get(
+                '/students',
+                [PenaltyController::class, 'students']
+            )
+                ->middleware('permission:manage-penalties')
+                ->name('students');
+
+
             Route::post(
                 '/',
                 [PenaltyController::class, 'store']

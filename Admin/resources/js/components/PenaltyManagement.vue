@@ -20,6 +20,23 @@ interface PenaltyTypeOption {
     label: string;
 }
 
+interface StudentSearchResult {
+    id: number;
+    name: string | null;
+    university_id: string | null;
+    slmis_id: number | null;
+    year: string | null;
+    college: string | null;
+    program: string | null;
+}
+
+interface ManualPenaltyOption {
+    code: string;
+    label: string;
+    description: string;
+    amount: number;
+}
+
 interface PenaltyRecord {
     id: number;
 
@@ -70,6 +87,33 @@ interface PaginationMeta {
 
 const props = defineProps<Props>();
 
+const manualPenaltyOptions: ManualPenaltyOption[] = [
+    {
+        code: 'pictorial_late_minor',
+        label: 'Late — 6 to 14 Minutes',
+        description: 'Pictorial attendance lateness of 6 to 14 minutes.',
+        amount: 150,
+    },
+    {
+        code: 'pictorial_late_severe',
+        label: 'Late — 15 Minutes or More',
+        description: 'Pictorial attendance lateness of 15 minutes or more.',
+        amount: 500,
+    },
+    {
+        code: 'pictorial_absent',
+        label: 'Absent / Missed Pictorial',
+        description: 'Student missed the scheduled pictorial.',
+        amount: 500,
+    },
+    {
+        code: 'pictorial_unauthorized_photo',
+        label: 'Unauthorized Taking of Photos',
+        description: 'Student was caught taking photos during the pictorial.',
+        amount: 500,
+    },
+];    
+
 const selectedYear = ref('');
 
 const searchQuery = ref('');
@@ -86,6 +130,28 @@ const loading = ref(false);
 
 const errorMessage =
     ref<string | null>(null);
+
+const createModalOpen = ref(false);
+const creatingPenalty = ref(false);
+
+const studentSearchQuery = ref('');
+const studentSearchResults =
+    ref<StudentSearchResult[]>([]);
+
+const searchingStudents = ref(false);
+
+const selectedStudent =
+    ref<StudentSearchResult | null>(null);
+
+const selectedPenaltyCode = ref('');
+
+const createError =
+    ref<string | null>(null);
+
+const successMessage =
+    ref<string | null>(null);
+
+let successTimer: number | null = null;        
 
 const pagination =
     ref<PaginationMeta>({
@@ -117,6 +183,15 @@ const selectedYearData = computed(() => {
             selectedYear.value,
     );
 });
+
+const selectedManualPenalty =
+    computed(() => {
+        return manualPenaltyOptions.find(
+            (option) =>
+                option.code ===
+                selectedPenaltyCode.value,
+        ) ?? null;
+    });
 
 const pageNumbers = computed(() => {
     const current =
@@ -160,6 +235,24 @@ const formatAmount = (
             currency: 'PHP',
         },
     ).format(amount);
+};
+
+const showSuccess = (
+    message: string,
+): void => {
+    successMessage.value = message;
+
+    if (successTimer !== null) {
+        window.clearTimeout(
+            successTimer,
+        );
+    }
+
+    successTimer =
+        window.setTimeout(() => {
+            successMessage.value = null;
+            successTimer = null;
+        }, 4000);
 };
 
 const resetPenaltyData = (): void => {
@@ -368,10 +461,249 @@ const changePerPage =
     async (): Promise<void> => {
         await loadPenalties(1);
     };
+
+
+const resetCreateForm = (): void => {
+    studentSearchQuery.value = '';
+    studentSearchResults.value = [];
+
+    selectedStudent.value = null;
+    selectedPenaltyCode.value = '';
+
+    createError.value = null;
+};
+
+const openCreateModal = (): void => {
+    resetCreateForm();
+    createModalOpen.value = true;
+};
+
+const closeCreateModal = (): void => {
+    if (creatingPenalty.value) {
+        return;
+    }
+
+    createModalOpen.value = false;
+    resetCreateForm();
+};
+
+const searchStudents =
+    async (): Promise<void> => {
+        const query =
+            studentSearchQuery.value.trim();
+
+        createError.value = null;
+
+        if (!selectedYear.value) {
+            createError.value =
+                'Select a CYB year first.';
+            return;
+        }
+
+        if (query.length < 1) {
+            studentSearchResults.value = [];
+
+            createError.value =
+                'Enter a student name or ID.';
+            return;
+        }
+
+        searchingStudents.value = true;
+
+        try {
+            const params =
+                new URLSearchParams({
+                    year: selectedYear.value,
+                    q: query,
+                });
+
+            const response = await fetch(
+                `/penalties/students?${params.toString()}`,
+                {
+                    headers: {
+                        Accept:
+                            'application/json',
+                    },
+                },
+            );
+
+            const result =
+                await response.json();
+
+            if (!response.ok) {
+                throw new Error(
+                    result.message ??
+                        'Unable to search students.',
+                );
+            }
+
+            studentSearchResults.value =
+                result.data ?? [];
+
+            if (
+                studentSearchResults.value
+                    .length === 0
+            ) {
+                createError.value =
+                    'No students matched your search.';
+            }
+        } catch (error) {
+            studentSearchResults.value = [];
+
+            createError.value =
+                error instanceof Error
+                    ? error.message
+                    : 'Unable to search students.';
+        } finally {
+            searchingStudents.value = false;
+        }
+    };
+
+const selectStudent = (
+    student: StudentSearchResult,
+): void => {
+    selectedStudent.value = student;
+    createError.value = null;
+};
+
+const clearSelectedStudent =
+    (): void => {
+        selectedStudent.value = null;
+};
+
+const createPenalty =
+    async (): Promise<void> => {
+        createError.value = null;
+
+        if (!selectedYear.value) {
+            createError.value =
+                'Select a CYB year first.';
+            return;
+        }
+
+        if (!selectedStudent.value) {
+            createError.value =
+                'Select a student.';
+            return;
+        }
+
+        if (!selectedPenaltyCode.value) {
+            createError.value =
+                'Select a penalty.';
+            return;
+        }
+
+        creatingPenalty.value = true;
+
+        try {
+            const csrfToken =
+                document
+                    .querySelector<HTMLMetaElement>(
+                        'meta[name="csrf-token"]',
+                    )
+                    ?.getAttribute(
+                        'content',
+                    );
+
+            const response = await fetch(
+                '/penalties',
+                {
+                    method: 'POST',
+
+                    headers: {
+                        Accept:
+                            'application/json',
+
+                        'Content-Type':
+                            'application/json',
+
+                        'X-CSRF-TOKEN':
+                            csrfToken ?? '',
+                    },
+
+                    credentials:
+                        'same-origin',
+
+                    body: JSON.stringify({
+                        year:
+                            selectedYear.value,
+
+                        student_info_id:
+                            selectedStudent
+                                .value.id,
+
+                        penalty_code:
+                            selectedPenaltyCode
+                                .value,
+                    }),
+                },
+            );
+
+            const result =
+                await response.json();
+
+            if (!response.ok) {
+                throw new Error(
+                    result.message ??
+                        'Unable to add penalty.',
+                );
+            }
+
+            createModalOpen.value =
+                false;
+
+            resetCreateForm();
+
+            showSuccess(
+                result.message ??
+                    'Penalty added successfully.',
+            );
+
+            await loadPenalties(1);
+        } catch (error) {
+            createError.value =
+                error instanceof Error
+                    ? error.message
+                    : 'Unable to add penalty.';
+        } finally {
+            creatingPenalty.value =
+                false;
+        }
+    };
+
+
 </script>
 
 <template>
     <div class="cyb-stack">
+
+    <div
+        v-if="successMessage"
+        class="penalty-toast"
+        role="status"
+    >
+        <div class="penalty-toast-icon">
+            <i class="bi bi-check-lg"></i>
+        </div>
+
+        <div class="flex-grow-1">
+            <div class="fw-semibold">
+                Success
+            </div>
+
+            <div class="penalty-toast-message">
+                {{ successMessage }}
+            </div>
+        </div>
+
+        <button
+            type="button"
+            class="btn-close"
+            aria-label="Dismiss"
+            @click="successMessage = null"
+        ></button>
+    </div>
+
         <!-- Year Selection -->
         <div class="cyb-card">
             <div class="cyb-card-header">
@@ -524,7 +856,7 @@ const changePerPage =
                         v-if="canManage"
                         type="button"
                         class="btn btn-primary"
-                        disabled
+                        @click="openCreateModal"
                     >
                         <i class="bi bi-plus-lg me-2"></i>
 
@@ -907,15 +1239,6 @@ const changePerPage =
                                         <div class="penalty-row-actions">
                                             <button
                                                 type="button"
-                                                class="btn btn-sm btn-light border"
-                                                title="Edit penalty"
-                                                disabled
-                                            >
-                                                <i class="bi bi-pencil"></i>
-                                            </button>
-
-                                            <button
-                                                type="button"
                                                 class="btn btn-sm btn-outline-danger"
                                                 title="Delete penalty"
                                                 disabled
@@ -1065,22 +1388,12 @@ const changePerPage =
                             >
                                 <button
                                     type="button"
-                                    class="btn btn-light border"
-                                    disabled
-                                >
-                                    <i class="bi bi-pencil me-1"></i>
-
-                                    Edit
-                                </button>
-
-                                <button
-                                    type="button"
                                     class="btn btn-outline-danger"
                                     disabled
                                 >
                                     <i class="bi bi-trash me-1"></i>
 
-                                    Delete
+                                    Delete Penalty
                                 </button>
                             </div>
                         </article>
@@ -1196,6 +1509,298 @@ const changePerPage =
                 </template>
             </div>
         </template>
+
+
+
+        <!-- Create Penalty Modal -->
+        <div
+            v-if="createModalOpen"
+            class="modal fade show d-block"
+            tabindex="-1"
+            role="dialog"
+            aria-modal="true"
+        >
+            <div class="modal-dialog modal-dialog-centered modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <div>
+                            <h5 class="modal-title">
+                                Add Penalty
+                            </h5>
+
+                            <div class="text-muted small mt-1">
+                                CYB {{ selectedYear }}
+                            </div>
+                        </div>
+
+                        <button
+                            type="button"
+                            class="btn-close"
+                            :disabled="creatingPenalty"
+                            @click="closeCreateModal"
+                        ></button>
+                    </div>
+
+                    <div class="modal-body">
+                        <div
+                            v-if="createError"
+                            class="cyb-notice cyb-notice-danger rounded-3 mb-3"
+                        >
+                            <i class="bi bi-exclamation-circle"></i>
+
+                            <div>
+                                {{ createError }}
+                            </div>
+                        </div>
+
+                        <!-- Student -->
+                        <div class="mb-4">
+                            <label class="cyb-form-label">
+                                Student
+                            </label>
+
+                            <template v-if="!selectedStudent">
+                                <div class="student-search-row">
+                                    <div class="search-input-wrapper flex-grow-1">
+                                        <i class="bi bi-search"></i>
+
+                                        <input
+                                            v-model="studentSearchQuery"
+                                            type="search"
+                                            class="form-control cyb-form-control"
+                                            placeholder="Search name, University ID, or SLMIS ID..."
+                                            @keyup.enter="searchStudents"
+                                        >
+                                    </div>
+
+                                    <button
+                                        type="button"
+                                        class="btn btn-outline-primary"
+                                        :disabled="searchingStudents"
+                                        @click="searchStudents"
+                                    >
+                                        <span
+                                            v-if="searchingStudents"
+                                            class="spinner-border spinner-border-sm me-1"
+                                        ></span>
+
+                                        Search
+                                    </button>
+                                </div>
+
+                                <div
+                                    v-if="studentSearchResults.length > 0"
+                                    class="student-search-results"
+                                >
+                                    <button
+                                        v-for="student in studentSearchResults"
+                                        :key="student.id"
+                                        type="button"
+                                        class="student-search-result"
+                                        @click="selectStudent(student)"
+                                    >
+                                        <div>
+                                            <div class="student-result-name">
+                                                {{
+                                                    student.name
+                                                    ?? 'Unknown student'
+                                                }}
+                                            </div>
+
+                                            <div class="student-result-meta">
+                                                {{
+                                                    student.university_id
+                                                    ?? 'No University ID'
+                                                }}
+
+                                                <template v-if="student.slmis_id">
+                                                    · SLMIS
+                                                    {{ student.slmis_id }}
+                                                </template>
+                                            </div>
+
+                                            <div class="student-result-program">
+                                                {{
+                                                    student.college
+                                                    ?? '—'
+                                                }}
+
+                                                <template v-if="student.program">
+                                                    ·
+                                                    {{ student.program }}
+                                                </template>
+                                            </div>
+                                        </div>
+
+                                        <i class="bi bi-chevron-right"></i>
+                                    </button>
+                                </div>
+                            </template>
+
+                            <div
+                                v-else
+                                class="selected-student-card"
+                            >
+                                <div>
+                                    <div class="student-result-name">
+                                        {{
+                                            selectedStudent.name
+                                            ?? 'Unknown student'
+                                        }}
+                                    </div>
+
+                                    <div class="student-result-meta">
+                                        {{
+                                            selectedStudent.university_id
+                                            ?? 'No University ID'
+                                        }}
+
+                                        <template v-if="selectedStudent.slmis_id">
+                                            · SLMIS
+                                            {{ selectedStudent.slmis_id }}
+                                        </template>
+                                    </div>
+
+                                    <div class="student-result-program">
+                                        {{
+                                            selectedStudent.college
+                                            ?? '—'
+                                        }}
+
+                                        <template v-if="selectedStudent.program">
+                                            ·
+                                            {{ selectedStudent.program }}
+                                        </template>
+                                    </div>
+                                </div>
+
+                                <button
+                                    type="button"
+                                    class="btn btn-sm btn-light border"
+                                    @click="clearSelectedStudent"
+                                >
+                                    Change
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Penalty -->
+                        <div class="mb-3">
+                            <label class="cyb-form-label">
+                                Penalty
+                            </label>
+
+                            <select
+                                v-model="selectedPenaltyCode"
+                                class="form-select cyb-form-control"
+                            >
+                                <option value="">
+                                    Select a penalty
+                                </option>
+
+                                <option
+                                    v-for="option in manualPenaltyOptions"
+                                    :key="option.code"
+                                    :value="option.code"
+                                >
+                                    {{ option.label }}
+                                    — {{ formatAmount(option.amount) }}
+                                </option>
+                            </select>
+                        </div>
+
+                        <div
+                            v-if="selectedManualPenalty"
+                            class="penalty-selection-preview"
+                        >
+                            <div>
+                                <span>
+                                    Selected Penalty
+                                </span>
+
+                                <strong>
+                                    {{ selectedManualPenalty.label }}
+                                </strong>
+
+                                <p>
+                                    {{ selectedManualPenalty.description }}
+                                </p>
+                            </div>
+
+                            <div class="penalty-selection-amount">
+                                <span>
+                                    Amount
+                                </span>
+
+                                <strong>
+                                    {{
+                                        formatAmount(
+                                            selectedManualPenalty.amount,
+                                        )
+                                    }}
+                                </strong>
+                            </div>
+                        </div>
+
+                        <div class="cyb-notice cyb-notice-info rounded-3 mt-3">
+                            <i class="bi bi-info-circle"></i>
+
+                            <div>
+                                The penalty amount is fixed by the selected penalty type and cannot be manually changed.
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="modal-footer">
+                        <button
+                            type="button"
+                            class="btn btn-light border"
+                            :disabled="creatingPenalty"
+                            @click="closeCreateModal"
+                        >
+                            Cancel
+                        </button>
+
+                        <button
+                            type="button"
+                            class="btn btn-primary"
+                            :disabled="
+                                creatingPenalty ||
+                                !selectedStudent ||
+                                !selectedPenaltyCode
+                            "
+                            @click="createPenalty"
+                        >
+                            <span
+                                v-if="creatingPenalty"
+                                class="spinner-border spinner-border-sm me-2"
+                            ></span>
+
+                            <i
+                                v-else
+                                class="bi bi-plus-lg me-2"
+                            ></i>
+
+                            {{
+                                creatingPenalty
+                                    ? 'Adding...'
+                                    : 'Add Penalty'
+                            }}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div
+            v-if="createModalOpen"
+            class="modal-backdrop fade show"
+        ></div>
+
+
+
+
+
     </div>
 </template>
 
@@ -1543,10 +2148,8 @@ const changePerPage =
 }
 
 .penalty-mobile-actions {
-    display: grid;
-
-    grid-template-columns:
-        repeat(2, minmax(0, 1fr));
+    display: flex;
+    justify-content: flex-end;
 
     gap: 0.5rem;
 
@@ -1664,6 +2267,200 @@ const changePerPage =
     }
 }
 
+.student-search-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.student-search-results {
+    overflow-y: auto;
+
+    max-height: 280px;
+
+    margin-top: 0.75rem;
+
+    border: 1px solid #dee2e6;
+    border-radius: 0.65rem;
+}
+
+.student-search-result {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    width: 100%;
+
+    padding: 0.8rem 0.9rem;
+
+    border: 0;
+    border-bottom: 1px solid #edf0f2;
+
+    background: #fff;
+
+    text-align: left;
+
+    transition:
+        background-color 0.15s ease,
+        padding-left 0.15s ease;
+}
+
+.student-search-result:last-child {
+    border-bottom: 0;
+}
+
+.student-search-result:hover {
+    padding-left: 1rem;
+
+    background: #f8f9fa;
+}
+
+.student-search-result > i {
+    color: #adb5bd;
+}
+
+.student-result-name {
+    color: #212529;
+
+    font-weight: 650;
+}
+
+.student-result-meta {
+    margin-top: 0.15rem;
+
+    color: #6c757d;
+
+    font-size: 0.8rem;
+}
+
+.student-result-program {
+    margin-top: 0.1rem;
+
+    color: #6c757d;
+
+    font-size: 0.75rem;
+}
+
+.selected-student-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+
+    padding: 0.85rem 1rem;
+
+    border: 1px solid #b6d4fe;
+    border-radius: 0.65rem;
+
+    background: #f3f8ff;
+}
+
+.penalty-selection-preview {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1.5rem;
+
+    padding: 1rem;
+
+    border: 1px solid #e3e7eb;
+    border-radius: 0.65rem;
+
+    background: #f8f9fa;
+}
+
+.penalty-selection-preview > div:first-child {
+    flex: 1 1 auto;
+}
+
+.penalty-selection-preview span {
+    display: block;
+
+    color: #6c757d;
+
+    font-size: 0.74rem;
+}
+
+.penalty-selection-preview strong {
+    display: block;
+
+    margin-top: 0.1rem;
+
+    color: #212529;
+}
+
+.penalty-selection-preview p {
+    margin: 0.3rem 0 0;
+
+    color: #6c757d;
+
+    font-size: 0.8rem;
+}
+
+.penalty-selection-amount {
+    flex: 0 0 auto;
+
+    text-align: right;
+}
+
+.penalty-selection-amount strong {
+    color: #b02a37;
+
+    font-size: 1.15rem;
+}
+
+.penalty-toast {
+    position: fixed;
+
+    top: 1.25rem;
+    right: 1.25rem;
+
+    z-index: 1090;
+
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+
+    width: min(
+        420px,
+        calc(100vw - 2rem)
+    );
+
+    padding: 0.9rem 1rem;
+
+    border: 1px solid #badbcc;
+    border-radius: 0.75rem;
+
+    background: #d1e7dd;
+    color: #0f5132;
+
+    box-shadow:
+        0 0.5rem 1.25rem
+        rgba(0, 0, 0, 0.12);
+}
+
+.penalty-toast-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 1.75rem;
+    height: 1.75rem;
+
+    flex: 0 0 1.75rem;
+
+    border-radius: 50%;
+
+    background: #0f5132;
+    color: #fff;
+}
+
+.penalty-toast-message {
+    margin-top: 0.15rem;
+
+    font-size: 0.86rem;
+}
+
 @media (max-width: 520px) {
     .penalty-year-summary {
         grid-template-columns: 1fr;
@@ -1682,8 +2479,38 @@ const changePerPage =
         align-items: flex-start;
     }
 
-    .penalty-mobile-actions {
-        grid-template-columns: 1fr 1fr;
+
+    .student-search-row {
+        align-items: stretch;
+        flex-direction: column;
     }
+
+    .student-search-row .btn {
+        width: 100%;
+    }
+
+    .selected-student-card {
+        align-items: flex-start;
+    }
+
+    .penalty-selection-preview {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .penalty-selection-amount {
+        text-align: left;
+    }
+
+    .penalty-toast {
+        top: 0.75rem;
+        right: 0.75rem;
+        left: 0.75rem;
+
+        width: auto;
+    }
+
+
+
 }
 </style>

@@ -89,6 +89,18 @@ class RolesAndPermissionsSeeder extends Seeder
                 'guard_name' => 'web',
                 'description' => 'Allows marking students as present, late, absent, reverting attendance, and applying attendance penalties.',
             ],
+            [
+                'name' => 'View Penalties',
+                'slug' => 'view-penalties',
+                'guard_name' => 'web',
+                'description' => 'Allows viewing and searching student penalties.',
+            ],
+            [
+                'name' => 'Manage Penalties',
+                'slug' => 'manage-penalties',
+                'guard_name' => 'web',
+                'description' => 'Allows creating, editing, and deleting student penalties.',
+            ],
 
 
         ];

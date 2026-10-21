@@ -15,6 +15,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\Settings\PictorialScheduleController;
 use App\Http\Controllers\Settings\YearController;
 use App\Http\Controllers\PictorialAttendanceController;
+use App\Http\Controllers\PenaltyController;
 
 
 /*
@@ -55,9 +56,18 @@ use App\Http\Controllers\PictorialAttendanceController;
 | - Allows marking attendance, reverting attendance, and applying
 |   attendance-related penalties.
 |
+
+|
+| view-penalties
+| - Allows viewing and searching student penalties.
+|
+| manage-penalties
+| - Allows creating, editing, and deleting student penalties.
+|
+
 | Add new permissions in RolesAndPermissionsSeeder first, then use them
 | in routes through: ->middleware('permission:permission-slug')
-|
+
 */
 
 
@@ -157,7 +167,46 @@ Route::middleware(['auth', 'force.password.change', 'admin.account'])->group(fun
                 ->name('update');
         });
 
+    //penalties
+    Route::prefix('penalties')
+        ->name('penalties.')
+        ->group(function () {
 
+            Route::get(
+                '/',
+                [PenaltyController::class, 'index']
+            )
+                ->middleware('permission:view-penalties')
+                ->name('index');
+
+            Route::get(
+                '/search',
+                [PenaltyController::class, 'search']
+            )
+                ->middleware('permission:view-penalties')
+                ->name('search');
+
+            Route::post(
+                '/',
+                [PenaltyController::class, 'store']
+            )
+                ->middleware('permission:manage-penalties')
+                ->name('store');
+
+            Route::put(
+                '/{penalty}',
+                [PenaltyController::class, 'update']
+            )
+                ->middleware('permission:manage-penalties')
+                ->name('update');
+
+            Route::delete(
+                '/{penalty}',
+                [PenaltyController::class, 'destroy']
+            )
+                ->middleware('permission:manage-penalties')
+                ->name('destroy');
+        });
 
     
     //settings

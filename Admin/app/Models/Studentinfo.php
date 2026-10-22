@@ -37,6 +37,7 @@ class StudentInfo extends Model
         'major_id',
         'is_agree_contract',
         'is_subscribe',
+        'subscription_package_id',
         'subscribe_date',
         'unsubscribe_date',
         'orgs',
@@ -63,6 +64,7 @@ class StudentInfo extends Model
         'claim_pic_date' => 'date',
         'free_same_day_resched' => 'boolean',
         'is_third_party' => 'boolean',
+        'subscription_package_id' => 'integer',
     ];
 
     public $timestamps = true;
@@ -81,6 +83,15 @@ class StudentInfo extends Model
     public function college()
     {
         return $this->belongsTo(College::class, 'college_id');
+    }
+
+    public function subscriptionPackage()
+    {
+        return $this->belongsTo(
+            SubscriptionPackage::class,
+            'subscription_package_id',
+            'subs_id'
+        );
     }
 
     public function program()

@@ -13,10 +13,12 @@ import type {
     ReschedulePenaltyPreview,
     StoreStudentReservationResponse,
     StudentAccountDetail,
+    SubscriptionPackage,
 } from '@/types/student-account';
 
 interface Props {
     student: StudentAccountDetail;
+    subscriptionPackages: SubscriptionPackage[];
 }
 
 const props = defineProps<Props>();
@@ -37,6 +39,21 @@ const hasCurrentReservation = computed(() => {
 
 const isUpdatingSubscription = ref(false);
 const isUpdatingThirdParty = ref(false);
+
+const selectedSubscriptionPackageId =
+    ref<number | null>(
+        props.student.subscription_package_id
+    );
+
+const isUpdatingPackage = ref(false);
+
+const selectedSubscriptionPackage = computed(() => {
+    return props.subscriptionPackages.find(
+        (pkg) =>
+            pkg.id === selectedSubscriptionPackageId.value
+    ) ?? null;
+});
+
 
 const reservationModalOpen = ref(false);
 
@@ -326,6 +343,105 @@ const updateSubscription = async (
         isUpdatingSubscription.value = false;
     }
 };
+
+
+const updateSubscriptionPackage =
+    async (): Promise<void> => {
+        const packageId =
+            selectedSubscriptionPackageId.value;
+
+        if (
+            isUpdatingPackage.value ||
+            packageId === null ||
+            packageId ===
+                studentData.value.subscription_package_id
+        ) {
+            return;
+        }
+
+        const selectedPackage =
+            selectedSubscriptionPackage.value;
+
+        if (!selectedPackage) {
+            showActionError(
+                'Please select a valid subscription package.'
+            );
+            return;
+        }
+
+        const confirmed = window.confirm(
+            `Change subscription package for ${studentData.value.full_name} to ${selectedPackage.name}?`
+        );
+
+        if (!confirmed) {
+            return;
+        }
+
+        isUpdatingPackage.value = true;
+        actionError.value = null;
+        actionMessage.value = null;
+
+        try {
+            const response = await fetch(
+                `/student-accounts/${studentData.value.id}/subscription-package`,
+                {
+                    method: 'PATCH',
+
+                    headers: {
+                        Accept: 'application/json',
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': getCsrfToken(),
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+
+                    credentials: 'same-origin',
+
+                    body: JSON.stringify({
+                        subscription_package_id: packageId,
+                    }),
+                }
+            );
+
+            const result = await readJsonResponse(response);
+
+            if (!response.ok) {
+                throw new Error(
+                    result.message ??
+                        'Unable to update subscription package.'
+                );
+            }
+
+            if (!result.student?.subscription_package) {
+                throw new Error(
+                    'The server returned an invalid package response.'
+                );
+            }
+
+            studentData.value.subscription_package_id =
+                result.student.subscription_package_id;
+
+            studentData.value.subscription_package =
+                result.student.subscription_package;
+
+            selectedSubscriptionPackageId.value =
+                result.student.subscription_package_id;
+
+            showActionMessage(
+                result.message ??
+                    'Subscription package updated successfully.'
+            );
+        } catch (error) {
+            showActionError(
+                error instanceof Error
+                    ? error.message
+                    : 'Unable to update subscription package.'
+            );
+        } finally {
+            isUpdatingPackage.value = false;
+        }
+    };
+
+
 
 const updateThirdParty = async (
     newStatus: boolean,
@@ -903,6 +1019,45 @@ const saveReservation =
                             ></span>
                         </div>
 
+                        <!-- Subscription Package -->
+                        <div class="status-row">
+                            <div>
+                                <div class="info-label">
+                                    Subscription Package
+                                </div>
+
+                                <div class="info-value fw-semibold">
+                                    {{
+                                        studentData.subscription_package
+                                            ?.name ?? 'No package assigned'
+                                    }}
+                                </div>
+
+                                <div
+                                    v-if="studentData.subscription_package"
+                                    class="small text-muted mt-1"
+                                >
+                                    {{
+                                        formatAmount(
+                                            studentData.subscription_package.amount
+                                        )
+                                    }}
+
+                                    <template
+                                        v-if="
+                                            studentData.subscription_package.description
+                                        "
+                                    >
+                                        ·
+                                        {{
+                                            studentData.subscription_package.description
+                                        }}
+                                    </template>
+                                </div>
+                            </div>
+                        </div>
+
+
                         <div class="status-row">
                             <div>
                                 <div class="info-label">
@@ -1022,6 +1177,95 @@ const saveReservation =
 
                     <div class="card-body">
                         <div class="row g-3">
+
+                            <!-- Subscription Package Management -->
+                            <div
+                                v-if="
+                                    studentData.permissions.manage_subscription
+                                "
+                                class="col-12 col-lg-6"
+                            >
+                                <div class="action-panel">
+                                    <div>
+                                        <div class="action-title">
+                                            Subscription Package
+                                        </div>
+
+                                        <p class="action-description">
+                                            Change the student's selected CYB subscription
+                                            package. Changes are recorded in the audit log.
+                                        </p>
+                                    </div>
+
+                                    <div class="w-100">
+                                        <label
+                                            for="student-subscription-package"
+                                            class="cyb-form-label mb-2"
+                                        >
+                                            Select Package
+                                        </label>
+
+                                        <select
+                                            id="student-subscription-package"
+                                            v-model.number="selectedSubscriptionPackageId"
+                                            class="form-select"
+                                            :disabled="isUpdatingPackage"
+                                        >
+                                            <option :value="null">
+                                                Select a package
+                                            </option>
+
+                                            <option
+                                                v-for="pkg in props.subscriptionPackages"
+                                                :key="pkg.id"
+                                                :value="pkg.id"
+                                            >
+                                                {{ pkg.name }} —
+                                                {{ formatAmount(pkg.amount) }}
+                                            </option>
+                                        </select>
+
+                                        <div
+                                            v-if="selectedSubscriptionPackage"
+                                            class="small text-muted mt-2"
+                                        >
+                                            {{
+                                                selectedSubscriptionPackage.description ||
+                                                'No package description available.'
+                                            }}
+                                        </div>
+                                    </div>
+
+                                    <button
+                                        type="button"
+                                        class="btn btn-outline-primary"
+                                        :disabled="
+                                            isUpdatingPackage ||
+                                            selectedSubscriptionPackageId === null ||
+                                            selectedSubscriptionPackageId ===
+                                                studentData.subscription_package_id
+                                        "
+                                        @click="updateSubscriptionPackage"
+                                    >
+                                        <span
+                                            v-if="isUpdatingPackage"
+                                            class="spinner-border spinner-border-sm me-2"
+                                        ></span>
+
+                                        <i
+                                            v-else
+                                            class="bi bi-arrow-repeat me-1"
+                                        ></i>
+
+                                        {{
+                                            isUpdatingPackage
+                                                ? 'Updating Package...'
+                                                : 'Update Package'
+                                        }}
+                                    </button>
+                                </div>
+                            </div>                           
+
                             <div
                                 v-if="
                                     studentData.permissions

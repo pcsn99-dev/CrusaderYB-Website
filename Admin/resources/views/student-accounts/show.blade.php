@@ -27,6 +27,7 @@
         <div
             id="student-account-show-app"
             data-student='@json($student)'
+            data-subscription-packages='@json($subscriptionPackages)'
         ></div>
 
         @push('scripts')

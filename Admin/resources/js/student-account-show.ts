@@ -10,7 +10,12 @@ if (element) {
         element.dataset.student ?? '{}',
     );
 
+    const subscriptionPackages = JSON.parse(
+        element.dataset.subscriptionPackages ?? '[]',
+    );
+
     createApp(StudentAccountShow, {
         student,
+        subscriptionPackages,
     }).mount(element);
 }

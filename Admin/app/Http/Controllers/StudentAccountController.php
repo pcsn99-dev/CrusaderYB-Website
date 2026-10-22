@@ -15,6 +15,7 @@ use App\Models\Penalty;
 use App\Models\Pictorial;
 use App\Services\PictorialAttendanceService;
 use App\Models\Reservation;
+use App\Models\SubscriptionPackage;
 use Illuminate\Validation\Rule;
 
 use Throwable;
@@ -137,9 +138,27 @@ class StudentAccountController extends Controller
             'college:id,college_name',
             'program:id,program_name',
             'major:id,major_name',
+            'subscriptionPackage:subs_id,subscription_name,subscription_description,subscription_amount',
 
             'reservations.pictorial',
         ]);
+
+        $subscriptionPackages = SubscriptionPackage::query()
+            ->orderBy('subs_id')
+            ->get([
+                'subs_id',
+                'subscription_name',
+                'subscription_description',
+                'subscription_amount',
+            ])
+            ->map(fn ($package) => [
+                'id' => (int) $package->subs_id,
+                'name' => $package->subscription_name,
+                'description' => $package->subscription_description,
+                'amount' => (float) $package->subscription_amount,
+            ])
+            ->values()
+            ->all();
 
 
         $reservations = $student->reservations
@@ -398,6 +417,26 @@ class StudentAccountController extends Controller
                 $student
                     ->is_subscribe,
 
+            'subscription_package_id' =>
+                $student->subscription_package_id,
+
+            'subscription_package' =>
+                $student->subscriptionPackage
+                    ? [
+                        'id' =>
+                            (int) $student->subscriptionPackage->subs_id,
+
+                        'name' =>
+                            $student->subscriptionPackage->subscription_name,
+
+                        'description' =>
+                            $student->subscriptionPackage->subscription_description,
+
+                        'amount' =>
+                            (float) $student->subscriptionPackage->subscription_amount,
+                    ]
+                    : null,
+
             'is_third_party' =>
                 (bool)
                 $student
@@ -454,6 +493,9 @@ class StudentAccountController extends Controller
             [
                 'student' =>
                     $studentData,
+
+                'subscriptionPackages' => 
+                    $subscriptionPackages,    
             ]
         );
     }
@@ -1226,6 +1268,152 @@ class StudentAccountController extends Controller
         }
     }
 
+
+    public function updateSubscriptionPackage(
+        Request $request,
+        StudentInfo $student
+    ): JsonResponse {
+        abort_unless(
+            Auth::user()?->hasPermission(
+                'manage-student-subscription'
+            ),
+            403
+        );
+
+        $validated = $request->validate([
+            'subscription_package_id' => [
+                'required',
+                'integer',
+                Rule::exists(
+                    'subscription_packages',
+                    'subs_id'
+                ),
+            ],
+        ]);
+
+        $newPackageId =
+            (int) $validated['subscription_package_id'];
+
+        $oldPackageId =
+            $student->subscription_package_id;
+
+        if (
+            $oldPackageId !== null &&
+            (int) $oldPackageId === $newPackageId
+        ) {
+            return response()->json([
+                'message' =>
+                    'The student already has this subscription package.',
+            ], 422);
+        }
+
+        try {
+            $result = DB::transaction(function () use (
+                $student,
+                $newPackageId
+            ) {
+                $lockedStudent = StudentInfo::query()
+                    ->whereKey($student->id)
+                    ->lockForUpdate()
+                    ->firstOrFail();
+
+                $oldPackageId =
+                    $lockedStudent->subscription_package_id;
+
+                $oldPackage = $lockedStudent
+                    ->subscriptionPackage()
+                    ->first();
+
+                $newPackage = SubscriptionPackage::query()
+                    ->findOrFail($newPackageId);
+
+                if (
+                    $oldPackageId !== null &&
+                    (int) $oldPackageId === $newPackageId
+                ) {
+                    return [
+                        'changed' => false,
+                        'package' => $newPackage,
+                    ];
+                }
+
+                $lockedStudent->update([
+                    'subscription_package_id' =>
+                        $newPackageId,
+                ]);
+
+                $adminName =
+                    Auth::user()?->name ?? 'Unknown admin';
+
+                AuditLogger::record(
+                    module: 'student_accounts',
+                    action: 'subscription_package_updated',
+                    description:
+                        "{$adminName} changed the subscription package for ".
+                        "{$lockedStudent->formatted_full_name} ".
+                        "({$lockedStudent->university_id}) from ".
+                        ($oldPackage?->subscription_name ?? 'None').
+                        ' to '.
+                        $newPackage->subscription_name.'.',
+                    model: $lockedStudent,
+                    oldValues: [
+                        'subscription_package_id' =>
+                            $oldPackageId,
+
+                        'subscription_package_name' =>
+                            $oldPackage?->subscription_name,
+                    ],
+                    newValues: [
+                        'subscription_package_id' =>
+                            $newPackageId,
+
+                        'subscription_package_name' =>
+                            $newPackage->subscription_name,
+                    ]
+                );
+
+                return [
+                    'changed' => true,
+                    'package' => $newPackage,
+                ];
+            });
+
+            $package = $result['package'];
+
+            return response()->json([
+                'message' => $result['changed']
+                    ? 'Subscription package updated successfully.'
+                    : 'The student already has this subscription package.',
+
+                'student' => [
+                    'subscription_package_id' =>
+                        (int) $package->subs_id,
+
+                    'subscription_package' => [
+                        'id' =>
+                            (int) $package->subs_id,
+
+                        'name' =>
+                            $package->subscription_name,
+
+                        'description' =>
+                            $package->subscription_description,
+
+                        'amount' =>
+                            (float) $package->subscription_amount,
+                    ],
+                ],
+            ]);
+        } catch (Throwable $exception) {
+            report($exception);
+
+            return response()->json([
+                'message' =>
+                    'Unable to update the subscription package.',
+            ], 500);
+        }
+    }    
+    
     public function cancelReservation(
         Request $request,
         StudentInfo $student,

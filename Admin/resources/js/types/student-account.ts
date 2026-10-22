@@ -157,6 +157,13 @@ export interface StudentPenaltyReservation {
     end_time: string | null;
 }
 
+export interface SubscriptionPackage {
+    id: number;
+    name: string;
+    description: string | null;
+    amount: number;
+}
+
 export interface StudentPenalty {
     id: number;
     year: string | null;
@@ -204,6 +211,9 @@ export interface StudentAccountDetail {
     is_agree_contract: boolean;
     is_subscribe: boolean;
     is_third_party: boolean;
+
+    subscription_package_id: number | null;
+    subscription_package: SubscriptionPackage | null;
 
     subscribe_date: string | null;
     unsubscribe_date: string | null;

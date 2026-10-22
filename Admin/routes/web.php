@@ -154,6 +154,14 @@ Route::middleware(['auth', 'force.password.change', 'admin.account'])->group(fun
         ->name('student-accounts.subscription.update');
 
     Route::patch(
+        '/student-accounts/{student}/subscription-package',
+        [StudentAccountController::class, 'updateSubscriptionPackage']
+    )
+        ->middleware('permission:manage-student-subscription')
+        ->name('student-accounts.subscription-package.update');
+
+
+    Route::patch(
         '/student-accounts/{student}/third-party',
         [StudentAccountController::class, 'updateThirdPartyStatus']
     )
